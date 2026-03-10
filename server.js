@@ -26,7 +26,6 @@ db.exec(`
   );
 `);
 
-// Ensure products row exists
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
 if (!prodRow) {
   const defaultProducts = JSON.stringify({
@@ -44,10 +43,9 @@ app.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
 }));
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
   if (req.session.authenticated) return next();
   res.status(401).json({ error: 'Unauthorized' });
@@ -72,7 +70,6 @@ app.get('/api/me', (req, res) => {
   res.json({ authenticated: !!req.session.authenticated });
 });
 
-// ── TRADES API ────────────────────────────────────────────────────────────────
 app.get('/api/trades', requireAuth, (req, res) => {
   const rows = db.prepare('SELECT id, data FROM trades ORDER BY id DESC').all();
   const trades = rows.map(r => ({ ...JSON.parse(r.data), id: r.id }));
@@ -81,7 +78,7 @@ app.get('/api/trades', requireAuth, (req, res) => {
 
 app.post('/api/trades', requireAuth, (req, res) => {
   const trade = req.body;
-  delete trade.id; // let DB assign
+  delete trade.id;
   const info = db.prepare('INSERT INTO trades (data) VALUES (?)').run(JSON.stringify(trade));
   res.json({ id: info.lastInsertRowid });
 });
@@ -112,7 +109,6 @@ app.delete('/api/trades/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── PRODUCTS API ──────────────────────────────────────────────────────────────
 app.get('/api/products', requireAuth, (req, res) => {
   const row = db.prepare('SELECT data FROM products LIMIT 1').get();
   res.json(JSON.parse(row.data));
@@ -124,7 +120,6 @@ app.put('/api/products', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── SERVE FRONTEND ────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
