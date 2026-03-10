@@ -100,6 +100,13 @@ app.post('/api/trades/bulk', requireAuth, (req, res) => {
   res.json({ ok: true, count: trades.length });
 });
 
+app.put('/api/trades/:id', requireAuth, (req, res) => {
+  const trade = req.body;
+  delete trade.id;
+  db.prepare('UPDATE trades SET data = ? WHERE id = ?').run(JSON.stringify(trade), req.params.id);
+  res.json({ ok: true });
+});
+
 app.delete('/api/trades/:id', requireAuth, (req, res) => {
   db.prepare('DELETE FROM trades WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
