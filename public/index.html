@@ -203,7 +203,7 @@
       <input type="password" id="loginPwd" placeholder="" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-err" id="loginErr">Parolă incorectă</div>
-    <button class="login-btn" onclick="doLogin()">Întru</button>
+    <button class="login-btn" onclick="doLogin()">Intră</button>
   </div>
 </div>
 
@@ -222,16 +222,19 @@
     <div class="sep"></div>
     <div class="ts" id="ts"></div>
     <div class="sep"></div>
-    <button class="btn-logout" onclick="doLogout()">Ieşire</button>
+    <button class="btn-logout" onclick="doLogout()">Ieșire</button>
   </div>
 </header>
+
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
   <div class="tab"     id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026  <span class="tbadge" id="b26">0</span></div>
 </div>
+
 <div class="main">
   <div class="cards" id="cards"></div>
   <div class="two-col">
+    <!-- LEFT -->
     <div class="panel">
       <div class="ph">
         <div class="pt">Registru Tranzacții</div>
@@ -250,7 +253,7 @@
           </div>
           <div class="fg"><label class="fl">Direcție</label>
             <select id="fDir" onchange="onFormChange()">
-              <option value="long">▲ CUMĂRARE</option>
+              <option value="long">▲ CUMPĂRARE</option>
               <option value="short">▼ VÂNZARE</option>
             </select>
           </div>
@@ -302,6 +305,7 @@
         </table>
       </div>
     </div>
+    <!-- RIGHT -->
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="panel">
         <div class="ph"><div class="pt">Poziție Netă — Ambele Recolte</div></div>
@@ -314,12 +318,14 @@
     </div>
   </div>
 </div>
+
 <footer class="footer">
   <div>Agrotex SRL · Physical Grain & Oilseed Trading</div>
   <div id="ftotal"></div>
 </footer>
-</div>
+</div><!-- /app -->
 
+<!-- ADD PRODUCT MODAL -->
 <div class="overlay" id="modProd">
   <div class="modal">
     <div class="mtitle">Produs Nou</div>
@@ -338,6 +344,7 @@
   </div>
 </div>
 
+<!-- EDIT TRADE MODAL -->
 <div class="overlay" id="modEdit">
   <div class="modal" style="width:500px;max-width:98vw;">
     <div class="mtitle">Editează Tranzacție <span id="editId" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
@@ -348,7 +355,7 @@
       </div>
       <div class="fg"><label class="fl">Direcție</label>
         <select id="eDir" onchange="onEditChange()">
-          <option value="long">▲ CUMĂRARE</option>
+          <option value="long">▲ CUMPĂRARE</option>
           <option value="short">▼ VÂNZARE</option>
         </select>
       </div>
@@ -366,6 +373,7 @@
       <div class="fg"><label class="fl">Paritate</label><select id="eParity" onchange="onEditChange()"></select></div>
       <div class="fg"><label class="fl">Locație / Bază</label><input id="eLoc" type="text"></div>
     </div>
+    <!-- fix fields -->
     <div id="eRowFix">
       <div class="fr fr3">
         <div class="fg"><label class="fl">Preț (RON/t)</label><input id="ePrice" type="number" step="0.01"></div>
@@ -373,6 +381,7 @@
         <div class="fg"><label class="fl">Data</label><input id="eDate" type="date"></div>
       </div>
     </div>
+    <!-- basis fields -->
     <div id="eRowBasis" style="display:none">
       <div class="fr fr4">
         <div class="fg"><label class="fl">Contract MATIF</label><input id="eMatif" type="text"></div>
@@ -392,6 +401,7 @@
   </div>
 </div>
 
+<!-- IMPORT MODAL -->
 <div class="overlay" id="modImport">
   <div class="modal import-modal">
     <div class="mtitle">Import Excel</div>
@@ -406,7 +416,7 @@
          ondragleave="this.classList.remove('drag')"
          ondrop="onDrop(event)">
       <div class="import-zone-icon">📂</div>
-      <div class="import-zone-text">Trage fişierul Excel aici sau <span>selectează manual</span></div>
+      <div class="import-zone-text">Trage fișierul Excel aici sau <span>selectează manual</span></div>
     </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event)">
     <div id="importStatus" style="display:none"></div>
@@ -419,6 +429,7 @@
 </div>
 
 <script>
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const SWATCHES=['#f59e0b','#e2a857','#f0c040','#22c55e','#8bc34a','#34d399','#3b82f6','#60a5fa','#a78bfa','#e879f9','#ef4444','#f97316','#06b6d4','#ec4899','#94a3b8'];
 const PARITY_RULES={
   long: [
@@ -431,11 +442,15 @@ const PARITY_RULES={
     {val:'DAP-V', label:'DAP',  transport:true},
   ],
 };
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
 let products = {};
 let trades   = [];
 let crop     = '2025';
 let selColor = SWATCHES[0];
 let importBuffer = [];
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 async function doLogin(){
   const pwd = document.getElementById('loginPwd').value;
   const res = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
@@ -447,25 +462,31 @@ async function doLogin(){
     document.getElementById('loginErr').style.display='block';
   }
 }
+
 async function doLogout(){
   await fetch('/api/logout',{method:'POST'});
   location.reload();
 }
+
+// ── API HELPERS ───────────────────────────────────────────────────────────────
 function setSyncStatus(state, text){
   const el = document.getElementById('syncStatus');
   el.className = 'sync ' + state;
   el.textContent = text;
 }
+
 async function loadAll(){
   setSyncStatus('saving','● syncing...');
   const [tRes, pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
-  trades   = await tRes.json();
+  const tData = await tRes.json();
+  trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
   setSyncStatus('saved','● synced');
   populateProd();
   onFormChange();
   render();
 }
+
 async function apiAddTrade(t){
   setSyncStatus('saving','● saving...');
   const res = await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
@@ -473,19 +494,24 @@ async function apiAddTrade(t){
   setSyncStatus('saved','● saved');
   return data.id;
 }
+
 async function apiDeleteTrade(id){
   setSyncStatus('saving','● saving...');
   await fetch(`/api/trades/${id}`,{method:'DELETE'});
   setSyncStatus('saved','● saved');
 }
+
 async function apiSaveProducts(){
   await fetch('/api/products',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(products)});
 }
+
 async function apiBulkImport(tradeList){
   setSyncStatus('saving','● importing...');
   await fetch('/api/trades/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trades:tradeList})});
   setSyncStatus('saved','● saved');
 }
+
+// ── FORM ──────────────────────────────────────────────────────────────────────
 function onFormChange(){
   const dir   = document.getElementById('fDir').value;
   const ptype = document.getElementById('fPtype').value;
@@ -503,6 +529,8 @@ function onFormChange(){
   document.getElementById('grpTransport').style.display  = (ptype==='fix'   && needT)?'':'none';
   document.getElementById('grpTransportB').style.display = (ptype==='basis' && needT)?'':'none';
 }
+
+// ── ADD TRADE ─────────────────────────────────────────────────────────────────
 async function addTrade(){
   const product= document.getElementById('fProd').value;
   const cr     = document.getElementById('fCrop').value;
@@ -545,11 +573,14 @@ async function addTrade(){
     const el=document.getElementById(id); if(el) el.value='';
   });
 }
+
 async function deleteTrade(id){
   await apiDeleteTrade(id);
   trades=trades.filter(t=>t.id!==id);
   render();
 }
+
+// ── PRODUCT MODAL ─────────────────────────────────────────────────────────────
 function openAddProd(){
   selColor=SWATCHES[0];
   ['mName','mSym','mEmoji'].forEach(id=>document.getElementById(id).value='');
@@ -574,6 +605,8 @@ async function saveProd(){
   closeModal('modProd');
   render();
 }
+
+// ── IMPORT ────────────────────────────────────────────────────────────────────
 function openImport(){
   importBuffer=[];
   document.getElementById('importStatus').style.display='none';
@@ -601,7 +634,7 @@ function parseFile(file){
       let headerIdx=rows.findIndex(r=>r.some(c=>String(c||'').toLowerCase().includes('produs')));
       if(headerIdx<0) headerIdx=0;
       const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim()
-        .replace(/\s+/g,'_').replace(/[()/]/g,'')
+        .replace(/\s+/g,'_').replace(/[()\/<br>\/]/g,'')
         .replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a').replace(/ț/g,'t').replace(/ș/g,'s'));
       const dataRows=rows.slice(headerIdx+1).filter(r=>r.some(c=>c!==null&&c!==undefined&&c!==''));
       importBuffer=[];
@@ -617,6 +650,7 @@ function parseFile(file){
         const qtyRaw=get(['cantitate','qty','quantity','tone']);
         const qty=parseFloat(qtyRaw);
         if(!qtyRaw||isNaN(qty)||qty<=0){skipped++;return;}
+
         const product   =get(['produs','product']).toLowerCase().replace(/\s+/g,'_').replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ț/g,'t').replace(/ș/g,'s')||'wheat';
         const cr        =get(['recolta','crop','an'])||'2025';
         const dirRaw    =get(['directie','dir','direction']).toLowerCase();
@@ -629,16 +663,19 @@ function parseFile(file){
         const loc       =get(['locatie','locatia','baza','location']);
         const cpty      =get(['contraparte','counterparty','partener']);
         const dateRaw   =get(['data','date']);
+
         let parity=parityRaw;
         if(parity==='DAP'&&dir==='short') parity='DAP-V';
         if(parity==='FCA'&&dir==='short') parity='FCA-V';
         if(!parity) parity=PARITY_RULES[dir][0].val;
+
         const incomplete=[];
         const price=parseFloat(pretBasis);
         const basis=parseFloat(pretBasis);
         if(ptype==='fix'&&(isNaN(price)||price<=0)) incomplete.push('pret');
         if(ptype==='basis'&&isNaN(basis)) incomplete.push('basis');
         if(!dateRaw) incomplete.push('data');
+
         let t={product,crop:cr,dir,qty,parity,loc,cpty,note:'',ptype,incomplete:incomplete.length>0};
         if(ptype==='fix'){
           t.price=isNaN(price)?0:price;
@@ -667,7 +704,7 @@ function showImportPreview(rows,skipped){
   if(rows.length===0){st.className='import-status err';st.textContent=`Nicio tranzacție cu cantitate validă găsită. Rânduri ignorate: ${skipped}.`;return;}
   const incomplete=rows.filter(t=>t.incomplete).length;
   st.className='import-status ok';
-  st.textContent=`✓ ${rows.length} tranzacții pregătite${skipped>0?` · ${skipped} rânduri goale ignorate`:''}${incomplete>0?` · ${incomplete} incomplete (editabile după import)`:''}` ;
+  st.textContent=`✓ ${rows.length} tranzacții pregătite${skipped>0?` · ${skipped} rânduri goale ignorate`:''}${incomplete>0?` · ${incomplete} incomplete (editabile după import)`:''}$`;
   const preview=rows.slice(0,8);
   document.getElementById('importPreview').innerHTML=`
     <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>Preț/Basis</th><th>Paritate</th><th></th></tr></thead>
@@ -680,7 +717,7 @@ function showImportPreview(rows,skipped){
       <td class="tpar">${t.parity}</td>
       <td>${t.incomplete?'<span style="color:var(--short);font-size:9px">⚠ incomplet</span>':''}</td>
     </tr>`).join('')}</tbody></table>
-    ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...și încă ${rows.length-8} rânduri</div>`:''}` ;
+    ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...și încă ${rows.length-8} rânduri</div>`:''}`;
   document.getElementById('btnConfirmImport').style.display='';
 }
 async function confirmImport(){
@@ -689,15 +726,20 @@ async function confirmImport(){
   closeModal('modImport');
   importBuffer=[];
 }
+
+// ── EDIT TRADE ────────────────────────────────────────────────────────────────
 let editingId = null;
+
 function openEdit(id){
   const t = trades.find(x=>x.id===id);
   if(!t) return;
   editingId = id;
   document.getElementById('editId').textContent = `#${id}`;
+
   const eProd = document.getElementById('eProd');
   eProd.innerHTML = Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
   eProd.value = t.product||Object.keys(products)[0];
+
   document.getElementById('eCrop').value   = t.crop||'2025';
   document.getElementById('eDir').value    = t.dir||'long';
   document.getElementById('eQty').value    = t.qty||'';
@@ -705,6 +747,7 @@ function openEdit(id){
   document.getElementById('eLoc').value    = t.loc||'';
   document.getElementById('eCpty').value   = t.cpty||'';
   document.getElementById('eNote').value   = t.note||'';
+
   document.getElementById('ePrice').value  = t.price||'';
   document.getElementById('eDate').value   = t.date||today();
   document.getElementById('eTransp').value = t.transport||'';
@@ -712,10 +755,13 @@ function openEdit(id){
   document.getElementById('eBasis').value  = t.basis!==undefined?t.basis:'';
   document.getElementById('eDateB').value  = t.date||today();
   document.getElementById('eTranspB').value= t.transport||'';
+
   onEditChange();
   setTimeout(()=>{ document.getElementById('eParity').value = t.parity||PARITY_RULES[t.dir||'long'][0].val; onEditChange(); },10);
+
   document.getElementById('modEdit').classList.add('open');
 }
+
 function onEditChange(){
   const dir   = document.getElementById('eDir').value;
   const ptype = document.getElementById('ePtype').value;
@@ -732,6 +778,7 @@ function onEditChange(){
   document.getElementById('eGrpT').style.display  = (ptype==='fix'   && needT)?'':'none';
   document.getElementById('eGrpTB').style.display = (ptype==='basis' && needT)?'':'none';
 }
+
 async function saveEdit(){
   const id     = editingId;
   const product= document.getElementById('eProd').value;
@@ -770,7 +817,10 @@ async function saveEdit(){
   closeModal('modEdit');
   render();
 }
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
 function exportDB(){
+  if(!Array.isArray(trades)||trades.length===0){alert('Nu există tranzacții de exportat.');return;}
   const rows=[['id','produs','recolta','directie','cantitate','tip_pret','paritate','pret_basis','contract_matif','cost_transport','locatie','contraparte','data','nota','incomplet']];
   trades.forEach(t=>{
     rows.push([
@@ -814,6 +864,8 @@ function downloadTemplate(){
   XLSX.utils.book_append_sheet(wb,'Valori Valide',ws2);
   XLSX.writeFile(wb,'agrotex_import_template.xlsx');
 }
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function today(){return new Date().toISOString().split('T')[0];}
 function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
@@ -834,6 +886,8 @@ function setCrop(y){
   document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
   render();
 }
+
+// ── POSITIONS ─────────────────────────────────────────────────────────────────
 function getPos(cropFilter){
   const pos={};
   Object.keys(products).forEach(k=>{pos[k]={long:0,short:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0};});
@@ -854,6 +908,8 @@ function getPos(cropFilter){
   });
   return pos;
 }
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
   document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
@@ -861,6 +917,7 @@ function render(){
   document.getElementById('expLabel').textContent=crop;
   const pos=getPos(crop);
   const posAll=getPos(null);
+
   const activeProds=Object.keys(products).filter(k=>pos[k]&&(pos[k].long>0||pos[k].short>0));
   const showProds=activeProds.length>0?activeProds:Object.keys(products).slice(0,4);
   document.getElementById('cards').innerHTML=showProds.map(k=>{
@@ -880,6 +937,7 @@ function render(){
       </div>
     </div>`;
   }).join('');
+
   const ft=trades.filter(t=>t.crop===crop);
   document.getElementById('tcount').textContent=`${ft.length} tranzacții (${crop})`;
   const tbody=document.getElementById('tbody');
@@ -892,7 +950,7 @@ function render(){
         ?(t.price?`<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>`:`<span style="color:var(--short)">—</span>`)
         :`<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
       const trsp=(t.transport&&t.transport>0)?`<span class="ttrp">${fmtN(t.transport)}</span>`:`<span class="tdim">—</span>`;
-      const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:''
+      const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
       return`<tr class="tr-click" onclick="openEdit(${t.id})">
         <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
         <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
@@ -908,6 +966,7 @@ function render(){
       </tr>`;
     }).join('');
   }
+
   let aggHTML='';
   ['2025','2026'].forEach(yr=>{
     const cp=getPos(yr);
@@ -925,6 +984,7 @@ function render(){
     });
   });
   document.getElementById('aggSection').innerHTML=aggHTML;
+
   const maxE=Math.max(...Object.values(pos).map(p=>Math.abs(p.net)),500);
   document.getElementById('expSection').innerHTML=Object.entries(products).map(([k,prod])=>{
     const p=pos[k]||{net:0};
@@ -935,12 +995,16 @@ function render(){
       <div class="exptrack"><div class="expfill" style="width:${pct}%;background:${col}"></div></div>
     </div>`;
   }).join('');
+
   const tL=Object.values(posAll).reduce((s,p)=>s+p.long,0);
   const tS=Object.values(posAll).reduce((s,p)=>s+p.short,0);
   document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
 }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
+
 fetch('/api/me').then(r=>r.json()).then(d=>{
   if(d.authenticated){
     document.getElementById('loginScreen').style.display='none';
@@ -948,6 +1012,7 @@ fetch('/api/me').then(r=>r.json()).then(d=>{
     loadAll();
   }
 });
+
 setInterval(()=>{
   if(document.getElementById('app').style.display!=='none'){
     document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
