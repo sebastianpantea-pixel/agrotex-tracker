@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: agrotex-position-tracker
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    disk:
+      name: agrotex-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: APP_PASSWORD
+        value: agrotex2025
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production

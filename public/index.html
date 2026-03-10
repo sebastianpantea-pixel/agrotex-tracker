@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Position Tracker — Agrotex</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg:#080b0e; --surface:#0f1318; --surface2:#161b22; --surface3:#1c2330;
+    --border:#1e2530; --border2:#2a3444;
+    --text:#b8c4d4; --dim:#4e5e72; --bright:#e0eaf8;
+    --long:#22c55e; --long-dim:#14432a; --long-bg:rgba(34,197,94,0.06);
+    --short:#ef4444; --short-dim:#4a1616; --short-bg:rgba(239,68,68,0.06);
+    --neutral:#3b82f6; --neutral-dim:#1a3060;
+    --acc:#f59e0b; --basis:#a78bfa; --transport:#f97316;
+    --old:#60a5fa; --new:#34d399;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
+
+  /* ── LOGIN ── */
+  #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+  .login-box{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:36px;width:320px;display:flex;flex-direction:column;gap:18px;}
+  .login-logo{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--bright);letter-spacing:3px;text-align:center;}
+  .login-logo span{color:var(--acc);}
+  .login-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);text-align:center;letter-spacing:1.5px;text-transform:uppercase;}
+  .login-err{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--short);text-align:center;display:none;}
+  .login-btn{width:100%;padding:10px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:opacity .2s;}
+  .login-btn:hover{opacity:.85;}
+
+  /* ── APP ── */
+  #app{display:none;}
+
+  /* HEADER */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--bright);letter-spacing:2px;}
+  .logo span{color:var(--acc);}
+  .sep{width:1px;height:16px;background:var(--border2);}
+  .sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;}
+  .live{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--long);letter-spacing:1px;}
+  .dot{width:5px;height:5px;border-radius:50%;background:var(--long);animation:blink 2s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+  .ts{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);}
+  .btn-logout{padding:4px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;}
+  .btn-logout:hover{color:var(--short);border-color:var(--short-dim);}
+
+  /* CROP TABS */
+  .tabs{display:flex;gap:0;padding:14px 22px 0;}
+  .tab{padding:7px 20px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;}
+  .tab:first-child{border-radius:4px 0 0 4px;}
+  .tab:last-child{border-radius:0 4px 4px 0;border-left:none;}
+  .tab.old{background:rgba(96,165,250,.1);color:var(--old);border-color:var(--old);}
+  .tab.new{background:rgba(52,211,153,.1);color:var(--new);border-color:var(--new);}
+  .tbadge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:9px;font-size:9px;font-weight:800;}
+  .tab.old .tbadge{background:var(--old);color:#000;}
+  .tab.new .tbadge{background:var(--new);color:#000;}
+
+  /* MAIN */
+  .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
+
+  /* CARDS */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:13px;position:relative;overflow:hidden;}
+  .card:hover{border-color:var(--border2);}
+  .cstripe{position:absolute;top:0;left:0;right:0;height:2px;}
+  .ctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+  .cname{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);}
+  .dbadge{padding:2px 7px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;letter-spacing:1px;}
+  .dbadge.long{background:var(--long-bg);color:var(--long);border:1px solid var(--long-dim);}
+  .dbadge.short{background:var(--short-bg);color:var(--short);border:1px solid var(--short-dim);}
+  .dbadge.flat{background:rgba(59,130,246,.07);color:var(--neutral);border:1px solid var(--neutral-dim);}
+  .cnet{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;line-height:1;margin-bottom:7px;}
+  .cnet.long{color:var(--long);} .cnet.short{color:var(--short);} .cnet.flat{color:var(--neutral);}
+  .cnet span{font-size:10px;font-weight:300;color:var(--dim);margin-left:2px;}
+  .barrow{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:3px;}
+  .bartr{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;display:flex;margin-bottom:9px;}
+  .barl{height:100%;background:var(--long);}
+  .bars{height:100%;background:var(--short);margin-left:auto;}
+  .cmets{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+  .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
+  .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
+
+  /* PANEL */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .ph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--border);background:var(--surface2);}
+  .pt{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
+  .pc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);}
+  .two-col{display:grid;grid-template-columns:1fr 350px;gap:14px;}
+
+  /* FORM */
+  .tform{padding:13px;border-bottom:1px solid var(--border);}
+  .fr{display:grid;gap:7px;margin-bottom:7px;}
+  .fr2{grid-template-columns:1fr 1fr;}
+  .fr3{grid-template-columns:1fr 1fr 1fr;}
+  .fr4{grid-template-columns:1fr 1fr 1fr 1fr;}
+  .fg{display:flex;flex-direction:column;gap:3px;}
+  .fl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  input,select{background:var(--bg);border:1px solid var(--border2);border-radius:3px;padding:6px 8px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;width:100%;transition:border-color .2s;}
+  input:focus,select:focus{border-color:var(--acc);}
+  select option{background:var(--surface2);}
+  input::placeholder{color:var(--dim);}
+  .btn-add{width:100%;padding:8px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-top:4px;transition:opacity .2s;}
+  .btn-add:hover{opacity:.85;}
+  .btn-add:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-sm{padding:4px 9px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;white-space:nowrap;}
+  .btn-sm:hover{color:var(--bright);}
+  .btn-import{padding:4px 9px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid rgba(96,165,250,.4);background:rgba(96,165,250,.08);color:var(--old);transition:all .2s;}
+  .btn-import:hover{background:rgba(96,165,250,.15);}
+  .parity-info{font-size:9px;color:var(--acc);font-family:'IBM Plex Mono',monospace;margin-top:2px;min-height:12px;}
+
+  /* TABLE */
+  .tscroll{max-height:350px;overflow-y:auto;}
+  .tscroll::-webkit-scrollbar{width:3px;}
+  .tscroll::-webkit-scrollbar-track{background:var(--bg);}
+  .tscroll::-webkit-scrollbar-thumb{background:var(--border2);}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:6px 9px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+  td{padding:7px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:rgba(255,255,255,.015);}
+  .tl{color:var(--long);font-weight:800;} .ts2{color:var(--short);font-weight:800;}
+  .tdim{color:var(--dim);font-size:10px;}
+  .tbasis{color:var(--basis);}
+  .tpar{color:var(--acc);font-size:10px;font-weight:700;}
+  .ttrp{color:var(--transport);}
+  .told{color:var(--old);font-size:9px;font-weight:800;}
+  .tnew{color:var(--new);font-size:9px;font-weight:800;}
+  .btn-del{background:none;border:none;cursor:pointer;color:var(--dim);font-size:12px;padding:0 2px;transition:color .2s;}
+  .btn-del:hover{color:var(--short);}
+  .empty{padding:28px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;}
+
+  /* AGG */
+  .agg-ch{padding:6px 13px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+  .agg-ch.old{color:var(--old);} .agg-ch.new{color:var(--new);}
+  .agg-row{display:flex;align-items:center;padding:7px 13px;border-bottom:1px solid var(--border);gap:6px;}
+  .agg-row:hover{background:var(--surface2);}
+  .agg-row:last-child{border-bottom:none;}
+  .adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .aname{flex:1;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--bright);}
+  .anum{font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;min-width:52px;}
+  .al{color:var(--long);} .as2{color:var(--short);}
+  .an-l{color:var(--long);font-weight:800;} .an-s{color:var(--short);font-weight:800;} .an-f{color:var(--neutral);}
+  .albl{font-size:9px;color:var(--dim);text-align:right;min-width:22px;}
+
+  /* EXPOSURE */
+  .exp{padding:13px;}
+  .exprow{margin-bottom:11px;}
+  .exprow:last-child{margin-bottom:0;}
+  .exphdr{display:flex;justify-content:space-between;margin-bottom:3px;}
+  .expname{font-size:10px;color:var(--dim);font-family:'IBM Plex Mono',monospace;}
+  .expval{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:700;}
+  .exptrack{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+  .expfill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+  /* SYNC indicator */
+  .sync{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);display:flex;align-items:center;gap:5px;}
+  .sync.saving{color:var(--acc);}
+  .sync.saved{color:var(--long);}
+  .sync.error{color:var(--short);}
+
+  /* MODALS */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:22px;width:360px;display:flex;flex-direction:column;gap:12px;}
+  .mtitle{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
+  .mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+  .btn-cancel{padding:7px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;}
+  .btn-save{padding:7px 14px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;cursor:pointer;}
+  .swatches{display:flex;gap:5px;flex-wrap:wrap;}
+  .sw{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
+  .sw.sel{border-color:#fff;}
+  .import-modal{width:480px;}
+  .import-zone{border:2px dashed var(--border2);border-radius:4px;padding:22px;text-align:center;cursor:pointer;transition:border-color .2s;}
+  .import-zone:hover,.import-zone.drag{border-color:var(--old);}
+  .import-zone-icon{font-size:26px;margin-bottom:6px;}
+  .import-zone-text{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);}
+  .import-zone-text span{color:var(--old);}
+  .import-preview{max-height:180px;overflow-y:auto;}
+  .import-status{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 11px;border-radius:3px;border:1px solid var(--border2);}
+  .import-status.ok{color:var(--long);border-color:var(--long-dim);background:var(--long-bg);}
+  .import-status.err{color:var(--short);border-color:var(--short-dim);background:var(--short-bg);}
+
+  /* FOOTER */
+  .footer{padding:7px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:.5px;}
+
+  @media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">AGR<span>O</span>TEX</div>
+    <div class="login-sub">Position Tracker</div>
+    <div class="fg">
+      <label class="fl" style="color:var(--dim)">Parolă de acces</label>
+      <input type="password" id="loginPwd" placeholder="" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="loginErr">Parolă incorectă</div>
+    <button class="login-btn" onclick="doLogin()">Intră</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+<header class="hdr">
+  <div style="display:flex;align-items:center;gap:13px;">
+    <div class="logo">AGR<span>O</span>TEX</div>
+    <div class="sep"></div>
+    <div class="sub">Position Tracker · Cereale & Oleaginoase</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:11px;">
+    <div class="sync" id="syncStatus">●</div>
+    <div class="sep"></div>
+    <div class="live"><div class="dot"></div>LIVE</div>
+    <div class="sep"></div>
+    <div class="ts" id="ts"></div>
+    <div class="sep"></div>
+    <button class="btn-logout" onclick="doLogout()">Ieșire</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
+  <div class="tab"     id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026  <span class="tbadge" id="b26">0</span></div>
+</div>
+
+<div class="main">
+  <div class="cards" id="cards"></div>
+  <div class="two-col">
+    <!-- LEFT -->
+    <div class="panel">
+      <div class="ph">
+        <div class="pt">Registru Tranzacții</div>
+        <div style="display:flex;gap:7px;align-items:center;">
+          <div class="pc" id="tcount">0 tranzacții</div>
+          <button class="btn-import" onclick="openImport()">⬆ Import Excel</button>
+          <button class="btn-sm" onclick="openAddProd()">+ Produs</button>
+        </div>
+      </div>
+      <div class="tform">
+        <div class="fr fr4">
+          <div class="fg"><label class="fl">Produs</label><select id="fProd"></select></div>
+          <div class="fg"><label class="fl">Recoltă</label>
+            <select id="fCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
+          </div>
+          <div class="fg"><label class="fl">Direcție</label>
+            <select id="fDir" onchange="onFormChange()">
+              <option value="long">▲ CUMPĂRARE</option>
+              <option value="short">▼ VÂNZARE</option>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Cantitate (t)</label><input id="fQty" type="number" min="1"></div>
+        </div>
+        <div class="fr fr3">
+          <div class="fg"><label class="fl">Tip Preț</label>
+            <select id="fPtype" onchange="onFormChange()">
+              <option value="fix">Preț Fix (RON/t)</option>
+              <option value="basis">MATIF + Basis (EUR/t)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Paritate</label>
+            <select id="fParity" onchange="onFormChange()"></select>
+            <div class="parity-info" id="parityInfo"></div>
+          </div>
+          <div class="fg"><label class="fl">Locație / Bază</label><input id="fLoc" type="text"></div>
+        </div>
+        <div id="rowFix">
+          <div class="fr fr3">
+            <div class="fg"><label class="fl">Preț (RON/t)</label><input id="fPrice" type="number" step="0.01"></div>
+            <div class="fg" id="grpTransport" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="fTransp" type="number" step="0.01"></div>
+            <div class="fg"><label class="fl">Data</label><input id="fDate" type="date"></div>
+          </div>
+        </div>
+        <div id="rowBasis" style="display:none">
+          <div class="fr fr4">
+            <div class="fg"><label class="fl">Contract MATIF</label><input id="fMatif" type="text"></div>
+            <div class="fg"><label class="fl">Basis EUR/t</label><input id="fBasis" type="number" step="0.25"></div>
+            <div class="fg" id="grpTransportB" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="fTranspB" type="number" step="0.01"></div>
+            <div class="fg"><label class="fl">Data</label><input id="fDateB" type="date"></div>
+          </div>
+        </div>
+        <div class="fr fr2">
+          <div class="fg"><label class="fl">Contraparte</label><input id="fCpty" type="text"></div>
+          <div class="fg"><label class="fl">Notă</label><input id="fNote" type="text"></div>
+        </div>
+        <button class="btn-add" id="btnAdd" onclick="addTrade()">+ Adaugă Tranzacție</button>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead><tr>
+            <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
+            <th>Preț / Basis</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
+            <th>Contraparte</th><th>Data</th><th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- RIGHT -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="panel">
+        <div class="ph"><div class="pt">Poziție Netă — Ambele Recolte</div></div>
+        <div id="aggSection"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="pt">Expunere Net (t) — <span id="expLabel" style="color:var(--acc)">2025</span></div></div>
+        <div class="exp" id="expSection"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div>Agrotex SRL · Physical Grain & Oilseed Trading</div>
+  <div id="ftotal"></div>
+</footer>
+</div><!-- /app -->
+
+<!-- ADD PRODUCT MODAL -->
+<div class="overlay" id="modProd">
+  <div class="modal">
+    <div class="mtitle">Produs Nou</div>
+    <div class="fg"><label class="fl">Denumire</label><input id="mName" type="text"></div>
+    <div class="fr fr2">
+      <div class="fg"><label class="fl">Simbol</label><input id="mSym" type="text" maxlength="5"></div>
+      <div class="fg"><label class="fl">Emoji</label><input id="mEmoji" type="text" maxlength="2" style="width:60px"></div>
+    </div>
+    <div class="fg"><label class="fl" style="margin-bottom:5px">Culoare</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeModal('modProd')">Anulează</button>
+      <button class="btn-save" onclick="saveProd()">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="overlay" id="modImport">
+  <div class="modal import-modal">
+    <div class="mtitle">Import Excel</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);line-height:1.6;flex:1;">
+        Coloane: <span style="color:var(--acc)">produs · recolta · directie · cantitate · tip_pret · paritate · pret_basis · contract_matif · cost_transport · locatie · contraparte · data</span>
+      </div>
+      <button class="btn-import" style="flex-shrink:0;padding:7px 12px;" onclick="downloadTemplate()">⬇ Template</button>
+    </div>
+    <div class="import-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="onDrop(event)">
+      <div class="import-zone-icon">📂</div>
+      <div class="import-zone-text">Trage fișierul Excel aici sau <span>selectează manual</span></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event)">
+    <div id="importStatus" style="display:none"></div>
+    <div id="importPreview" class="import-preview"></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeModal('modImport')">Închide</button>
+      <button class="btn-save" id="btnConfirmImport" style="display:none" onclick="confirmImport()">Importă</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const SWATCHES=['#f59e0b','#e2a857','#f0c040','#22c55e','#8bc34a','#34d399','#3b82f6','#60a5fa','#a78bfa','#e879f9','#ef4444','#f97316','#06b6d4','#ec4899','#94a3b8'];
+const PARITY_RULES={
+  long: [
+    {val:'DAP', label:'DAP', transport:false},
+    {val:'FCA', label:'FCA', transport:true},
+  ],
+  short:[
+    {val:'FOR',   label:'FOR',  transport:false},
+    {val:'FCA-V', label:'FCA',  transport:false},
+    {val:'DAP-V', label:'DAP',  transport:true},
+  ],
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let products = {};
+let trades   = [];
+let crop     = '2025';
+let selColor = SWATCHES[0];
+let importBuffer = [];
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin(){
+  const pwd = document.getElementById('loginPwd').value;
+  const res = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+  if(res.ok){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    await loadAll();
+  } else {
+    document.getElementById('loginErr').style.display='block';
+  }
+}
+
+async function doLogout(){
+  await fetch('/api/logout',{method:'POST'});
+  location.reload();
+}
+
+// ── API HELPERS ───────────────────────────────────────────────────────────────
+function setSyncStatus(state, text){
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync ' + state;
+  el.textContent = text;
+}
+
+async function loadAll(){
+  setSyncStatus('saving','● syncing...');
+  const [tRes, pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
+  trades   = await tRes.json();
+  products = await pRes.json();
+  setSyncStatus('saved','● synced');
+  populateProd();
+  onFormChange();
+  render();
+}
+
+async function apiAddTrade(t){
+  setSyncStatus('saving','● saving...');
+  const res = await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
+  const data = await res.json();
+  setSyncStatus('saved','● saved');
+  return data.id;
+}
+
+async function apiDeleteTrade(id){
+  setSyncStatus('saving','● saving...');
+  await fetch(`/api/trades/${id}`,{method:'DELETE'});
+  setSyncStatus('saved','● saved');
+}
+
+async function apiSaveProducts(){
+  await fetch('/api/products',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(products)});
+}
+
+async function apiBulkImport(tradeList){
+  setSyncStatus('saving','● importing...');
+  await fetch('/api/trades/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trades:tradeList})});
+  setSyncStatus('saved','● saved');
+}
+
+// ── FORM ──────────────────────────────────────────────────────────────────────
+function onFormChange(){
+  const dir   = document.getElementById('fDir').value;
+  const ptype = document.getElementById('fPtype').value;
+  const pSel  = document.getElementById('fParity');
+  const rules = PARITY_RULES[dir];
+  const curVal = pSel.value;
+  pSel.innerHTML = rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
+  const match = rules.find(r=>r.val===curVal);
+  if(match) pSel.value=curVal;
+  const chosen = rules.find(r=>r.val===pSel.value)||rules[0];
+  const needT  = chosen.transport;
+  document.getElementById('parityInfo').textContent = needT ? '⚠ cost transport obligatoriu' : '';
+  document.getElementById('rowFix').style.display   = ptype==='fix'   ?'':'none';
+  document.getElementById('rowBasis').style.display = ptype==='basis' ?'':'none';
+  document.getElementById('grpTransport').style.display  = (ptype==='fix'   && needT)?'':'none';
+  document.getElementById('grpTransportB').style.display = (ptype==='basis' && needT)?'':'none';
+}
+
+// ── ADD TRADE ─────────────────────────────────────────────────────────────────
+async function addTrade(){
+  const product= document.getElementById('fProd').value;
+  const cr     = document.getElementById('fCrop').value;
+  const dir    = document.getElementById('fDir').value;
+  const qty    = parseFloat(document.getElementById('fQty').value);
+  const parity = document.getElementById('fParity').value;
+  const loc    = document.getElementById('fLoc').value.trim();
+  const cpty   = document.getElementById('fCpty').value.trim();
+  const note   = document.getElementById('fNote').value.trim();
+  const ptype  = document.getElementById('fPtype').value;
+  if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
+  const rules  = PARITY_RULES[dir];
+  const chosen = rules.find(r=>r.val===parity)||rules[0];
+  const needT  = chosen.transport;
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype};
+  if(ptype==='fix'){
+    const price=parseFloat(document.getElementById('fPrice').value);
+    const date =document.getElementById('fDate').value;
+    const trsp =needT?(parseFloat(document.getElementById('fTransp').value)||0):0;
+    if(!price||price<=0){alert('Preț invalid.');return;}
+    if(!date){alert('Selectați data.');return;}
+    Object.assign(t,{price,date,transport:trsp});
+  } else {
+    const matif=document.getElementById('fMatif').value.trim();
+    const basis=parseFloat(document.getElementById('fBasis').value);
+    const date =document.getElementById('fDateB').value;
+    const trsp =needT?(parseFloat(document.getElementById('fTranspB').value)||0):0;
+    if(!matif){alert('Introduceți contractul MATIF.');return;}
+    if(isNaN(basis)){alert('Basis invalid.');return;}
+    if(!date){alert('Selectați data.');return;}
+    Object.assign(t,{matif,basis,date,transport:trsp});
+  }
+  document.getElementById('btnAdd').disabled=true;
+  const newId = await apiAddTrade(t);
+  t.id = newId;
+  trades.unshift(t);
+  document.getElementById('btnAdd').disabled=false;
+  render();
+  ['fQty','fPrice','fTransp','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+}
+
+async function deleteTrade(id){
+  await apiDeleteTrade(id);
+  trades=trades.filter(t=>t.id!==id);
+  render();
+}
+
+// ── PRODUCT MODAL ─────────────────────────────────────────────────────────────
+function openAddProd(){
+  selColor=SWATCHES[0];
+  ['mName','mSym','mEmoji'].forEach(id=>document.getElementById(id).value='');
+  buildSwatches();
+  document.getElementById('modProd').classList.add('open');
+}
+function buildSwatches(){
+  document.getElementById('swatches').innerHTML=SWATCHES.map(c=>
+    `<div class="sw${c===selColor?' sel':''}" style="background:${c}" onclick="selSwatch('${c}')"></div>`
+  ).join('');
+}
+function selSwatch(c){selColor=c;buildSwatches();}
+async function saveProd(){
+  const name =document.getElementById('mName').value.trim();
+  const sym  =document.getElementById('mSym').value.trim().toUpperCase();
+  const emoji=document.getElementById('mEmoji').value.trim()||'📦';
+  if(!name){alert('Introduceți denumirea.');return;}
+  const key=sym.toLowerCase()||name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  products[key]={name,emoji,color:selColor,symbol:sym||name.slice(0,3).toUpperCase()};
+  await apiSaveProducts();
+  populateProd();
+  closeModal('modProd');
+  render();
+}
+
+// ── IMPORT ────────────────────────────────────────────────────────────────────
+function openImport(){
+  importBuffer=[];
+  document.getElementById('importStatus').style.display='none';
+  document.getElementById('importPreview').innerHTML='';
+  document.getElementById('btnConfirmImport').style.display='none';
+  document.getElementById('fileInput').value='';
+  document.getElementById('modImport').classList.add('open');
+}
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag');
+  const file=e.dataTransfer.files[0];
+  if(file) parseFile(file);
+}
+function onFileSelect(e){const file=e.target.files[0]; if(file) parseFile(file);}
+function parseFile(file){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array',cellDates:true});
+      let sheetName=wb.SheetNames.find(s=>s!=='Produse'&&s!=='Valori Valide')||wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      let rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
+      let headerIdx=rows.findIndex(r=>r.some(c=>String(c||'').toLowerCase().includes('produs')));
+      if(headerIdx<0) headerIdx=0;
+      const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim()
+        .replace(/\s+/g,'_').replace(/[()\/]/g,'')
+        .replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a').replace(/ț/g,'t').replace(/ș/g,'s'));
+      const dataRows=rows.slice(headerIdx+1).filter(r=>r.some(c=>c!==null&&c!==undefined&&c!==''));
+      importBuffer=[];
+      const errors=[];
+      dataRows.forEach((row,i)=>{
+        const get=(keys)=>{
+          for(const k of keys){
+            const idx=headers.findIndex(h=>h.includes(k));
+            if(idx>=0&&row[idx]!==undefined&&row[idx]!=='') return String(row[idx]).trim();
+          }
+          return '';
+        };
+        const product   =get(['produs','product']).toLowerCase().replace(/\s+/g,'_').replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ț/g,'t').replace(/ș/g,'s');
+        const cr        =get(['recolta','crop','an'])||'2025';
+        const dir       =get(['directie','dir','direction']).toLowerCase().includes('short')||get(['directie','dir']).toLowerCase().includes('vanz')?'short':'long';
+        const qtyRaw    =get(['cantitate','qty','quantity','tone']);
+        const ptype     =get(['tip_pret','tip','price_type']).toLowerCase().includes('basis')?'basis':'fix';
+        const parityRaw =get(['paritate','parity']).toUpperCase();
+        const pretBasis =get(['pret_basis','pret','basis','price','valoare']);
+        const matif     =get(['contract_matif','matif','contract']);
+        const transpRaw =get(['cost_transport','transport','transp']);
+        const loc       =get(['locatie','locatia','baza','location']);
+        const cpty      =get(['contraparte','counterparty','partener']);
+        const dateRaw   =get(['data','date']);
+        const qty=parseFloat(qtyRaw);
+        if(!qtyRaw||isNaN(qty)||qty<=0){errors.push(`Rând ${i+2}: cantitate invalidă`);return;}
+        let parity=parityRaw;
+        if(parity==='DAP'&&dir==='short') parity='DAP-V';
+        if(parity==='FCA'&&dir==='short') parity='FCA-V';
+        if(!parity){
+          const rules=PARITY_RULES[dir];
+          parity=transpRaw&&parseFloat(transpRaw)>0?rules[rules.length-1].val:rules[0].val;
+        }
+        let t={product:product||'wheat',crop:cr,dir,qty,parity,loc,cpty,note:'',ptype};
+        if(ptype==='fix'){
+          const price=parseFloat(pretBasis);
+          if(isNaN(price)||price<=0){errors.push(`Rând ${i+2}: preț invalid`);return;}
+          t.price=price; t.date=dateRaw||today(); t.transport=parseFloat(transpRaw)||0;
+        } else {
+          const basis=parseFloat(pretBasis);
+          if(isNaN(basis)){errors.push(`Rând ${i+2}: basis invalid`);return;}
+          t.basis=basis; t.matif=matif; t.date=dateRaw||today(); t.transport=parseFloat(transpRaw)||0;
+        }
+        importBuffer.push(t);
+      });
+      showImportPreview(importBuffer,errors);
+    } catch(err){
+      document.getElementById('importStatus').style.display='';
+      document.getElementById('importStatus').className='import-status err';
+      document.getElementById('importStatus').textContent=`Eroare: ${err.message}`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function showImportPreview(rows,errors){
+  const st=document.getElementById('importStatus');
+  st.style.display='';
+  if(rows.length===0){st.className='import-status err';st.textContent='Nicio tranzacție validă.';return;}
+  st.className='import-status ok';
+  st.textContent=`✓ ${rows.length} tranzacții pregătite${errors.length>0?` · ${errors.length} rânduri ignorate`:''}`;
+  const preview=rows.slice(0,8);
+  document.getElementById('importPreview').innerHTML=`
+    <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>Preț/Basis</th><th>Paritate</th></tr></thead>
+    <tbody>${preview.map(t=>`<tr>
+      <td>${(products[t.product]?.emoji||'📦')} ${products[t.product]?.name||t.product}</td>
+      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
+      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲':'▼'}</td>
+      <td>${fmtN(t.qty)}</td>
+      <td>${t.ptype==='fix'?`${fmtN(t.price)} RON/t`:`MATIF ${t.matif||''} ${t.basis>=0?'+':''}${t.basis} €/t`}</td>
+      <td class="tpar">${t.parity}</td>
+    </tr>`).join('')}</tbody></table>
+    ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...și încă ${rows.length-8} rânduri</div>`:''}`;
+  document.getElementById('btnConfirmImport').style.display='';
+}
+async function confirmImport(){
+  await apiBulkImport(importBuffer);
+  await loadAll();
+  closeModal('modImport');
+  importBuffer=[];
+}
+function downloadTemplate(){
+  const headers=['produs','recolta','directie','cantitate','tip_pret','paritate','pret_basis','contract_matif','cost_transport','locatie','contraparte','data'];
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([headers]);
+  ws['!cols']=[18,10,12,14,12,10,14,16,16,20,22,14].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,'Import Tranzactii',ws);
+  const ws2=XLSX.utils.aoa_to_sheet([
+    ['CAMP','VALORI ACCEPTATE'],
+    ['recolta','2025 | 2026'],
+    ['directie','long | short'],
+    ['tip_pret','fix | basis'],
+    ['paritate (long)','DAP | FCA'],
+    ['paritate (short)','FOR | FCA | DAP'],
+    ['produs','wheat | corn | rapeseed | sunflower | soy | triticale | barley'],
+    ['data','YYYY-MM-DD'],
+    ['cost_transport','RON/t — FCA (achizitie) si DAP (vanzare)'],
+    ['contract_matif','ex: MAT AUG25 — doar basis'],
+    ['pret_basis','RON/t (fix) | EUR/t negativ=discount (basis)'],
+  ]);
+  ws2['!cols']=[{wch:28},{wch:55}];
+  XLSX.utils.book_append_sheet(wb,'Valori Valide',ws2);
+  XLSX.writeFile(wb,'agrotex_import_template.xlsx');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function today(){return new Date().toISOString().split('T')[0];}
+function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtP(n){return n>0?fmtN(n):'—';}
+function fmtNet(n){return(n>0?'+':'')+fmtN(n);}
+function populateProd(){
+  const sel=document.getElementById('fProd');
+  const cur=sel.value;
+  sel.innerHTML=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  if(cur&&products[cur]) sel.value=cur;
+}
+function setCrop(y){
+  crop=y;
+  document.getElementById('fCrop').value=y;
+  document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
+  document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
+  render();
+}
+
+// ── POSITIONS ─────────────────────────────────────────────────────────────────
+function getPos(cropFilter){
+  const pos={};
+  Object.keys(products).forEach(k=>{pos[k]={long:0,short:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0};});
+  trades.filter(t=>!cropFilter||t.crop===cropFilter).forEach(t=>{
+    if(!pos[t.product]) pos[t.product]={long:0,short:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0};
+    if(t.dir==='long'){
+      pos[t.product].long+=t.qty; pos[t.product].buyQ+=t.qty;
+      if(t.ptype==='fix') pos[t.product].buyV+=t.qty*t.price;
+    } else {
+      pos[t.product].short+=t.qty; pos[t.product].sellQ+=t.qty;
+      if(t.ptype==='fix') pos[t.product].sellV+=t.qty*t.price;
+    }
+  });
+  Object.keys(pos).forEach(k=>{
+    pos[k].net=pos[k].long-pos[k].short;
+    pos[k].avgBuy =pos[k].buyQ >0?pos[k].buyV /pos[k].buyQ :0;
+    pos[k].avgSell=pos[k].sellQ>0?pos[k].sellV/pos[k].sellQ:0;
+  });
+  return pos;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
+  document.getElementById('b26').textContent=trades.filter(t=>t.crop==='2026').length;
+  document.getElementById('expLabel').textContent=crop;
+  const pos=getPos(crop);
+  const posAll=getPos(null);
+
+  // CARDS
+  const activeProds=Object.keys(products).filter(k=>pos[k]&&(pos[k].long>0||pos[k].short>0));
+  const showProds=activeProds.length>0?activeProds:Object.keys(products).slice(0,4);
+  document.getElementById('cards').innerHTML=showProds.map(k=>{
+    const prod=products[k]; const p=pos[k];
+    const nc=p.net>0?'long':p.net<0?'short':'flat';
+    const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
+    const mb=Math.max(p.long,p.short,1);
+    return`<div class="card">
+      <div class="cstripe" style="background:${prod.color}"></div>
+      <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
+      <div class="cnet ${nc}">${fmtN(Math.abs(p.net))}<span>t</span></div>
+      <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.short)}t▼</span></div>
+      <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.short/mb*100}%"></div></div>
+      <div class="cmets">
+        <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div></div>
+        <div><div class="cml">Med. vânz.</div><div class="cmv">${fmtP(p.avgSell)}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // TABLE
+  const ft=trades.filter(t=>t.crop===crop);
+  document.getElementById('tcount').textContent=`${ft.length} tranzacții (${crop})`;
+  const tbody=document.getElementById('tbody');
+  if(ft.length===0){
+    tbody.innerHTML=`<tr><td colspan="11"><div class="empty">// nicio tranzacție pentru recolta ${crop}</div></td></tr>`;
+  } else {
+    tbody.innerHTML=ft.map(t=>{
+      const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
+      const pc=t.ptype==='fix'
+        ?`<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>`
+        :`<span class="tbasis">${t.matif||'MATIF'} <span style="color:${t.basis>=0?'var(--long)':'var(--short)'}">${t.basis>=0?'+':''}${t.basis} €/t</span></span>`;
+      const trsp=(t.transport&&t.transport>0)?`<span class="ttrp">${fmtN(t.transport)}</span>`:`<span class="tdim">—</span>`;
+      return`<tr>
+        <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}</td>
+        <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
+        <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
+        <td style="color:var(--bright)">${fmtN(t.qty)}</td>
+        <td>${pc}</td>
+        <td class="tpar">${t.parity}</td>
+        <td class="tdim">${t.loc||'—'}</td>
+        <td>${trsp}</td>
+        <td class="tdim">${t.cpty||'—'}</td>
+        <td class="tdim">${t.date}</td>
+        <td><button class="btn-del" onclick="deleteTrade(${t.id})">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // AGG
+  let aggHTML='';
+  ['2025','2026'].forEach(yr=>{
+    const cp=getPos(yr);
+    aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'Recoltă Veche 2025':'Recoltă Nouă 2026'}</div>`;
+    Object.entries(products).forEach(([k,prod])=>{
+      const p=cp[k]||{long:0,short:0,net:0};
+      const nc=p.net>0?'an-l':p.net<0?'an-s':'an-f';
+      aggHTML+=`<div class="agg-row">
+        <div class="adot" style="background:${prod.color}"></div>
+        <div class="aname">${prod.emoji} ${prod.name}</div>
+        <div class="albl">L</div><div class="anum al">${fmtN(p.long)}</div>
+        <div class="albl">S</div><div class="anum as2">${fmtN(p.short)}</div>
+        <div class="albl">NET</div><div class="anum ${nc}">${fmtNet(p.net)}</div>
+      </div>`;
+    });
+  });
+  document.getElementById('aggSection').innerHTML=aggHTML;
+
+  // EXPOSURE
+  const maxE=Math.max(...Object.values(pos).map(p=>Math.abs(p.net)),500);
+  document.getElementById('expSection').innerHTML=Object.entries(products).map(([k,prod])=>{
+    const p=pos[k]||{net:0};
+    const pct=Math.abs(p.net)/maxE*100;
+    const col=p.net>=0?'var(--long)':'var(--short)';
+    return`<div class="exprow">
+      <div class="exphdr"><span class="expname">${prod.emoji} ${prod.name}</span><span class="expval" style="color:${col}">${fmtNet(p.net)} t</span></div>
+      <div class="exptrack"><div class="expfill" style="width:${pct}%;background:${col}"></div></div>
+    </div>`;
+  }).join('');
+
+  // FOOTER
+  const tL=Object.values(posAll).reduce((s,p)=>s+p.long,0);
+  const tS=Object.values(posAll).reduce((s,p)=>s+p.short,0);
+  document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('fDate').value=today();
+document.getElementById('fDateB').value=today();
+
+// Check if already logged in
+fetch('/api/me').then(r=>r.json()).then(d=>{
+  if(d.authenticated){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    loadAll();
+  }
+});
+
+setInterval(()=>{
+  if(document.getElementById('app').style.display!=='none'){
+    document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+},30000);
+</script>
+</body>
+</html>
