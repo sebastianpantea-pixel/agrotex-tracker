@@ -92,6 +92,8 @@
   .basis-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;color:#fbbf24;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);padding:1px 5px;border-radius:2px;white-space:nowrap;}
   .basis-qty{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fbbf24;}
   .basis-note{font-size:9px;color:var(--dim);opacity:.7;}
+  .cmargin{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:5px 8px;border:1px solid;border-radius:3px;}
+  .cmarg-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;}
   .cmets{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
   .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
   .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
@@ -1304,6 +1306,15 @@ function render(){
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
     const mb=Math.max(p.long,p.shortFix,1);
     const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
+    // marja medie RON/t — folosim FCA pt vanzare daca exista, altfel DAP
+    const sellForMargin = p.avgSellFca>0 ? p.avgSellFca : p.avgSell;
+    const margin = (p.avgBuy>0 && sellForMargin>0) ? sellForMargin - p.avgBuy : null;
+    const marginColor = margin===null ? '' : margin>=0 ? 'var(--long)' : 'var(--short)';
+    const marginSign  = margin===null ? '' : margin>=0 ? '+' : '';
+    const marginRow   = margin!==null ? `<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08">
+      <span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span>
+      <span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span>
+    </div>` : '';
     return`<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
@@ -1314,10 +1325,12 @@ function render(){
       <div class="cmets">
         <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div></div>
         <div>
-          <div class="cml">Med. vânz. DAP</div><div class="cmv">${fmtP(p.avgSell)}</div>
-          ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?`<div class="cml" style="margin-top:2px">≈ FCA</div><div class="cmv" style="color:var(--acc)">${fmtP(p.avgSellFca)}</div>`:''}
+          <div class="cml">Med. vânz. ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?'≈ FCA':'DAP'}</div>
+          <div class="cmv">${fmtP(sellForMargin)}</div>
+          ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?`<div class="cml" style="margin-top:2px;opacity:.5">DAP ${fmtP(p.avgSell)}</div>`:''}
         </div>
       </div>
+      ${marginRow}
     </div>`;
   }).join('');
 
