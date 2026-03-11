@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Position Tracker — Agrotex</title>
+<title>Position Tracker â Agrotex</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -21,7 +21,7 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
 
-  /* ── LOGIN ── */
+  /* ââ LOGIN ââ */
   #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
   .login-box{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:36px;width:320px;display:flex;flex-direction:column;gap:18px;}
   .login-logo{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--bright);letter-spacing:3px;text-align:center;}
@@ -31,7 +31,7 @@
   .login-btn{width:100%;padding:10px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:opacity .2s;}
   .login-btn:hover{opacity:.85;}
 
-  /* ── APP ── */
+  /* ââ APP ââ */
   #app{display:none;}
 
   /* HEADER */
@@ -215,11 +215,11 @@
     <div class="login-logo">AGR<span>O</span>TEX</div>
     <div class="login-sub">Position Tracker</div>
     <div class="fg">
-      <label class="fl" style="color:var(--dim)">Parolă de acces</label>
+      <label class="fl" style="color:var(--dim)">ParolÄ de acces</label>
       <input type="password" id="loginPwd" placeholder="" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <div class="login-err" id="loginErr">Parolă incorectă</div>
-    <button class="login-btn" onclick="doLogin()">Intră</button>
+    <div class="login-err" id="loginErr">ParolÄ incorectÄ</div>
+    <button class="login-btn" onclick="doLogin()">IntrÄ</button>
   </div>
 </div>
 
@@ -229,42 +229,42 @@
   <div style="display:flex;align-items:center;gap:13px;">
     <div class="logo">AGR<span>O</span>TEX</div>
     <div class="sep"></div>
-    <div class="sub">Position Tracker · Cereale & Oleaginoase</div>
+    <div class="sub">Position Tracker Â· Cereale & Oleaginoase</div>
   </div>
   <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;">
     <!-- FX WIDGET -->
     <div class="fx-widget" id="fxWidget">
       <div class="fx-pair">
         <div class="fx-label">EUR/RON</div>
-        <div class="fx-rate loading" id="fxEurRon">—</div>
+        <div class="fx-rate loading" id="fxEurRon">â</div>
       </div>
       <div class="fx-sep"></div>
       <div class="fx-pair">
         <div class="fx-label">EUR/USD</div>
-        <div class="fx-rate loading" id="fxEurUsd">—</div>
+        <div class="fx-rate loading" id="fxEurUsd">â</div>
       </div>
       <div class="fx-sep"></div>
       <div class="fx-pair">
         <div class="fx-label">USD/RON</div>
-        <div class="fx-rate loading" id="fxUsdRon">—</div>
+        <div class="fx-rate loading" id="fxUsdRon">â</div>
       </div>
       <div class="fx-sep"></div>
       <div class="fx-updated" id="fxUpdated">BNR</div>
     </div>
     <div class="sep"></div>
-    <div class="sync" id="syncStatus">●</div>
+    <div class="sync" id="syncStatus">â</div>
     <div class="sep"></div>
     <div class="live"><div class="dot"></div>LIVE</div>
     <div class="sep"></div>
     <div class="ts" id="ts"></div>
     <div class="sep"></div>
-    <button class="btn-logout" onclick="doLogout()">Ieșire</button>
+    <button class="btn-logout" onclick="doLogout()">IeÈire</button>
   </div>
 </header>
 
 <div class="tabs">
-  <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
-  <div class="tab"     id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026  <span class="tbadge" id="b26">0</span></div>
+  <div class="tab old" id="tab25" onclick="setCrop('2025')">RecoltÄ Veche 2025 <span class="tbadge" id="b25">0</span></div>
+  <div class="tab"     id="tab26" onclick="setCrop('2026')">RecoltÄ NouÄ 2026  <span class="tbadge" id="b26">0</span></div>
 </div>
 
 <div class="main">
@@ -273,32 +273,32 @@
     <!-- LEFT -->
     <div class="panel">
       <div class="ph">
-        <div class="pt">Registru Tranzacții</div>
+        <div class="pt">Registru TranzacÈii</div>
         <div style="display:flex;gap:7px;align-items:center;">
-          <div class="pc" id="tcount">0 tranzacții</div>
-          <button class="btn-import" onclick="openImport()">⬆ Import</button>
-          <button class="btn-import" style="border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08);color:var(--new)" onclick="exportDB()">⬇ Export</button>
+          <div class="pc" id="tcount">0 tranzacÈii</div>
+          <button class="btn-import" onclick="openImport()">â¬ Import</button>
+          <button class="btn-import" style="border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08);color:var(--new)" onclick="exportDB()">â¬ Export</button>
           <button class="btn-sm" onclick="openAddProd()">+ Produs</button>
         </div>
       </div>
       <div class="tform">
         <div class="fr fr4">
           <div class="fg"><label class="fl">Produs</label><select id="fProd"></select></div>
-          <div class="fg"><label class="fl">Recoltă</label>
+          <div class="fg"><label class="fl">RecoltÄ</label>
             <select id="fCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
           </div>
-          <div class="fg"><label class="fl">Direcție</label>
+          <div class="fg"><label class="fl">DirecÈie</label>
             <select id="fDir" onchange="onFormChange()">
-              <option value="long">▲ CUMPĂRARE</option>
-              <option value="short">▼ VÂNZARE</option>
+              <option value="long">â² CUMPÄRARE</option>
+              <option value="short">â¼ VÃNZARE</option>
             </select>
           </div>
           <div class="fg"><label class="fl">Cantitate (t)</label><input id="fQty" type="number" min="1"></div>
         </div>
         <div class="fr fr3">
-          <div class="fg"><label class="fl">Tip Preț</label>
+          <div class="fg"><label class="fl">Tip PreÈ</label>
             <select id="fPtype" onchange="onFormChange()">
-              <option value="fix">Preț Fix</option>
+              <option value="fix">PreÈ Fix</option>
               <option value="basis">MATIF + Basis (EUR/t)</option>
             </select>
           </div>
@@ -307,12 +307,12 @@
             <select id="fParity" onchange="onFormChange()"></select>
             <div class="parity-info" id="parityInfo"></div>
           </div>
-          <div class="fg"><label class="fl">Locație / Bază</label><input id="fLoc" type="text"></div>
+          <div class="fg"><label class="fl">LocaÈie / BazÄ</label><input id="fLoc" type="text"></div>
         </div>
         <!-- FIX RON -->
         <div id="rowFixRon">
           <div class="fr fr3">
-            <div class="fg"><label class="fl">Preț (RON/t)</label><input id="fPriceRon" type="number" step="0.01"></div>
+            <div class="fg"><label class="fl">PreÈ (RON/t)</label><input id="fPriceRon" type="number" step="0.01"></div>
             <div class="fg" id="grpTransport" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="fTransp" type="number" step="0.01"></div>
             <div class="fg"><label class="fl">Data</label><input id="fDate" type="date"></div>
           </div>
@@ -320,7 +320,7 @@
         <!-- FIX EUR -->
         <div id="rowFixEur" style="display:none">
           <div class="fr fr4">
-            <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="fPriceEur" type="number" step="0.01"></div>
+            <div class="fg"><label class="fl">PreÈ (EUR/t)</label><input id="fPriceEur" type="number" step="0.01"></div>
             <div class="fg"><label class="fl">Curs EUR/RON</label><input id="fCursEur" type="number" step="0.0001" placeholder="auto-BNR"></div>
             <div class="fg" id="grpTransportEur" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="fTranspEur" type="number" step="0.01"></div>
             <div class="fg"><label class="fl">Data</label><input id="fDateEur" type="date"></div>
@@ -338,7 +338,7 @@
         <!-- Currency toggle (only for fix, only for short/vanzare) -->
         <div id="rowCurrencyToggle" style="display:none;margin-bottom:7px;">
           <div class="fg">
-            <label class="fl">Monedă Preț Vânzare</label>
+            <label class="fl">MonedÄ PreÈ VÃ¢nzare</label>
             <div class="currency-toggle">
               <div class="cur-btn active" id="curBtnRon" onclick="setCurrency('ron')">RON / t</div>
               <div class="cur-btn" id="curBtnEur" onclick="setCurrency('eur')">EUR / t</div>
@@ -347,15 +347,15 @@
         </div>
         <div class="fr fr2">
           <div class="fg"><label class="fl">Contraparte</label><input id="fCpty" type="text"></div>
-          <div class="fg"><label class="fl">Notă</label><input id="fNote" type="text"></div>
+          <div class="fg"><label class="fl">NotÄ</label><input id="fNote" type="text"></div>
         </div>
-        <button class="btn-add" id="btnAdd" onclick="addTrade()">+ Adaugă Tranzacție</button>
+        <button class="btn-add" id="btnAdd" onclick="addTrade()">+ AdaugÄ TranzacÈie</button>
       </div>
       <div class="tscroll">
         <table>
           <thead><tr>
             <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
-            <th>Preț / Basis</th><th>Monedă</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
+            <th>PreÈ / Basis</th><th>MonedÄ</th><th>Paritate</th><th>LocaÈie</th><th>Transp.</th>
             <th>Contraparte</th><th>Data</th><th></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
@@ -365,11 +365,11 @@
     <!-- RIGHT -->
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="panel">
-        <div class="ph"><div class="pt">Poziție Netă — Ambele Recolte</div></div>
+        <div class="ph"><div class="pt">PoziÈie NetÄ â Ambele Recolte</div></div>
         <div id="aggSection"></div>
       </div>
       <div class="panel">
-        <div class="ph"><div class="pt">Expunere Net (t) — <span id="expLabel" style="color:var(--acc)">2025</span></div></div>
+        <div class="ph"><div class="pt">Expunere Net (t) â <span id="expLabel" style="color:var(--acc)">2025</span></div></div>
         <div class="exp" id="expSection"></div>
       </div>
     </div>
@@ -377,7 +377,7 @@
 </div>
 
 <footer class="footer">
-  <div>Agrotex SRL · Physical Grain & Oilseed Trading</div>
+  <div>Agrotex SRL Â· Physical Grain & Oilseed Trading</div>
   <div id="ftotal"></div>
 </footer>
 </div><!-- /app -->
@@ -395,8 +395,8 @@
       <div class="swatches" id="swatches"></div>
     </div>
     <div class="mbtns">
-      <button class="btn-cancel" onclick="closeModal('modProd')">Anulează</button>
-      <button class="btn-save" onclick="saveProd()">Salvează</button>
+      <button class="btn-cancel" onclick="closeModal('modProd')">AnuleazÄ</button>
+      <button class="btn-save" onclick="saveProd()">SalveazÄ</button>
     </div>
   </div>
 </div>
@@ -404,24 +404,24 @@
 <!-- EDIT TRADE MODAL -->
 <div class="overlay" id="modEdit">
   <div class="modal" style="width:540px;max-width:98vw;">
-    <div class="mtitle">Editează Tranzacție <span id="editId" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
+    <div class="mtitle">EditeazÄ TranzacÈie <span id="editId" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
     <div class="fr fr3">
       <div class="fg"><label class="fl">Produs</label><select id="eProd"></select></div>
-      <div class="fg"><label class="fl">Recoltă</label>
+      <div class="fg"><label class="fl">RecoltÄ</label>
         <select id="eCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
       </div>
-      <div class="fg"><label class="fl">Direcție</label>
+      <div class="fg"><label class="fl">DirecÈie</label>
         <select id="eDir" onchange="onEditChange()">
-          <option value="long">▲ CUMPĂRARE</option>
-          <option value="short">▼ VÂNZARE</option>
+          <option value="long">â² CUMPÄRARE</option>
+          <option value="short">â¼ VÃNZARE</option>
         </select>
       </div>
     </div>
     <div class="fr fr2">
       <div class="fg"><label class="fl">Cantitate (t)</label><input id="eQty" type="number" min="1"></div>
-      <div class="fg"><label class="fl">Tip Preț</label>
+      <div class="fg"><label class="fl">Tip PreÈ</label>
         <select id="ePtype" onchange="onEditChange()">
-          <option value="fix">Preț Fix</option>
+          <option value="fix">PreÈ Fix</option>
           <option value="basis">MATIF + Basis (EUR/t)</option>
         </select>
       </div>
@@ -429,7 +429,7 @@
     <!-- Currency toggle edit (for fix only) -->
     <div id="eRowCurrencyToggle" style="display:none;">
       <div class="fg" style="margin-bottom:7px;">
-        <label class="fl">Monedă Preț</label>
+        <label class="fl">MonedÄ PreÈ</label>
         <div class="currency-toggle">
           <div class="cur-btn active" id="eCurBtnRon" onclick="setEditCurrency('ron')">RON / t</div>
           <div class="cur-btn" id="eCurBtnEur" onclick="setEditCurrency('eur')">EUR / t</div>
@@ -438,12 +438,12 @@
     </div>
     <div class="fr fr2">
       <div class="fg"><label class="fl">Paritate</label><select id="eParity" onchange="onEditChange()"></select></div>
-      <div class="fg"><label class="fl">Locație / Bază</label><input id="eLoc" type="text"></div>
+      <div class="fg"><label class="fl">LocaÈie / BazÄ</label><input id="eLoc" type="text"></div>
     </div>
     <!-- fix RON fields -->
     <div id="eRowFixRon">
       <div class="fr fr3">
-        <div class="fg"><label class="fl">Preț (RON/t)</label><input id="ePrice" type="number" step="0.01"></div>
+        <div class="fg"><label class="fl">PreÈ (RON/t)</label><input id="ePrice" type="number" step="0.01"></div>
         <div class="fg" id="eGrpT" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="eTransp" type="number" step="0.01"></div>
         <div class="fg"><label class="fl">Data</label><input id="eDate" type="date"></div>
       </div>
@@ -451,7 +451,7 @@
     <!-- fix EUR fields -->
     <div id="eRowFixEur" style="display:none">
       <div class="fr fr4">
-        <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="ePriceEur" type="number" step="0.01"></div>
+        <div class="fg"><label class="fl">PreÈ (EUR/t)</label><input id="ePriceEur" type="number" step="0.01"></div>
         <div class="fg"><label class="fl">Curs EUR/RON</label><input id="eCursEur" type="number" step="0.0001" placeholder="auto-BNR"></div>
         <div class="fg" id="eGrpTEur" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="eTranspEur" type="number" step="0.01"></div>
         <div class="fg"><label class="fl">Data</label><input id="eDateEur" type="date"></div>
@@ -468,11 +468,11 @@
     </div>
     <div class="fr fr2">
       <div class="fg"><label class="fl">Contraparte</label><input id="eCpty" type="text"></div>
-      <div class="fg"><label class="fl">Notă</label><input id="eNote" type="text"></div>
+      <div class="fg"><label class="fl">NotÄ</label><input id="eNote" type="text"></div>
     </div>
     <div class="mbtns">
-      <button class="btn-cancel" onclick="closeModal('modEdit')">Anulează</button>
-      <button class="btn-save" onclick="saveEdit()">Salvează</button>
+      <button class="btn-cancel" onclick="closeModal('modEdit')">AnuleazÄ</button>
+      <button class="btn-save" onclick="saveEdit()">SalveazÄ</button>
     </div>
   </div>
 </div>
@@ -483,29 +483,29 @@
     <div class="mtitle">Import Excel / CSV</div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
       <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);line-height:1.6;flex:1;">
-        Coloane: <span style="color:var(--acc)">produs · recolta · directie · cantitate · tip_pret · moneda · paritate · pret_basis · contract_matif · curs_eur · cost_transport · locatie · contraparte · data</span>
+        Coloane: <span style="color:var(--acc)">produs Â· recolta Â· directie Â· cantitate Â· tip_pret Â· moneda Â· paritate Â· pret_basis Â· contract_matif Â· curs_eur Â· cost_transport Â· locatie Â· contraparte Â· data</span>
       </div>
-      <button class="btn-import" style="flex-shrink:0;padding:7px 12px;" onclick="downloadTemplate()">⬇ Template</button>
+      <button class="btn-import" style="flex-shrink:0;padding:7px 12px;" onclick="downloadTemplate()">â¬ Template</button>
     </div>
     <div class="import-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
          ondragover="event.preventDefault();this.classList.add('drag')"
          ondragleave="this.classList.remove('drag')"
          ondrop="onDrop(event)">
-      <div class="import-zone-icon">📂</div>
-      <div class="import-zone-text">Trage fișierul Excel / CSV aici sau <span>selectează manual</span></div>
+      <div class="import-zone-icon">ð</div>
+      <div class="import-zone-text">Trage fiÈierul Excel / CSV aici sau <span>selecteazÄ manual</span></div>
     </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event)">
     <div id="importStatus" style="display:none"></div>
     <div id="importPreview" class="import-preview"></div>
     <div class="mbtns">
-      <button class="btn-cancel" onclick="closeModal('modImport')">Închide</button>
-      <button class="btn-save" id="btnConfirmImport" style="display:none" onclick="confirmImport()">Importă</button>
+      <button class="btn-cancel" onclick="closeModal('modImport')">Ãnchide</button>
+      <button class="btn-save" id="btnConfirmImport" style="display:none" onclick="confirmImport()">ImportÄ</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+// ââ CONSTANTS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SWATCHES=['#f59e0b','#e2a857','#f0c040','#22c55e','#8bc34a','#34d399','#3b82f6','#60a5fa','#a78bfa','#e879f9','#ef4444','#f97316','#06b6d4','#ec4899','#94a3b8'];
 const PARITY_RULES={
   long: [
@@ -519,17 +519,17 @@ const PARITY_RULES={
   ],
 };
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
+// ââ STATE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let products = {};
 let trades   = [];
 let crop     = '2025';
 let selColor = SWATCHES[0];
 let importBuffer = [];
 let fxRates  = { eurRon: null, eurUsd: null, usdRon: null };
-let formCurrency = 'ron'; // 'ron' | 'eur'  — for fix price in sell form
+let formCurrency = 'ron'; // 'ron' | 'eur'  â for fix price in sell form
 let editCurrency = 'ron';
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
+// ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function doLogin(){
   const pwd = document.getElementById('loginPwd').value;
   const res = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
@@ -549,10 +549,10 @@ async function doLogout(){
   location.reload();
 }
 
-// ── FX RATES (BNR) ────────────────────────────────────────────────────────────
+// ââ FX RATES (BNR) ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadFxRates(){
   try {
-    // BNR XML feed — use a CORS proxy since BNR doesn't set CORS headers
+    // BNR XML feed â use a CORS proxy since BNR doesn't set CORS headers
     // Primary: BNR RSS/XML via allorigins proxy
     const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -610,7 +610,7 @@ function updateFxWidget(){
   document.getElementById('fxUpdated').textContent = now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
 }
 
-// ── API HELPERS ───────────────────────────────────────────────────────────────
+// ââ API HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function setSyncStatus(state, text){
   const el = document.getElementById('syncStatus');
   el.className = 'sync ' + state;
@@ -618,29 +618,29 @@ function setSyncStatus(state, text){
 }
 
 async function loadAll(){
-  setSyncStatus('saving','● syncing...');
+  setSyncStatus('saving','â syncing...');
   const [tRes, pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
   const tData = await tRes.json();
   trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
-  setSyncStatus('saved','● synced');
+  setSyncStatus('saved','â synced');
   populateProd();
   onFormChange();
   render();
 }
 
 async function apiAddTrade(t){
-  setSyncStatus('saving','● saving...');
+  setSyncStatus('saving','â saving...');
   const res = await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
   const data = await res.json();
-  setSyncStatus('saved','● saved');
+  setSyncStatus('saved','â saved');
   return data.id;
 }
 
 async function apiDeleteTrade(id){
-  setSyncStatus('saving','● saving...');
+  setSyncStatus('saving','â saving...');
   await fetch(`/api/trades/${id}`,{method:'DELETE'});
-  setSyncStatus('saved','● saved');
+  setSyncStatus('saved','â saved');
 }
 
 async function apiSaveProducts(){
@@ -648,12 +648,12 @@ async function apiSaveProducts(){
 }
 
 async function apiBulkImport(tradeList){
-  setSyncStatus('saving','● importing...');
+  setSyncStatus('saving','â importing...');
   await fetch('/api/trades/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trades:tradeList})});
-  setSyncStatus('saved','● saved');
+  setSyncStatus('saved','â saved');
 }
 
-// ── CURRENCY TOGGLE ───────────────────────────────────────────────────────────
+// ââ CURRENCY TOGGLE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function setCurrency(cur) {
   formCurrency = cur;
   document.getElementById('curBtnRon').className = 'cur-btn' + (cur==='ron'?' active':'');
@@ -668,7 +668,7 @@ function setEditCurrency(cur) {
   onEditChange();
 }
 
-// ── FORM ──────────────────────────────────────────────────────────────────────
+// ââ FORM ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function onFormChange(){
   const dir   = document.getElementById('fDir').value;
   const ptype = document.getElementById('fPtype').value;
@@ -680,7 +680,7 @@ function onFormChange(){
   if(match) pSel.value=curVal;
   const chosen = rules.find(r=>r.val===pSel.value)||rules[0];
   const needT  = chosen.transport;
-  document.getElementById('parityInfo').textContent = needT ? '⚠ cost transport obligatoriu' : '';
+  document.getElementById('parityInfo').textContent = needT ? 'â  cost transport obligatoriu' : '';
 
   // Show currency toggle only for short (vanzare) + fix
   const showCurToggle = (dir==='short' && ptype==='fix');
@@ -704,7 +704,7 @@ function onFormChange(){
   }
 }
 
-// ── ADD TRADE ─────────────────────────────────────────────────────────────────
+// ââ ADD TRADE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function addTrade(){
   const product= document.getElementById('fProd').value;
   const cr     = document.getElementById('fCrop').value;
@@ -715,7 +715,7 @@ async function addTrade(){
   const cpty   = document.getElementById('fCpty').value.trim();
   const note   = document.getElementById('fNote').value.trim();
   const ptype  = document.getElementById('fPtype').value;
-  if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
+  if(!qty||qty<=0){alert('Cantitate invalidÄ.');return;}
   const rules  = PARITY_RULES[dir];
   const chosen = rules.find(r=>r.val===parity)||rules[0];
   const needT  = chosen.transport;
@@ -729,27 +729,27 @@ async function addTrade(){
     if(isEur){
       const priceEur = parseFloat(document.getElementById('fPriceEur').value);
       cursEur = parseFloat(document.getElementById('fCursEur').value)||fxRates.eurRon||5;
-      if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
+      if(!priceEur||priceEur<=0){alert('PreÈ EUR invalid.');return;}
       price = priceEur * cursEur;
       currency = 'eur';
       t.priceEur = priceEur;
       t.cursEur = cursEur;
     } else {
       price = parseFloat(document.getElementById('fPriceRon').value);
-      if(!price||price<=0){alert('Preț RON invalid.');return;}
+      if(!price||price<=0){alert('PreÈ RON invalid.');return;}
     }
     const date  = document.getElementById(isEur?'fDateEur':'fDate').value;
     const trsp  = needT ? (parseFloat(document.getElementById(isEur?'fTranspEur':'fTransp').value)||0) : 0;
-    if(!date){alert('Selectați data.');return;}
+    if(!date){alert('SelectaÈi data.');return;}
     Object.assign(t,{price,currency,date,transport:trsp});
   } else {
     const matif=document.getElementById('fMatif').value.trim();
     const basis=parseFloat(document.getElementById('fBasis').value);
     const date =document.getElementById('fDateB').value;
     const trsp =needT?(parseFloat(document.getElementById('fTranspB').value)||0):0;
-    if(!matif){alert('Introduceți contractul MATIF.');return;}
+    if(!matif){alert('IntroduceÈi contractul MATIF.');return;}
     if(isNaN(basis)){alert('Basis invalid.');return;}
-    if(!date){alert('Selectați data.');return;}
+    if(!date){alert('SelectaÈi data.');return;}
     Object.assign(t,{matif,basis,date,transport:trsp,currency:'eur'});
   }
 
@@ -770,7 +770,7 @@ async function deleteTrade(id){
   render();
 }
 
-// ── PRODUCT MODAL ─────────────────────────────────────────────────────────────
+// ââ PRODUCT MODAL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openAddProd(){
   selColor=SWATCHES[0];
   ['mName','mSym','mEmoji'].forEach(id=>document.getElementById(id).value='');
@@ -786,8 +786,8 @@ function selSwatch(c){selColor=c;buildSwatches();}
 async function saveProd(){
   const name =document.getElementById('mName').value.trim();
   const sym  =document.getElementById('mSym').value.trim().toUpperCase();
-  const emoji=document.getElementById('mEmoji').value.trim()||'📦';
-  if(!name){alert('Introduceți denumirea.');return;}
+  const emoji=document.getElementById('mEmoji').value.trim()||'ð¦';
+  if(!name){alert('IntroduceÈi denumirea.');return;}
   const key=sym.toLowerCase()||name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
   products[key]={name,emoji,color:selColor,symbol:sym||name.slice(0,3).toUpperCase()};
   await apiSaveProducts();
@@ -796,7 +796,7 @@ async function saveProd(){
   render();
 }
 
-// ── IMPORT ────────────────────────────────────────────────────────────────────
+// ââ IMPORT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openImport(){
   importBuffer=[];
   document.getElementById('importStatus').style.display='none';
@@ -827,7 +827,7 @@ function parseFile(file){
       if(headerIdx<0) headerIdx=0;
       const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim()
         .replace(/\s+/g,'_')
-        .replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a').replace(/ț/g,'t').replace(/ș/g,'s'));
+        .replace(/Ä/g,'a').replace(/Ã®/g,'i').replace(/Ã¢/g,'a').replace(/È/g,'t').replace(/È/g,'s'));
       const dataRows=rows.slice(headerIdx+1).filter(r=>r.some(c=>c!==null&&c!==undefined&&c!==''));
 
       importBuffer=[];
@@ -849,7 +849,7 @@ function parseFile(file){
         const productRaw = get(['produs','product']);
         const product = productRaw.toLowerCase()
           .replace(/\s+/g,'_')
-          .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ț/g,'t').replace(/ș/g,'s')
+          .replace(/Ä/g,'a').replace(/Ã¢/g,'a').replace(/Ã®/g,'i').replace(/È/g,'t').replace(/È/g,'s')
           .replace(/grau/,'wheat').replace(/porumb/,'corn').replace(/rapita/,'rapeseed')
           .replace(/floarea.soarelui/,'sunflower').replace(/soia/,'soy')
           .replace(/orz/,'barley').replace(/triticale/,'triticale') || 'wheat';
@@ -879,7 +879,7 @@ function parseFile(file){
         const pretVal = parseFloat(pretRaw);
         const cursEur = parseFloat(cursEurRaw)||null;
 
-        // Mark incomplete — but still accept
+        // Mark incomplete â but still accept
         const incomplete=[];
         if(ptype==='fix' && (isNaN(pretVal)||pretVal<=0)) incomplete.push('pret');
         if(ptype==='basis' && isNaN(pretVal)) incomplete.push('basis');
@@ -924,39 +924,39 @@ function showImportPreview(rows, skipped){
   st.style.display='';
   if(rows.length===0){
     st.className='import-status err';
-    st.textContent=`Nicio tranzacție cu cantitate validă găsită. Rânduri ignorate: ${skipped}.`;
+    st.textContent=`Nicio tranzacÈie cu cantitate validÄ gÄsitÄ. RÃ¢nduri ignorate: ${skipped}.`;
     return;
   }
   const incomplete=rows.filter(t=>t.incomplete).length;
   st.className='import-status ok';
-  st.textContent=`✓ ${rows.length} tranzacții pregătite${skipped>0?` · ${skipped} rânduri ignorate`:''}${incomplete>0?` · ${incomplete} incomplete (editabile după import)`:''}`;
+  st.textContent=`â ${rows.length} tranzacÈii pregÄtite${skipped>0?` Â· ${skipped} rÃ¢nduri ignorate`:''}${incomplete>0?` Â· ${incomplete} incomplete (editabile dupÄ import)`:''}`;
   const preview=rows.slice(0,8);
   document.getElementById('importPreview').innerHTML=`
-    <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>Preț/Basis</th><th>Monedă</th><th>Paritate</th><th>Status</th></tr></thead>
+    <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>PreÈ/Basis</th><th>MonedÄ</th><th>Paritate</th><th>Status</th></tr></thead>
     <tbody>${preview.map(t=>`<tr>
-      <td>${(products[t.product]?.emoji||'📦')} ${products[t.product]?.name||t.product}</td>
+      <td>${(products[t.product]?.emoji||'ð¦')} ${products[t.product]?.name||t.product}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
-      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲':'▼'}</td>
+      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'â²':'â¼'}</td>
       <td>${fmtN(t.qty)}</td>
-      <td>${t.ptype==='fix'?(t.price?`${fmtN(t.price)} RON/t`:'<span style="color:var(--short)">—</span>'):`MATIF ${t.matif||'—'} ${t.basis?`${t.basis>=0?'+':''}${t.basis} €/t`:'<span style="color:var(--short)">—</span>'}`}</td>
+      <td>${t.ptype==='fix'?(t.price?`${fmtN(t.price)} RON/t`:'<span style="color:var(--short)">â</span>'):`MATIF ${t.matif||'â'} ${t.basis?`${t.basis>=0?'+':''}${t.basis} â¬/t`:'<span style="color:var(--short)">â</span>'}`}</td>
       <td class="teur">${(t.currency||'ron').toUpperCase()}</td>
       <td class="tpar">${t.parity}</td>
-      <td>${t.incomplete?'<span style="color:var(--short);font-size:9px">⚠ incomplet</span>':'<span style="color:var(--long);font-size:9px">✓</span>'}</td>
+      <td>${t.incomplete?'<span style="color:var(--short);font-size:9px">â  incomplet</span>':'<span style="color:var(--long);font-size:9px">â</span>'}</td>
     </tr>`).join('')}</tbody></table>
-    ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...și încă ${rows.length-8} rânduri</div>`:''}`;
+    ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...Èi Ã®ncÄ ${rows.length-8} rÃ¢nduri</div>`:''}`;
   document.getElementById('btnConfirmImport').style.display='';
 }
 
 async function confirmImport(){
   document.getElementById('btnConfirmImport').disabled=true;
-  document.getElementById('btnConfirmImport').textContent='Se importă...';
+  document.getElementById('btnConfirmImport').textContent='Se importÄ...';
   await apiBulkImport(importBuffer);
   await loadAll();
   closeModal('modImport');
   importBuffer=[];
 }
 
-// ── EDIT TRADE ────────────────────────────────────────────────────────────────
+// ââ EDIT TRADE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let editingId = null;
 
 function openEdit(id){
@@ -1049,7 +1049,7 @@ async function saveEdit(){
   const cpty   = document.getElementById('eCpty').value.trim();
   const note   = document.getElementById('eNote').value.trim();
   const ptype  = document.getElementById('ePtype').value;
-  if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
+  if(!qty||qty<=0){alert('Cantitate invalidÄ.');return;}
 
   const showCurToggle = (dir==='short' && ptype==='fix');
   const isEur = (showCurToggle && editCurrency==='eur');
@@ -1064,7 +1064,7 @@ async function saveEdit(){
     if(isEur){
       priceEur = parseFloat(document.getElementById('ePriceEur').value);
       cursEur  = parseFloat(document.getElementById('eCursEur').value)||fxRates.eurRon||5;
-      if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
+      if(!priceEur||priceEur<=0){alert('PreÈ EUR invalid.');return;}
       price = priceEur * cursEur;
       currency='eur';
       t.priceEur = priceEur;
@@ -1087,19 +1087,19 @@ async function saveEdit(){
     if(isNaN(basis)||!date) t.incomplete=true;
   }
 
-  setSyncStatus('saving','● saving...');
+  setSyncStatus('saving','â saving...');
   await fetch(`/api/trades/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
-  setSyncStatus('saved','● saved');
+  setSyncStatus('saved','â saved');
   const idx = trades.findIndex(x=>x.id===id);
   if(idx>=0) trades[idx]={...t,id};
   closeModal('modEdit');
   render();
 }
 
-// ── EXPORT ────────────────────────────────────────────────────────────────────
+// ââ EXPORT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function exportDB(){
   if(!Array.isArray(trades)||trades.length===0){
-    alert('Nu există tranzacții de exportat.');
+    alert('Nu existÄ tranzacÈii de exportat.');
     return;
   }
   try {
@@ -1149,10 +1149,7 @@ function exportDB(){
     const dateStr = new Date().toISOString().slice(0,10);
     const filename = `agrotex_export_${dateStr}.xlsx`;
 
-    // Use writeFile with type: 'base64' as fallback for environments that may block
-    try {
-      XLSX.writeFile(wb, filename);
-    } catch(e1) {
+    {
       // Fallback: create download link manually
       const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
       const blob = new Blob([wbout], {type:'application/octet-stream'});
@@ -1187,25 +1184,22 @@ function downloadTemplate(){
       ['recolta','2025 | 2026'],
       ['directie','long (cumparare) | short (vanzare)'],
       ['tip_pret','fix | basis'],
-      ['moneda','ron (default) | eur — pentru vanzare EUR/t'],
+      ['moneda','ron (default) | eur â pentru vanzare EUR/t'],
       ['paritate (long)','DAP | FCA'],
       ['paritate (short)','FOR | FCA | DAP'],
       ['produs','wheat | corn | rapeseed | sunflower | soy | triticale | barley'],
       ['produs (RO)','grau | porumb | rapita | floarea-soarelui | soia | orz | triticale'],
       ['data','YYYY-MM-DD ex: 2025-09-15'],
       ['pret_basis','RON/t (fix RON) | EUR/t (fix EUR sau basis negativ=discount)'],
-      ['curs_eur','curs EUR/RON folosit pt conversie (optional — se ia automat din BNR)'],
-      ['cost_transport','RON/t — necesar la FCA (achizitie) si DAP (vanzare)'],
-      ['contract_matif','ex: MAT AUG25 — doar pentru tip_pret=basis'],
-      ['','Campurile incomplete sunt acceptate — editabile dupa import'],
+      ['curs_eur','curs EUR/RON folosit pt conversie (optional â se ia automat din BNR)'],
+      ['cost_transport','RON/t â necesar la FCA (achizitie) si DAP (vanzare)'],
+      ['contract_matif','ex: MAT AUG25 â doar pentru tip_pret=basis'],
+      ['','Campurile incomplete sunt acceptate â editabile dupa import'],
     ]);
     ws2['!cols'] = [{wch:28},{wch:60}];
     XLSX.utils.book_append_sheet(wb,'Valori Valide',ws2);
 
-    // Use manual download fallback
-    try {
-      XLSX.writeFile(wb,'agrotex_import_template.xlsx');
-    } catch(e1) {
+    {
       const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
       const blob = new Blob([wbout], {type:'application/octet-stream'});
       const url = URL.createObjectURL(blob);
@@ -1222,15 +1216,15 @@ function downloadTemplate(){
   }
 }
 
-// ── UTILS ─────────────────────────────────────────────────────────────────────
+// ââ UTILS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
   if(id==='modImport') document.getElementById('btnConfirmImport').disabled=false;
-  if(id==='modImport') document.getElementById('btnConfirmImport').textContent='Importă';
+  if(id==='modImport') document.getElementById('btnConfirmImport').textContent='ImportÄ';
 }
 function today(){return new Date().toISOString().split('T')[0];}
 function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
-function fmtP(n){return n>0?fmtN(n):'—';}
+function fmtP(n){return n>0?fmtN(n):'â';}
 function fmtNet(n){return(n>0?'+':'')+fmtN(n);}
 function populateProd(){
   const opts=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
@@ -1248,7 +1242,7 @@ function setCrop(y){
   render();
 }
 
-// ── POSITIONS ─────────────────────────────────────────────────────────────────
+// ââ POSITIONS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function getPos(cropFilter){
   const pos={};
   Object.keys(products).forEach(k=>{pos[k]={long:0,short:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0};});
@@ -1270,7 +1264,7 @@ function getPos(cropFilter){
   return pos;
 }
 
-// ── RENDER ────────────────────────────────────────────────────────────────────
+// ââ RENDER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function render(){
   document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
@@ -1290,52 +1284,52 @@ function render(){
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
       <div class="cnet ${nc}">${fmtN(Math.abs(p.net))}<span>t</span></div>
-      <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.short)}t▼</span></div>
+      <div class="barrow"><span style="color:var(--long);opacity:.7">â²${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.short)}tâ¼</span></div>
       <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.short/mb*100}%"></div></div>
       <div class="cmets">
         <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div></div>
-        <div><div class="cml">Med. vânz.</div><div class="cmv">${fmtP(p.avgSell)}</div></div>
+        <div><div class="cml">Med. vÃ¢nz.</div><div class="cmv">${fmtP(p.avgSell)}</div></div>
       </div>
     </div>`;
   }).join('');
 
   const ft=trades.filter(t=>t.crop===crop);
-  document.getElementById('tcount').textContent=`${ft.length} tranzacții (${crop})`;
+  document.getElementById('tcount').textContent=`${ft.length} tranzacÈii (${crop})`;
   const tbody=document.getElementById('tbody');
   if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// nicio tranzacție pentru recolta ${crop}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// nicio tranzacÈie pentru recolta ${crop}</div></td></tr>`;
   } else {
     tbody.innerHTML=ft.map(t=>{
-      const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
+      const prod=products[t.product]||{name:t.product,emoji:'ð¦',color:'#888'};
       const isEurTrade = t.currency==='eur' && t.ptype==='fix';
       let priceDisplay;
       if(t.ptype==='fix'){
         if(isEurTrade && t.priceEur){
-          priceDisplay = `<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">≈${fmtN(t.price)} RON</span>`;
+          priceDisplay = `<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">â${fmtN(t.price)} RON</span>`;
         } else {
-          priceDisplay = t.price ? `<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>` : `<span style="color:var(--short)">—</span>`;
+          priceDisplay = t.price ? `<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>` : `<span style="color:var(--short)">â</span>`;
         }
       } else {
-        priceDisplay = `<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
+        priceDisplay = `<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'â'} â¬/t</span></span>`;
       }
       const curBadge = isEurTrade
         ? `<span class="teur">EUR</span>`
         : (t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
-      const trsp=(t.transport&&t.transport>0)?`<span class="ttrp">${fmtN(t.transport)}</span>`:`<span class="tdim">—</span>`;
-      const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
+      const trsp=(t.transport&&t.transport>0)?`<span class="ttrp">${fmtN(t.transport)}</span>`:`<span class="tdim">â</span>`;
+      const incBadge=t.incomplete?`<span class="incomplete-badge">â  incomplet</span>`:'';
       return`<tr class="tr-click" onclick="openEdit(${t.id})">
         <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
         <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
-        <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
+        <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'â² CUMP':'â¼ VÃNZ'}</td>
         <td style="color:var(--bright)">${fmtN(t.qty)}</td>
         <td>${priceDisplay}</td>
         <td>${curBadge}</td>
         <td class="tpar">${t.parity}</td>
-        <td class="tdim">${t.loc||'—'}</td>
+        <td class="tdim">${t.loc||'â'}</td>
         <td>${trsp}</td>
-        <td class="tdim">${t.cpty||'—'}</td>
-        <td class="tdim">${t.date||'—'}</td>
-        <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
+        <td class="tdim">${t.cpty||'â'}</td>
+        <td class="tdim">${t.date||'â'}</td>
+        <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">â</button></td>
       </tr>`;
     }).join('');
   }
@@ -1343,7 +1337,7 @@ function render(){
   let aggHTML='';
   ['2025','2026'].forEach(yr=>{
     const cp=getPos(yr);
-    aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'Recoltă Veche 2025':'Recoltă Nouă 2026'}</div>`;
+    aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'RecoltÄ Veche 2025':'RecoltÄ NouÄ 2026'}</div>`;
     Object.entries(products).forEach(([k,prod])=>{
       const p=cp[k]||{long:0,short:0,net:0};
       const nc=p.net>0?'an-l':p.net<0?'an-s':'an-f';
@@ -1371,10 +1365,10 @@ function render(){
 
   const tL=Object.values(posAll).reduce((s,p)=>s+p.long,0);
   const tS=Object.values(posAll).reduce((s,p)=>s+p.short,0);
-  document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
+  document.getElementById('ftotal').textContent=`ALL Â· Long: ${fmtN(tL)} t Â· Short: ${fmtN(tS)} t Â· Net: ${fmtNet(tL-tS)} t`;
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ââ INIT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
 document.getElementById('fDateEur').value=today();
