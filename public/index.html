@@ -871,6 +871,7 @@ function parseFile(file){
         const matif     = get(['contract_matif','matif','contract']);
         const cursEurRaw= get(['curs_eur','curs','eur_ron','rate']);
         const transpRaw = get(['cost_transport','transport','transp']);
+        const idRaw     = get(['id']);
         const loc       = get(['locatie','locatia','baza','location','loc']);
         const cpty      = get(['contraparte','counterparty','partener','cpty']);
         const dateRaw   = get(['data','date','zi']);
@@ -902,7 +903,9 @@ function parseFile(file){
           }
           t.price     = price;
           t.date      = dateRaw||today();
-          t.transport = parseFloat(transpRaw)||0;
+          const transpVal = parseFloat(transpRaw)||0;
+          t.transport = currency==='eur' ? transpVal*(cursEur||fxRates.eurRon||5) : transpVal;
+          if(currency==='eur' && transpVal>0) t.transportEur = transpVal;
         } else {
           t.basis     = isNaN(pretVal)?0:pretVal;
           t.matif     = matif||'';
