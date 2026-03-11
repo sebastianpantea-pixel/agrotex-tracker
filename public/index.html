@@ -88,6 +88,10 @@
   .bartr{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;display:flex;margin-bottom:9px;}
   .barl{height:100%;background:var(--long);}
   .bars{height:100%;background:var(--short);margin-left:auto;}
+  .cbasis{display:flex;align-items:center;gap:6px;margin:4px 0;padding:4px 7px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:3px;}
+  .basis-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1px;color:#fbbf24;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);padding:1px 5px;border-radius:2px;white-space:nowrap;}
+  .basis-qty{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fbbf24;}
+  .basis-note{font-size:9px;color:var(--dim);opacity:.7;}
   .cmets{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
   .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
   .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
@@ -322,7 +326,7 @@
           <div class="fr fr4">
             <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="fPriceEur" type="number" step="0.01"></div>
             <div class="fg"><label class="fl">Curs EUR/RON</label><input id="fCursEur" type="number" step="0.0001" placeholder="auto-BNR"></div>
-            <div class="fg" id="grpTransportEur" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="fTranspEur" type="number" step="0.01"></div>
+            <div class="fg" id="grpTransportEur" style="display:none"><label class="fl">Cost Transport (EUR/t)</label><input id="fTranspEur" type="number" step="0.01"></div>
             <div class="fg"><label class="fl">Data</label><input id="fDateEur" type="date"></div>
           </div>
         </div>
@@ -453,7 +457,7 @@
       <div class="fr fr4">
         <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="ePriceEur" type="number" step="0.01"></div>
         <div class="fg"><label class="fl">Curs EUR/RON</label><input id="eCursEur" type="number" step="0.0001" placeholder="auto-BNR"></div>
-        <div class="fg" id="eGrpTEur" style="display:none"><label class="fl">Cost Transport (RON/t)</label><input id="eTranspEur" type="number" step="0.01"></div>
+        <div class="fg" id="eGrpTEur" style="display:none"><label class="fl">Cost Transport (EUR/t)</label><input id="eTranspEur" type="number" step="0.01"></div>
         <div class="fg"><label class="fl">Data</label><input id="eDateEur" type="date"></div>
       </div>
     </div>
@@ -739,9 +743,10 @@ async function addTrade(){
       if(!price||price<=0){alert('Preț RON invalid.');return;}
     }
     const date  = document.getElementById(isEur?'fDateEur':'fDate').value;
-    const trsp  = needT ? (parseFloat(document.getElementById(isEur?'fTranspEur':'fTransp').value)||0) : 0;
+    const trspRaw = needT ? (parseFloat(document.getElementById(isEur?'fTranspEur':'fTransp').value)||0) : 0;
+    const trsp = isEur ? trspRaw * cursEur : trspRaw;
     if(!date){alert('Selectați data.');return;}
-    Object.assign(t,{price,currency,date,transport:trsp});
+    Object.assign(t,{price,currency,date,transport:trsp,transportEur:isEur?trspRaw:null});
   } else {
     const matif=document.getElementById('fMatif').value.trim();
     const basis=parseFloat(document.getElementById('fBasis').value);
@@ -987,7 +992,7 @@ function openEdit(id){
   document.getElementById('ePriceEur').value = t.priceEur||t.price||'';
   document.getElementById('eCursEur').value  = t.cursEur||(fxRates.eurRon?fxRates.eurRon.toFixed(4):'');
   document.getElementById('eDateEur').value  = t.date||today();
-  document.getElementById('eTranspEur').value= t.transport||'';
+  document.getElementById('eTranspEur').value= t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? (t.transport/t.cursEur).toFixed(2) : t.transport||'');
 
   // Basis fields
   document.getElementById('eMatif').value   = t.matif||'';
@@ -1074,8 +1079,9 @@ async function saveEdit(){
       currency = 'ron';
     }
     const date  = document.getElementById(isEur?'eDateEur':'eDate').value;
-    const trsp  = needT?(parseFloat(document.getElementById(isEur?'eTranspEur':'eTransp').value)||0):0;
-    t.price=price||0; t.currency=currency; t.date=date||today(); t.transport=trsp;
+    const trspRaw = needT?(parseFloat(document.getElementById(isEur?'eTranspEur':'eTransp').value)||0):0;
+    const trsp = isEur ? trspRaw * cursEur : trspRaw;
+    t.price=price||0; t.currency=currency; t.date=date||today(); t.transport=trsp; t.transportEur=isEur?trspRaw:null;
     if(!price||!date) t.incomplete=true;
   } else {
     const basis=parseFloat(document.getElementById('eBasis').value);
@@ -1103,22 +1109,26 @@ function exportDB(){
     return;
   }
   try {
-    const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_ron','pret_eur','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','incomplet']];
+    // Export cu coloane compatibile cu importul
+    const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','incomplet']];
     trades.forEach(t=>{
+      // pret_basis = EUR/t pt vanzari EUR, RON/t pt RON fix, basis pt basis
+      const pretExport = t.ptype==='fix'
+        ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||''))
+        : (t.basis!==undefined ? t.basis : '');
       rows.push([
         t.id,
-        products[t.product]?.name||t.product,
+        t.product,          // cheie interna (wheat/corn) — compatibil cu importul
         t.crop,
-        t.dir,
+        t.dir,              // long/short
         t.qty,
-        t.ptype,
+        t.ptype,            // fix/basis
         t.currency||'ron',
         t.parity,
-        t.ptype==='fix'?t.price:'',
-        t.ptype==='fix'?(t.priceEur||''):t.basis,
+        pretExport,
         t.cursEur||'',
         t.matif||'',
-        t.transport||0,
+        t.transportEur!=null ? t.transportEur : (t.transport||0),
         t.loc||'',
         t.cpty||'',
         t.date||'',
@@ -1128,7 +1138,7 @@ function exportDB(){
     });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [6,20,10,12,12,10,8,10,14,14,12,14,14,20,22,12,20,10].map(w=>({wch:w}));
+    ws['!cols'] = [6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,10].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
 
     // Summary sheet
@@ -1242,21 +1252,34 @@ function setCrop(y){
 // ── POSITIONS ─────────────────────────────────────────────────────────────────
 function getPos(cropFilter){
   const pos={};
-  Object.keys(products).forEach(k=>{pos[k]={long:0,short:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0};});
+  Object.keys(products).forEach(k=>{pos[k]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};});
   trades.filter(t=>!cropFilter||t.crop===cropFilter).forEach(t=>{
-    if(!pos[t.product]) pos[t.product]={long:0,short:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0};
+    if(!pos[t.product]) pos[t.product]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};
     if(t.dir==='long'){
       pos[t.product].long+=t.qty; pos[t.product].buyQ+=t.qty;
       if(t.ptype==='fix') pos[t.product].buyV+=t.qty*t.price;
     } else {
-      pos[t.product].short+=t.qty; pos[t.product].sellQ+=t.qty;
-      if(t.ptype==='fix') pos[t.product].sellV+=t.qty*t.price;
+      if(t.ptype==='basis'){
+        // basis/MATIF = angajament cantitate, pret nedeterminat — nu intra in short real
+        pos[t.product].shortBasis+=t.qty;
+      } else {
+        pos[t.product].shortFix+=t.qty; pos[t.product].sellQ+=t.qty;
+        pos[t.product].sellV+=t.qty*t.price;
+        // echivalent FCA = DAP minus transport
+        const isDap = t.parity==='DAP-V'||t.parity==='DAP';
+        const trsp = t.transport||0;
+        const priceFca = isDap && trsp>0 ? t.price - trsp : t.price;
+        pos[t.product].sellVfca += t.qty * priceFca;
+        pos[t.product].sellQfca += t.qty;
+      }
     }
   });
   Object.keys(pos).forEach(k=>{
-    pos[k].net=pos[k].long-pos[k].short;
-    pos[k].avgBuy =pos[k].buyQ >0?pos[k].buyV /pos[k].buyQ :0;
-    pos[k].avgSell=pos[k].sellQ>0?pos[k].sellV/pos[k].sellQ:0;
+    pos[k].short = pos[k].shortFix; // short real = doar fix
+    pos[k].net   = pos[k].long - pos[k].shortFix; // net fara basis
+    pos[k].avgBuy    = pos[k].buyQ    >0 ? pos[k].buyV   /pos[k].buyQ    : 0;
+    pos[k].avgSell   = pos[k].sellQ   >0 ? pos[k].sellV  /pos[k].sellQ   : 0;
+    pos[k].avgSellFca= pos[k].sellQfca>0 ? pos[k].sellVfca/pos[k].sellQfca : 0;
   });
   return pos;
 }
@@ -1276,16 +1299,21 @@ function render(){
     const prod=products[k]; const p=pos[k];
     const nc=p.net>0?'long':p.net<0?'short':'flat';
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
-    const mb=Math.max(p.long,p.short,1);
+    const mb=Math.max(p.long,p.shortFix,1);
+    const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
     return`<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
       <div class="cnet ${nc}">${fmtN(Math.abs(p.net))}<span>t</span></div>
-      <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.short)}t▼</span></div>
-      <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.short/mb*100}%"></div></div>
+      <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.shortFix)}t▼</span></div>
+      <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.shortFix/mb*100}%"></div></div>
+      ${basisRow}
       <div class="cmets">
         <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div></div>
-        <div><div class="cml">Med. vânz.</div><div class="cmv">${fmtP(p.avgSell)}</div></div>
+        <div>
+          <div class="cml">Med. vânz. DAP</div><div class="cmv">${fmtP(p.avgSell)}</div>
+          ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?`<div class="cml" style="margin-top:2px">≈ FCA</div><div class="cmv" style="color:var(--acc)">${fmtP(p.avgSellFca)}</div>`:''}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1312,7 +1340,9 @@ function render(){
       const curBadge = isEurTrade
         ? `<span class="teur">EUR</span>`
         : (t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
-      const trsp=(t.transport&&t.transport>0)?`<span class="ttrp">${fmtN(t.transport)}</span>`:`<span class="tdim">—</span>`;
+      const trspVal = t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? t.transport/t.cursEur : null);
+      const trspDisplay = (t.currency==='eur'&&t.ptype==='fix'&&trspVal>0) ? `${fmtN(trspVal)} EUR` : (t.transport&&t.transport>0 ? `${fmtN(t.transport)} RON` : null);
+      const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
       const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
       return`<tr class="tr-click" onclick="openEdit(${t.id})">
         <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
