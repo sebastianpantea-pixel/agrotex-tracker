@@ -1129,7 +1129,7 @@ function exportDB(){
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [6,20,10,12,12,10,8,10,14,14,12,14,14,20,22,12,20,10].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,'Tranzactii',ws);
+    XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
 
     // Summary sheet
     const pos25 = getPos('2025');
@@ -1144,7 +1144,7 @@ function exportDB(){
     });
     const ws2 = XLSX.utils.aoa_to_sheet(sumRows);
     ws2['!cols'] = [{wch:20},{wch:10},{wch:12},{wch:12},{wch:12}];
-    XLSX.utils.book_append_sheet(wb,'Pozitii',ws2);
+    XLSX.utils.book_append_sheet(wb,ws2,'Pozitii');
 
     const dateStr = new Date().toISOString().slice(0,10);
     const filename = `agrotex_export_${dateStr}.xlsx`;
@@ -1175,7 +1175,7 @@ function downloadTemplate(){
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, example, example2]);
     ws['!cols'] = [18,10,12,14,12,10,10,14,16,10,16,20,22,14,24].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,'Import Tranzactii',ws);
+    XLSX.utils.book_append_sheet(wb,ws,'Import Tranzactii');
 
     const ws2 = XLSX.utils.aoa_to_sheet([
       ['CAMP','VALORI ACCEPTATE / NOTE'],
@@ -1195,7 +1195,7 @@ function downloadTemplate(){
       ['','Campurile incomplete sunt acceptate — editabile dupa import'],
     ]);
     ws2['!cols'] = [{wch:28},{wch:60}];
-    XLSX.utils.book_append_sheet(wb,'Valori Valide',ws2);
+    XLSX.utils.book_append_sheet(wb,ws2,'Valori Valide');
 
     // Always use Blob for compatibility
     const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
