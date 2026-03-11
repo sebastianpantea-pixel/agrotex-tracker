@@ -94,6 +94,11 @@
   .basis-note{font-size:9px;color:var(--dim);opacity:.7;}
   .cmargin{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:5px 8px;border:1px solid;border-radius:3px;}
   .cmarg-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;}
+  .cbonif{display:flex;align-items:center;justify-content:space-between;margin:6px 0 4px;padding:4px 7px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:3px;}
+  .cbonif-input-wrap{display:flex;align-items:center;gap:3px;}
+  .cbonif-input{width:52px;background:rgba(255,255,255,.06);border:1px solid rgba(251,191,36,.3);border-radius:3px;color:#fbbf24;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:2px 5px;text-align:right;outline:none;}
+  .cbonif-input:focus{border-color:#fbbf24;}
+  .cbonif-pct{font-size:11px;color:#fbbf24;opacity:.7;}
   .cmets{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
   .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
   .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
@@ -531,6 +536,7 @@ let trades   = [];
 let crop     = '2025';
 let selColor = SWATCHES[0];
 let importBuffer = [];
+let bonifPct = {}; // { [productKey]: percent } — bonificatie calitate per produs
 let fxRates  = { eurRon: null, eurUsd: null, usdRon: null };
 let formCurrency = 'ron'; // 'ron' | 'eur'  — for fix price in sell form
 let editCurrency = 'ron';
@@ -1306,15 +1312,36 @@ function render(){
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
     const mb=Math.max(p.long,p.shortFix,1);
     const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
-    // marja medie RON/t — folosim FCA pt vanzare daca exista, altfel DAP
-    const sellForMargin = p.avgSellFca>0 ? p.avgSellFca : p.avgSell;
-    const margin = (p.avgBuy>0 && sellForMargin>0) ? sellForMargin - p.avgBuy : null;
+    // bonificatie calitate
+    const bpct = bonifPct[k] || 0;
+    const mult = 1 + bpct / 100;
+
+    // Med. cumparare cu bonificatie (FOR/FCA: pret * (1+bonif))
+    const avgBuyBonif = p.avgBuy > 0 ? p.avgBuy * mult : 0;
+
+    // Med. vanzare cu bonificatie
+    // DAP: pretul include deja transportul, aplicam bonif pe tot apoi scadem transportul
+    // FCA/FOR: aplicam direct bonif pe pret
+    const avgSellBonif = p.avgSell > 0 ? p.avgSell * mult : 0;
+    const avgSellFcaBonif = p.avgSellFca > 0 ? p.avgSellFca * mult : 0;
+
+    const sellForMargin = (bpct > 0)
+      ? (avgSellFcaBonif > 0 ? avgSellFcaBonif : avgSellBonif)
+      : (p.avgSellFca > 0 ? p.avgSellFca : p.avgSell);
+    const buyForMargin  = bpct > 0 ? avgBuyBonif : p.avgBuy;
+
+    const margin = (buyForMargin>0 && sellForMargin>0) ? sellForMargin - buyForMargin : null;
     const marginColor = margin===null ? '' : margin>=0 ? 'var(--long)' : 'var(--short)';
     const marginSign  = margin===null ? '' : margin>=0 ? '+' : '';
     const marginRow   = margin!==null ? `<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08">
       <span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span>
       <span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span>
     </div>` : '';
+
+    // bonif row — arata preturile cu bonificatie daca e setat
+    const bonifBuyDisplay  = bpct>0 && p.avgBuy>0  ? `<div class="cml" style="color:#fbbf24;margin-top:2px">+bonif: ${fmtP(avgBuyBonif)}</div>` : '';
+    const bonifSellDisplay = bpct>0 && sellForMargin>0 ? `<div class="cml" style="color:#fbbf24;margin-top:2px">+bonif: ${fmtP(sellForMargin)}</div>` : '';
+
     return`<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
@@ -1322,12 +1349,25 @@ function render(){
       <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.shortFix)}t▼</span></div>
       <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.shortFix/mb*100}%"></div></div>
       ${basisRow}
+      <div class="cbonif">
+        <span class="cml" style="opacity:.6">BONIF. CALITATE</span>
+        <div class="cbonif-input-wrap">
+          <input class="cbonif-input" type="number" min="0" max="20" step="0.1"
+            value="${bpct||''}" placeholder="0"
+            oninput="bonifPct['${k}']=parseFloat(this.value)||0;render()">
+          <span class="cbonif-pct">%</span>
+        </div>
+      </div>
       <div class="cmets">
-        <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div></div>
+        <div>
+          <div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div>
+          ${bonifBuyDisplay}
+        </div>
         <div>
           <div class="cml">Med. vânz. ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?'≈ FCA':'DAP'}</div>
-          <div class="cmv">${fmtP(sellForMargin)}</div>
+          <div class="cmv">${fmtP(p.avgSellFca>0?p.avgSellFca:p.avgSell)}</div>
           ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?`<div class="cml" style="margin-top:2px;opacity:.5">DAP ${fmtP(p.avgSell)}</div>`:''}
+          ${bonifSellDisplay}
         </div>
       </div>
       ${marginRow}
