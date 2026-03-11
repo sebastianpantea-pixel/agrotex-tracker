@@ -294,7 +294,7 @@
       </div>
       <div class="tform">
         <div class="fr fr4">
-          <div class="fg"><label class="fl">Produs</label><select id="fProd"></select></div>
+          <div class="fg"><label class="fl">Produs</label><select id="fProd" onchange="onFormChange()"></select></div>
           <div class="fg"><label class="fl">Recoltă</label>
             <select id="fCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
           </div>
@@ -418,7 +418,7 @@
   <div class="modal" style="width:540px;max-width:98vw;">
     <div class="mtitle">Editează Tranzacție <span id="editId" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
     <div class="fr fr3">
-      <div class="fg"><label class="fl">Produs</label><select id="eProd"></select></div>
+      <div class="fg"><label class="fl">Produs</label><select id="eProd" onchange="onEditChange()"></select></div>
       <div class="fg"><label class="fl">Recoltă</label>
         <select id="eCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
       </div>
@@ -711,7 +711,8 @@ function onFormChange(){
   document.getElementById('grpTransportEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
   document.getElementById('grpTransportB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
   // bonif doar la vanzare fix DAP/FOR/FCA
-  const showBonif = dir==='short' && ptype==='fix';
+  const prod = document.getElementById('fProd').value;
+  const showBonif = dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
   document.getElementById('grpBonif').style.display = showBonif ? '' : 'none';
   if(!showBonif) document.getElementById('fBonif').value='';
 
@@ -1057,7 +1058,8 @@ function onEditChange(){
   document.getElementById('eGrpTEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
   document.getElementById('eGrpTB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
   // bonif doar la vanzare fix
-  const showBonifE = dir==='short' && ptype==='fix';
+  const eProd = document.getElementById('eProd').value;
+  const showBonifE = dir==='short' && ptype==='fix' && (eProd==='rapeseed'||eProd==='sunflower');
   document.getElementById('eGrpBonif').style.display = showBonifE ? '' : 'none';
   if(!showBonifE) document.getElementById('eBonif').value='';
 
