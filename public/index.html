@@ -359,6 +359,7 @@
         <div class="fr fr2">
           <div class="fg"><label class="fl">Contraparte</label><input id="fCpty" type="text"></div>
           <div class="fg"><label class="fl">Notă</label><input id="fNote" type="text"></div>
+          <div class="fg" id="grpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="fBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
         </div>
         <button class="btn-add" id="btnAdd" onclick="addTrade()">+ Adaugă Tranzacție</button>
       </div>
@@ -480,6 +481,7 @@
     <div class="fr fr2">
       <div class="fg"><label class="fl">Contraparte</label><input id="eCpty" type="text"></div>
       <div class="fg"><label class="fl">Notă</label><input id="eNote" type="text"></div>
+      <div class="fg" id="eGrpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="eBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
     </div>
     <div class="mbtns">
       <button class="btn-cancel" onclick="closeModal('modEdit')">Anulează</button>
@@ -708,6 +710,10 @@ function onFormChange(){
   document.getElementById('grpTransport').style.display    = (ptype==='fix' && !isEur && needT) ? '' : 'none';
   document.getElementById('grpTransportEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
   document.getElementById('grpTransportB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
+  // bonif doar la vanzare fix DAP/FOR/FCA
+  const showBonif = dir==='short' && ptype==='fix';
+  document.getElementById('grpBonif').style.display = showBonif ? '' : 'none';
+  if(!showBonif) document.getElementById('fBonif').value='';
 
   // Pre-fill BNR rate in EUR field
   if(isEur && fxRates.eurRon) {
@@ -726,6 +732,7 @@ async function addTrade(){
   const loc    = document.getElementById('fLoc').value.trim();
   const cpty   = document.getElementById('fCpty').value.trim();
   const note   = document.getElementById('fNote').value.trim();
+  const bonif  = parseFloat(document.getElementById('fBonif').value)||0;
   const ptype  = document.getElementById('fPtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
   const rules  = PARITY_RULES[dir];
@@ -734,7 +741,7 @@ async function addTrade(){
   const showCurToggle = (dir==='short' && ptype==='fix');
   const isEur = (showCurToggle && formCurrency==='eur');
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,bonif:bonif||0};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -772,7 +779,7 @@ async function addTrade(){
   trades.unshift(t);
   document.getElementById('btnAdd').disabled=false;
   render();
-  ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote'].forEach(id=>{
+  ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
 }
@@ -884,6 +891,7 @@ function parseFile(file){
         const cpty      = get(['contraparte','counterparty','partener','cpty']);
         const dateRaw   = get(['data','date','zi']);
         const noteRaw   = get(['nota','note','obs']);
+        const bonifRaw  = get(['bonif','bonificatie','bonus','quality_bonus']);
 
         let parity=parityRaw;
         if(parity==='DAP'&&dir==='short') parity='DAP-V';
@@ -899,7 +907,7 @@ function parseFile(file){
         if(ptype==='basis' && isNaN(pretVal)) incomplete.push('basis');
         if(!dateRaw) incomplete.push('data');
 
-        let t={product,crop:cr,dir,qty,parity,loc,cpty,note:noteRaw||'',ptype,currency,incomplete:incomplete.length>0};
+        let t={product,crop:cr,dir,qty,parity,loc,cpty,note:noteRaw||'',ptype,currency,bonif:parseFloat(bonifRaw)||0,incomplete:incomplete.length>0};
 
         if(ptype==='fix'){
           let price = isNaN(pretVal) ? 0 : pretVal;
@@ -991,6 +999,7 @@ function openEdit(id){
   document.getElementById('eQty').value    = t.qty||'';
   document.getElementById('ePtype').value  = t.ptype||'fix';
   document.getElementById('eLoc').value    = t.loc||'';
+  document.getElementById('eBonif').value  = t.bonif||'';
   document.getElementById('eCpty').value   = t.cpty||'';
   document.getElementById('eNote').value   = t.note||'';
 
@@ -1047,6 +1056,10 @@ function onEditChange(){
   document.getElementById('eGrpT').style.display    = (ptype==='fix' && !isEur && needT) ? '' : 'none';
   document.getElementById('eGrpTEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
   document.getElementById('eGrpTB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
+  // bonif doar la vanzare fix
+  const showBonifE = dir==='short' && ptype==='fix';
+  document.getElementById('eGrpBonif').style.display = showBonifE ? '' : 'none';
+  if(!showBonifE) document.getElementById('eBonif').value='';
 
   if(isEur && fxRates.eurRon){
     const cf = document.getElementById('eCursEur');
@@ -1062,6 +1075,7 @@ async function saveEdit(){
   const qty    = parseFloat(document.getElementById('eQty').value);
   const parity = document.getElementById('eParity').value;
   const loc    = document.getElementById('eLoc').value.trim();
+  const bonif  = parseFloat(document.getElementById('eBonif').value)||0;
   const cpty   = document.getElementById('eCpty').value.trim();
   const note   = document.getElementById('eNote').value.trim();
   const ptype  = document.getElementById('ePtype').value;
@@ -1073,7 +1087,7 @@ async function saveEdit(){
   const chosen = rules.find(r=>r.val===parity)||rules[0];
   const needT  = chosen.transport;
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:false};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:false,bonif:bonif||0};
 
   if(ptype==='fix'){
     let price, currency='ron', priceEur=null, cursEur=null;
@@ -1121,7 +1135,7 @@ function exportDB(){
   }
   try {
     // Export cu coloane compatibile cu importul
-    const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','incomplet']];
+    const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','bonif','incomplet']];
     trades.forEach(t=>{
       // pret_basis = EUR/t pt vanzari EUR, RON/t pt RON fix, basis pt basis
       const pretExport = t.ptype==='fix'
@@ -1144,12 +1158,13 @@ function exportDB(){
         t.cpty||'',
         t.date||'',
         t.note||'',
+        t.bonif||0,
         t.incomplete?'DA':''
       ]);
     });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,10].map(w=>({wch:w}));
+    ws['!cols'] = [6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
 
     // Summary sheet
@@ -1268,7 +1283,14 @@ function getPos(cropFilter){
     if(!pos[t.product]) pos[t.product]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};
     if(t.dir==='long'){
       pos[t.product].long+=t.qty; pos[t.product].buyQ+=t.qty;
-      if(t.ptype==='fix') pos[t.product].buyV+=t.qty*t.price;
+      if(t.ptype==='fix'){
+        pos[t.product].buyV+=t.qty*t.price;
+        if(t.bonif>0){
+          const priceBuyBonif = t.price*(1+t.bonif/100);
+          pos[t.product].buyVbonif = (pos[t.product].buyVbonif||0) + t.qty*priceBuyBonif;
+          pos[t.product].buyQbonif = (pos[t.product].buyQbonif||0) + t.qty;
+        }
+      }
     } else {
       if(t.ptype==='basis'){
         // basis/MATIF = angajament cantitate, pret nedeterminat — nu intra in short real
@@ -1282,15 +1304,24 @@ function getPos(cropFilter){
         const priceFca = isDap && trsp>0 ? t.price - trsp : t.price;
         pos[t.product].sellVfca += t.qty * priceFca;
         pos[t.product].sellQfca += t.qty;
+        // cu bonificatie
+        if(t.bonif>0){
+          const mult = 1 + t.bonif/100;
+          const priceFcaBonif = isDap && trsp>0 ? t.price*mult - trsp : t.price*mult;
+          pos[t.product].sellVbonif  = (pos[t.product].sellVbonif||0) + t.qty * priceFcaBonif;
+          pos[t.product].sellQbonif  = (pos[t.product].sellQbonif||0) + t.qty;
+        }
       }
     }
   });
   Object.keys(pos).forEach(k=>{
     pos[k].short = pos[k].shortFix; // short real = doar fix
     pos[k].net   = pos[k].long - pos[k].shortFix; // net fara basis
-    pos[k].avgBuy    = pos[k].buyQ    >0 ? pos[k].buyV   /pos[k].buyQ    : 0;
-    pos[k].avgSell   = pos[k].sellQ   >0 ? pos[k].sellV  /pos[k].sellQ   : 0;
-    pos[k].avgSellFca= pos[k].sellQfca>0 ? pos[k].sellVfca/pos[k].sellQfca : 0;
+    pos[k].avgBuy     = pos[k].buyQ     >0 ? pos[k].buyV    /pos[k].buyQ     : 0;
+    pos[k].avgSell    = pos[k].sellQ    >0 ? pos[k].sellV   /pos[k].sellQ    : 0;
+    pos[k].avgSellFca = pos[k].sellQfca >0 ? pos[k].sellVfca/pos[k].sellQfca  : 0;
+    pos[k].avgBuyBonif  = pos[k].buyQbonif >0 ? pos[k].buyVbonif /pos[k].buyQbonif  : 0;
+    pos[k].avgSellBonif = pos[k].sellQbonif>0 ? pos[k].sellVbonif/pos[k].sellQbonif : 0;
   });
   return pos;
 }
@@ -1312,25 +1343,12 @@ function render(){
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
     const mb=Math.max(p.long,p.shortFix,1);
     const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
-    // bonificatie calitate
-    const bpct = bonifPct[k] || 0;
-    const mult = 1 + bpct / 100;
+    // pretul final = cu bonif daca exista, altfel normal — fara mentiune in card
+    const avgBuyFinal  = p.avgBuyBonif  > 0 ? p.avgBuyBonif  : p.avgBuy;
+    const avgSellFinal = p.avgSellBonif > 0 ? p.avgSellBonif : (p.avgSellFca>0 ? p.avgSellFca : p.avgSell);
 
-    // Med. cumparare cu bonificatie (FOR/FCA: pret * (1+bonif))
-    const avgBuyBonif = p.avgBuy > 0 ? p.avgBuy * mult : 0;
-
-    // Med. vanzare cu bonificatie
-    // DAP: pretul include deja transportul, aplicam bonif pe tot apoi scadem transportul
-    // FCA/FOR: aplicam direct bonif pe pret
-    const avgSellBonif = p.avgSell > 0 ? p.avgSell * mult : 0;
-    const avgSellFcaBonif = p.avgSellFca > 0 ? p.avgSellFca * mult : 0;
-
-    const sellForMargin = (bpct > 0)
-      ? (avgSellFcaBonif > 0 ? avgSellFcaBonif : avgSellBonif)
-      : (p.avgSellFca > 0 ? p.avgSellFca : p.avgSell);
-    const buyForMargin  = bpct > 0 ? avgBuyBonif : p.avgBuy;
-
-    const margin = (buyForMargin>0 && sellForMargin>0) ? sellForMargin - buyForMargin : null;
+    // marja pe preturile finale
+    const margin = (avgBuyFinal>0 && avgSellFinal>0) ? avgSellFinal - avgBuyFinal : null;
     const marginColor = margin===null ? '' : margin>=0 ? 'var(--long)' : 'var(--short)';
     const marginSign  = margin===null ? '' : margin>=0 ? '+' : '';
     const marginRow   = margin!==null ? `<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08">
@@ -1338,9 +1356,8 @@ function render(){
       <span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span>
     </div>` : '';
 
-    // bonif row — arata preturile cu bonificatie daca e setat
-    const bonifBuyDisplay  = bpct>0 && p.avgBuy>0  ? `<div class="cml" style="color:#fbbf24;margin-top:2px">+bonif: ${fmtP(avgBuyBonif)}</div>` : '';
-    const bonifSellDisplay = bpct>0 && sellForMargin>0 ? `<div class="cml" style="color:#fbbf24;margin-top:2px">+bonif: ${fmtP(sellForMargin)}</div>` : '';
+    // label vanzare — simplu, fara mentiune bonif
+    const sellLabel = p.avgSellFca>0&&p.avgSellFca!==p.avgSell ? '≈ FCA' : 'DAP';
 
     return`<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
@@ -1349,25 +1366,14 @@ function render(){
       <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.shortFix)}t▼</span></div>
       <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.shortFix/mb*100}%"></div></div>
       ${basisRow}
-      <div class="cbonif">
-        <span class="cml" style="opacity:.6">BONIF. CALITATE</span>
-        <div class="cbonif-input-wrap">
-          <input class="cbonif-input" type="number" min="0" max="20" step="0.1"
-            value="${bpct||''}" placeholder="0"
-            oninput="bonifPct['${k}']=parseFloat(this.value)||0;render()">
-          <span class="cbonif-pct">%</span>
-        </div>
-      </div>
       <div class="cmets">
         <div>
-          <div class="cml">Med. cump.</div><div class="cmv">${fmtP(p.avgBuy)}</div>
-          ${bonifBuyDisplay}
+          <div class="cml">Med. cump.</div>
+          <div class="cmv">${fmtP(avgBuyFinal)}</div>
         </div>
         <div>
-          <div class="cml">Med. vânz. ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?'≈ FCA':'DAP'}</div>
-          <div class="cmv">${fmtP(p.avgSellFca>0?p.avgSellFca:p.avgSell)}</div>
-          ${p.avgSellFca>0&&p.avgSellFca!==p.avgSell?`<div class="cml" style="margin-top:2px;opacity:.5">DAP ${fmtP(p.avgSell)}</div>`:''}
-          ${bonifSellDisplay}
+          <div class="cml">Med. vânz. ${sellLabel}</div>
+          <div class="cmv">${fmtP(avgSellFinal)}</div>
         </div>
       </div>
       ${marginRow}
