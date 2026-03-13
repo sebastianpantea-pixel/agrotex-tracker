@@ -70,6 +70,10 @@
   /* MAIN */
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
 
+  /* TOP ROW: cards + notes side by side */
+  .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
+  @media(max-width:1200px){.top-row{grid-template-columns:1fr;}}
+
   /* CARDS */
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:13px;position:relative;overflow:hidden;}
@@ -136,17 +140,19 @@
   .cur-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:var(--acc);}
   .cur-btn:hover{color:var(--bright);}
 
-  /* ── FILTER BAR ── */
-  .filter-bar{display:flex;align-items:center;gap:7px;padding:8px 13px;border-bottom:1px solid var(--border);background:var(--surface3);flex-wrap:wrap;}
-  .filter-bar .fl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
-  .filter-bar select, .filter-bar input{padding:4px 7px;font-size:10px;height:26px;width:auto;min-width:90px;}
-  .filter-bar input[type="date"]{min-width:110px;}
-  .filter-bar input[type="text"]{min-width:120px;}
-  .btn-filter-reset{padding:3px 9px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:var(--short);transition:all .2s;white-space:nowrap;}
+  /* ── FILTER BAR — compact table filter ── */
+  .filter-bar{display:flex;align-items:center;gap:5px;padding:6px 13px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;}
+  .filter-bar select, .filter-bar input{padding:3px 6px;font-size:10px;height:24px;width:auto;background:var(--bg);border:1px solid var(--border2);border-radius:2px;color:var(--bright);font-family:'IBM Plex Mono',monospace;}
+  .filter-bar select:focus,.filter-bar input:focus{border-color:var(--acc);outline:none;}
+  .filter-bar input[type="date"]{min-width:100px;}
+  .filter-bar input[type="text"]{min-width:100px;}
+  .filter-sep{width:1px;height:16px;background:var(--border2);margin:0 2px;}
+  .filter-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;}
+  .btn-filter-reset{padding:2px 7px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:var(--short);transition:all .2s;white-space:nowrap;}
   .btn-filter-reset:hover{background:rgba(239,68,68,.15);}
-  .filter-match{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);white-space:nowrap;margin-left:4px;}
+  .filter-match{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);white-space:nowrap;margin-left:2px;}
   .filter-match span{color:var(--acc);}
-  .filter-active-dot{width:5px;height:5px;border-radius:50%;background:var(--acc);display:inline-block;margin-right:3px;vertical-align:middle;}
+  .filter-active-dot{width:4px;height:4px;border-radius:50%;background:var(--acc);display:inline-block;margin-right:3px;vertical-align:middle;}
 
   /* TABLE */
   .tscroll{max-height:350px;overflow-y:auto;}
@@ -208,7 +214,7 @@
   .notes-input-row input{flex:1;padding:5px 8px;font-size:11px;}
   .btn-note-add{padding:5px 11px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
   .btn-note-add:hover{opacity:.85;}
-  .notes-list{max-height:280px;overflow-y:auto;padding:0;}
+  .notes-list{max-height:240px;overflow-y:auto;padding:0;}
   .notes-list::-webkit-scrollbar{width:3px;}
   .notes-list::-webkit-scrollbar-track{background:var(--bg);}
   .notes-list::-webkit-scrollbar-thumb{background:var(--border2);}
@@ -325,7 +331,34 @@
 </div>
 
 <div class="main">
-  <div class="cards" id="cards"></div>
+  <div class="top-row">
+    <div class="cards" id="cards"></div>
+
+    <!-- ── NOTES PANEL (top right) ── -->
+    <div class="panel notes-panel">
+      <div class="ph">
+        <div class="pt">📋 Notițe &amp; To-Do</div>
+        <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
+      </div>
+      <div class="notes-input-row">
+        <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
+        <select id="noteTag" style="width:80px;padding:5px 5px;font-size:10px;height:28px;">
+          <option value="todo">TO-DO</option>
+          <option value="info">INFO</option>
+          <option value="alert">ALERT</option>
+        </select>
+        <button class="btn-note-add" onclick="addNote()">+</button>
+      </div>
+      <div class="note-filter-row">
+        <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
+        <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
+        <button class="nf-btn" id="nfInfo" onclick="setNoteFilter('info')">INFO</button>
+        <button class="nf-btn" id="nfAlert" onclick="setNoteFilter('alert')">ALERT</button>
+        <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')" style="margin-left:auto">Deschise</button>
+      </div>
+      <div class="notes-list" id="notesList"></div>
+    </div>
+  </div>
   <div class="two-col">
     <!-- LEFT: Registru -->
     <div class="panel">
@@ -341,41 +374,27 @@
 
       <!-- ── FILTER BAR ── -->
       <div class="filter-bar" id="filterBar">
-        <span class="fl">Filtre:</span>
-        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
-          <label class="fl">Produs</label>
-          <select id="ffProd" onchange="applyFilter()">
-            <option value="">Toate</option>
-          </select>
-        </div>
-        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
-          <label class="fl">Direcție</label>
-          <select id="ffDir" onchange="applyFilter()">
-            <option value="">Toate</option>
-            <option value="long">▲ Cumpărare</option>
-            <option value="short">▼ Vânzare</option>
-          </select>
-        </div>
-        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
-          <label class="fl">Tip preț</label>
-          <select id="ffPtype" onchange="applyFilter()">
-            <option value="">Toate</option>
-            <option value="fix">Fix</option>
-            <option value="basis">Basis</option>
-          </select>
-        </div>
-        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
-          <label class="fl">Contraparte</label>
-          <input type="text" id="ffCpty" placeholder="caută..." oninput="applyFilter()" style="min-width:110px;">
-        </div>
-        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
-          <label class="fl">De la</label>
-          <input type="date" id="ffDateFrom" onchange="applyFilter()">
-        </div>
-        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
-          <label class="fl">Până la</label>
-          <input type="date" id="ffDateTo" onchange="applyFilter()">
-        </div>
+        <span class="filter-label">Filtru:</span>
+        <select id="ffProd" onchange="applyFilter()" title="Produs">
+          <option value="">Toate produsele</option>
+        </select>
+        <div class="filter-sep"></div>
+        <select id="ffDir" onchange="applyFilter()" title="Direcție">
+          <option value="">▲▼ Direcție</option>
+          <option value="long">▲ Cumpărare</option>
+          <option value="short">▼ Vânzare</option>
+        </select>
+        <select id="ffPtype" onchange="applyFilter()" title="Tip preț">
+          <option value="">Fix / Basis</option>
+          <option value="fix">Fix</option>
+          <option value="basis">Basis</option>
+        </select>
+        <div class="filter-sep"></div>
+        <input type="text" id="ffCpty" placeholder="🔍 Contraparte..." oninput="applyFilter()">
+        <div class="filter-sep"></div>
+        <input type="date" id="ffDateFrom" onchange="applyFilter()" title="De la data">
+        <span class="filter-label" style="margin:0 2px">→</span>
+        <input type="date" id="ffDateTo" onchange="applyFilter()" title="Până la data">
         <button class="btn-filter-reset" onclick="resetFilter()" id="btnResetFilter" style="display:none">✕ Reset</button>
         <span class="filter-match" id="filterMatch"></span>
       </div>
@@ -468,31 +487,6 @@
       <div class="panel">
         <div class="ph"><div class="pt">Expunere Net (t) — <span id="expLabel" style="color:var(--acc)">2025</span></div></div>
         <div class="exp" id="expSection"></div>
-      </div>
-
-      <!-- ── NOTES PANEL ── -->
-      <div class="panel notes-panel">
-        <div class="ph">
-          <div class="pt">📋 Notițe &amp; To-Do</div>
-          <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
-        </div>
-        <div class="notes-input-row">
-          <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
-          <select id="noteTag" style="width:80px;padding:5px 5px;font-size:10px;height:28px;">
-            <option value="todo">TO-DO</option>
-            <option value="info">INFO</option>
-            <option value="alert">ALERT</option>
-          </select>
-          <button class="btn-note-add" onclick="addNote()">+</button>
-        </div>
-        <div class="note-filter-row">
-          <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
-          <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
-          <button class="nf-btn" id="nfInfo" onclick="setNoteFilter('info')">INFO</button>
-          <button class="nf-btn" id="nfAlert" onclick="setNoteFilter('alert')">ALERT</button>
-          <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')" style="margin-left:auto">Deschise</button>
-        </div>
-        <div class="notes-list" id="notesList"></div>
       </div>
     </div>
   </div>
