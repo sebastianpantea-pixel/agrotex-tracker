@@ -140,17 +140,18 @@
   .cur-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:var(--acc);}
   .cur-btn:hover{color:var(--bright);}
 
-  /* ── FILTER BAR — compact table filter ── */
-  .filter-bar{display:flex;align-items:center;gap:5px;padding:6px 13px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;}
-  .filter-bar select, .filter-bar input{padding:3px 6px;font-size:10px;height:24px;width:auto;background:var(--bg);border:1px solid var(--border2);border-radius:2px;color:var(--bright);font-family:'IBM Plex Mono',monospace;}
-  .filter-bar select:focus,.filter-bar input:focus{border-color:var(--acc);outline:none;}
-  .filter-bar input[type="date"]{min-width:100px;}
-  .filter-bar input[type="text"]{min-width:100px;}
-  .filter-sep{width:1px;height:16px;background:var(--border2);margin:0 2px;}
-  .filter-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;}
-  .btn-filter-reset{padding:2px 7px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:var(--short);transition:all .2s;white-space:nowrap;}
-  .btn-filter-reset:hover{background:rgba(239,68,68,.15);}
-  .filter-match{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);white-space:nowrap;margin-left:2px;}
+  /* ── FILTER ROW — sub capul de tabel ── */
+  .filter-row td{padding:5px 9px;background:var(--surface3);border-bottom:2px solid var(--border2);}
+  .filter-bar-inner{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .filter-bar-inner select,.filter-bar-inner input{padding:3px 6px;font-size:10px;height:22px;width:auto;background:var(--bg);border:1px solid var(--border2);border-radius:2px;color:var(--bright);font-family:'IBM Plex Mono',monospace;outline:none;}
+  .filter-bar-inner select:focus,.filter-bar-inner input:focus{border-color:var(--acc);}
+  .filter-bar-inner input[type="date"]{min-width:98px;}
+  .filter-bar-inner input[type="text"]{min-width:110px;}
+  .filter-sep{width:1px;height:14px;background:var(--border2);margin:0 1px;flex-shrink:0;}
+  .filter-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);white-space:nowrap;}
+  .btn-filter-reset{padding:2px 6px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);color:var(--short);transition:all .15s;white-space:nowrap;}
+  .btn-filter-reset:hover{background:rgba(239,68,68,.18);}
+  .filter-match{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);white-space:nowrap;margin-left:3px;}
   .filter-match span{color:var(--acc);}
   .filter-active-dot{width:4px;height:4px;border-radius:50%;background:var(--acc);display:inline-block;margin-right:3px;vertical-align:middle;}
 
@@ -372,33 +373,6 @@
         </div>
       </div>
 
-      <!-- ── FILTER BAR ── -->
-      <div class="filter-bar" id="filterBar">
-        <span class="filter-label">Filtru:</span>
-        <select id="ffProd" onchange="applyFilter()" title="Produs">
-          <option value="">Toate produsele</option>
-        </select>
-        <div class="filter-sep"></div>
-        <select id="ffDir" onchange="applyFilter()" title="Direcție">
-          <option value="">▲▼ Direcție</option>
-          <option value="long">▲ Cumpărare</option>
-          <option value="short">▼ Vânzare</option>
-        </select>
-        <select id="ffPtype" onchange="applyFilter()" title="Tip preț">
-          <option value="">Fix / Basis</option>
-          <option value="fix">Fix</option>
-          <option value="basis">Basis</option>
-        </select>
-        <div class="filter-sep"></div>
-        <input type="text" id="ffCpty" placeholder="🔍 Contraparte..." oninput="applyFilter()">
-        <div class="filter-sep"></div>
-        <input type="date" id="ffDateFrom" onchange="applyFilter()" title="De la data">
-        <span class="filter-label" style="margin:0 2px">→</span>
-        <input type="date" id="ffDateTo" onchange="applyFilter()" title="Până la data">
-        <button class="btn-filter-reset" onclick="resetFilter()" id="btnResetFilter" style="display:none">✕ Reset</button>
-        <span class="filter-match" id="filterMatch"></span>
-      </div>
-
       <div class="tform">
         <div class="fr fr4">
           <div class="fg"><label class="fl">Produs</label><select id="fProd" onchange="onFormChange()"></select></div>
@@ -468,11 +442,41 @@
       </div>
       <div class="tscroll">
         <table>
-          <thead><tr>
-            <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
-            <th>Preț / Basis</th><th>Monedă</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
-            <th>Contraparte</th><th>Data</th><th></th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
+              <th>Preț / Basis</th><th>Monedă</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
+              <th>Contraparte</th><th>Data</th><th></th>
+            </tr>
+            <tr class="filter-row" id="filterBar">
+              <td colspan="12">
+                <div class="filter-bar-inner">
+                  <select id="ffProd" onchange="applyFilter()">
+                    <option value="">Toate produsele</option>
+                  </select>
+                  <div class="filter-sep"></div>
+                  <select id="ffDir" onchange="applyFilter()">
+                    <option value="">▲▼ Dir.</option>
+                    <option value="long">▲ Cumpărare</option>
+                    <option value="short">▼ Vânzare</option>
+                  </select>
+                  <select id="ffPtype" onchange="applyFilter()">
+                    <option value="">Fix/Basis</option>
+                    <option value="fix">Fix</option>
+                    <option value="basis">Basis</option>
+                  </select>
+                  <div class="filter-sep"></div>
+                  <input type="text" id="ffCpty" placeholder="🔍 Contraparte..." oninput="applyFilter()">
+                  <div class="filter-sep"></div>
+                  <input type="date" id="ffDateFrom" onchange="applyFilter()" title="De la">
+                  <span class="filter-label">→</span>
+                  <input type="date" id="ffDateTo" onchange="applyFilter()" title="Până la">
+                  <button class="btn-filter-reset" onclick="resetFilter()" id="btnResetFilter" style="display:none">✕ Reset</button>
+                  <span class="filter-match" id="filterMatch"></span>
+                </div>
+              </td>
+            </tr>
+          </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
