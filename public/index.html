@@ -675,19 +675,25 @@ async function doLogout(){
 }
 
 // ── FX RATES ──────────────────────────────────────────────────────────────────
+let fxSource = 'BNR'; // track where rate came from
+
 async function loadFxRates(){
+  // Attempt 1: BNR XML via allorigins proxy
   try {
     const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if(!res.ok) throw new Error('fetch failed');
+    if(!res.ok) throw new Error('allorigins failed');
     const text = await res.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
+    // Get publication date from XML
+    const pubDate = xml.querySelector('Header PublDate')?.textContent || '';
     const rates = xml.querySelectorAll('Rate');
     let eurRon = null, usdRon = null;
     rates.forEach(r => {
       const cur = r.getAttribute('currency');
-      const val = parseFloat(r.textContent);
+      const multiplier = parseFloat(r.getAttribute('multiplier') || '1');
+      const val = parseFloat(r.textContent) / multiplier;
       if(cur === 'EUR') eurRon = val;
       if(cur === 'USD') usdRon = val;
     });
@@ -695,28 +701,63 @@ async function loadFxRates(){
       fxRates.eurRon = eurRon;
       fxRates.usdRon = usdRon;
       fxRates.eurUsd = eurRon / usdRon;
+      fxSource = 'BNR' + (pubDate ? ' ' + pubDate : '');
       updateFxWidget();
       const cursField = document.getElementById('fCursEur');
       if(cursField && !cursField.value) cursField.value = eurRon.toFixed(4);
-    } else {
-      throw new Error('no rates in XML');
+      return;
     }
-  } catch(e) {
-    try {
-      const res2 = await fetch('https://open.er-api.com/v6/latest/EUR', { signal: AbortSignal.timeout(8000) });
-      const data = await res2.json();
-      if(data && data.rates) {
-        fxRates.eurRon = data.rates.RON;
-        fxRates.usdRon = data.rates.RON / data.rates.USD;
-        fxRates.eurUsd = data.rates.USD;
-        updateFxWidget();
-        const cursField = document.getElementById('fCursEur');
-        if(cursField && !cursField.value) cursField.value = fxRates.eurRon.toFixed(4);
-      }
-    } catch(e2) {
-      document.getElementById('fxUpdated').textContent = 'eroare';
+    throw new Error('no EUR/USD in XML');
+  } catch(e) { /* fall through */ }
+
+  // Attempt 2: corsproxy.io → BNR XML
+  try {
+    const url2 = 'https://corsproxy.io/?' + encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
+    const res2 = await fetch(url2, { signal: AbortSignal.timeout(8000) });
+    if(!res2.ok) throw new Error('corsproxy failed');
+    const text2 = await res2.text();
+    const parser = new DOMParser();
+    const xml2 = parser.parseFromString(text2, 'text/xml');
+    const pubDate = xml2.querySelector('Header PublDate')?.textContent || '';
+    const rates2 = xml2.querySelectorAll('Rate');
+    let eurRon = null, usdRon = null;
+    rates2.forEach(r => {
+      const cur = r.getAttribute('currency');
+      const multiplier = parseFloat(r.getAttribute('multiplier') || '1');
+      const val = parseFloat(r.textContent) / multiplier;
+      if(cur === 'EUR') eurRon = val;
+      if(cur === 'USD') usdRon = val;
+    });
+    if(eurRon && usdRon) {
+      fxRates.eurRon = eurRon;
+      fxRates.usdRon = usdRon;
+      fxRates.eurUsd = eurRon / usdRon;
+      fxSource = 'BNR' + (pubDate ? ' ' + pubDate : '');
+      updateFxWidget();
+      const cursField = document.getElementById('fCursEur');
+      if(cursField && !cursField.value) cursField.value = eurRon.toFixed(4);
+      return;
     }
-  }
+    throw new Error('no rates in XML');
+  } catch(e2) { /* fall through */ }
+
+  // Attempt 3: open.er-api (market rate — NOT BNR official)
+  try {
+    const res3 = await fetch('https://open.er-api.com/v6/latest/EUR', { signal: AbortSignal.timeout(8000) });
+    const data = await res3.json();
+    if(data && data.rates) {
+      fxRates.eurRon = data.rates.RON;
+      fxRates.usdRon = data.rates.RON / data.rates.USD;
+      fxRates.eurUsd = data.rates.USD;
+      fxSource = 'piață (non-BNR)';
+      updateFxWidget();
+      const cursField = document.getElementById('fCursEur');
+      if(cursField && !cursField.value) cursField.value = fxRates.eurRon.toFixed(4);
+      return;
+    }
+  } catch(e3) { /* all failed */ }
+
+  document.getElementById('fxUpdated').textContent = 'eroare';
 }
 
 function updateFxWidget(){
@@ -728,7 +769,11 @@ function updateFxWidget(){
   document.getElementById('fxUsdRon').textContent = fxRates.usdRon.toFixed(4);
   document.getElementById('fxUsdRon').className = 'fx-rate';
   const now = new Date();
-  document.getElementById('fxUpdated').textContent = now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  const timeStr = now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  const isNonBNR = fxSource.includes('piață');
+  const updEl = document.getElementById('fxUpdated');
+  updEl.innerHTML = `<span title="Sursa: ${fxSource}" style="cursor:help;color:${isNonBNR?'var(--short)':'var(--dim)'}">` +
+    `${isNonBNR ? '⚠ ' : ''}${fxSource}</span>`;
 }
 
 // ── API HELPERS ───────────────────────────────────────────────────────────────
