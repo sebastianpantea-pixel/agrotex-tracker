@@ -136,6 +136,18 @@
   .cur-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:var(--acc);}
   .cur-btn:hover{color:var(--bright);}
 
+  /* ── FILTER BAR ── */
+  .filter-bar{display:flex;align-items:center;gap:7px;padding:8px 13px;border-bottom:1px solid var(--border);background:var(--surface3);flex-wrap:wrap;}
+  .filter-bar .fl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+  .filter-bar select, .filter-bar input{padding:4px 7px;font-size:10px;height:26px;width:auto;min-width:90px;}
+  .filter-bar input[type="date"]{min-width:110px;}
+  .filter-bar input[type="text"]{min-width:120px;}
+  .btn-filter-reset{padding:3px 9px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:var(--short);transition:all .2s;white-space:nowrap;}
+  .btn-filter-reset:hover{background:rgba(239,68,68,.15);}
+  .filter-match{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);white-space:nowrap;margin-left:4px;}
+  .filter-match span{color:var(--acc);}
+  .filter-active-dot{width:5px;height:5px;border-radius:50%;background:var(--acc);display:inline-block;margin-right:3px;vertical-align:middle;}
+
   /* TABLE */
   .tscroll{max-height:350px;overflow-y:auto;}
   .tscroll::-webkit-scrollbar{width:3px;}
@@ -190,6 +202,41 @@
   .sync.saved{color:var(--long);}
   .sync.error{color:var(--short);}
 
+  /* ── NOTES PANEL ── */
+  .notes-panel{}
+  .notes-input-row{display:flex;gap:6px;padding:10px 13px;border-bottom:1px solid var(--border);background:var(--surface3);}
+  .notes-input-row input{flex:1;padding:5px 8px;font-size:11px;}
+  .btn-note-add{padding:5px 11px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
+  .btn-note-add:hover{opacity:.85;}
+  .notes-list{max-height:280px;overflow-y:auto;padding:0;}
+  .notes-list::-webkit-scrollbar{width:3px;}
+  .notes-list::-webkit-scrollbar-track{background:var(--bg);}
+  .notes-list::-webkit-scrollbar-thumb{background:var(--border2);}
+  .note-item{display:flex;align-items:flex-start;gap:9px;padding:9px 13px;border-bottom:1px solid var(--border);transition:background .15s;cursor:default;}
+  .note-item:last-child{border-bottom:none;}
+  .note-item:hover{background:var(--surface2);}
+  .note-item.done .note-text{text-decoration:line-through;color:var(--dim);opacity:.6;}
+  .note-check{width:14px;height:14px;border-radius:3px;border:1px solid var(--border2);background:var(--bg);cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .note-check.checked{background:var(--long);border-color:var(--long);}
+  .note-check.checked::after{content:'✓';font-size:9px;color:#000;font-weight:900;}
+  .note-text{flex:1;font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:var(--text);line-height:1.4;word-break:break-word;}
+  .note-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);white-space:nowrap;margin-top:1px;}
+  .note-del{background:none;border:none;cursor:pointer;color:var(--dim);font-size:12px;padding:0 1px;transition:color .15s;flex-shrink:0;margin-top:1px;}
+  .note-del:hover{color:var(--short);}
+  .notes-empty{padding:22px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;}
+  .note-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
+  .note-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;letter-spacing:.5px;cursor:pointer;}
+  .note-tag.todo{background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
+  .note-tag.info{background:rgba(59,130,246,.1);color:var(--neutral);border:1px solid rgba(59,130,246,.2);}
+  .note-tag.alert{background:rgba(239,68,68,.1);color:var(--short);border:1px solid rgba(239,68,68,.2);}
+  .note-filter-row{display:flex;gap:5px;padding:6px 13px;border-bottom:1px solid var(--border);background:var(--surface2);}
+  .nf-btn{padding:3px 8px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--dim);transition:all .15s;letter-spacing:.5px;}
+  .nf-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:rgba(245,158,11,.4);}
+  .nf-btn:hover{color:var(--bright);}
+  .notes-stats{display:flex;gap:10px;padding:5px 13px;border-bottom:1px solid var(--border);background:var(--surface3);}
+  .nstat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
+  .nstat span{color:var(--text);font-weight:700;}
+
   /* MODALS */
   .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
   .overlay.open{display:flex;}
@@ -243,7 +290,6 @@
     <div class="sub">Position Tracker · Cereale & Oleaginoase</div>
   </div>
   <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;">
-    <!-- FX WIDGET -->
     <div class="fx-widget" id="fxWidget">
       <div class="fx-pair">
         <div class="fx-label">EUR/RON</div>
@@ -281,7 +327,7 @@
 <div class="main">
   <div class="cards" id="cards"></div>
   <div class="two-col">
-    <!-- LEFT -->
+    <!-- LEFT: Registru -->
     <div class="panel">
       <div class="ph">
         <div class="pt">Registru Tranzacții</div>
@@ -292,6 +338,48 @@
           <button class="btn-sm" onclick="openAddProd()">+ Produs</button>
         </div>
       </div>
+
+      <!-- ── FILTER BAR ── -->
+      <div class="filter-bar" id="filterBar">
+        <span class="fl">Filtre:</span>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
+          <label class="fl">Produs</label>
+          <select id="ffProd" onchange="applyFilter()">
+            <option value="">Toate</option>
+          </select>
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
+          <label class="fl">Direcție</label>
+          <select id="ffDir" onchange="applyFilter()">
+            <option value="">Toate</option>
+            <option value="long">▲ Cumpărare</option>
+            <option value="short">▼ Vânzare</option>
+          </select>
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
+          <label class="fl">Tip preț</label>
+          <select id="ffPtype" onchange="applyFilter()">
+            <option value="">Toate</option>
+            <option value="fix">Fix</option>
+            <option value="basis">Basis</option>
+          </select>
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
+          <label class="fl">Contraparte</label>
+          <input type="text" id="ffCpty" placeholder="caută..." oninput="applyFilter()" style="min-width:110px;">
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
+          <label class="fl">De la</label>
+          <input type="date" id="ffDateFrom" onchange="applyFilter()">
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:4px;">
+          <label class="fl">Până la</label>
+          <input type="date" id="ffDateTo" onchange="applyFilter()">
+        </div>
+        <button class="btn-filter-reset" onclick="resetFilter()" id="btnResetFilter" style="display:none">✕ Reset</button>
+        <span class="filter-match" id="filterMatch"></span>
+      </div>
+
       <div class="tform">
         <div class="fr fr4">
           <div class="fg"><label class="fl">Produs</label><select id="fProd" onchange="onFormChange()"></select></div>
@@ -320,7 +408,6 @@
           </div>
           <div class="fg"><label class="fl">Locație / Bază</label><input id="fLoc" type="text"></div>
         </div>
-        <!-- FIX RON -->
         <div id="rowFixRon">
           <div class="fr fr3">
             <div class="fg"><label class="fl">Preț (RON/t)</label><input id="fPriceRon" type="number" step="0.01"></div>
@@ -328,7 +415,6 @@
             <div class="fg"><label class="fl">Data</label><input id="fDate" type="date"></div>
           </div>
         </div>
-        <!-- FIX EUR -->
         <div id="rowFixEur" style="display:none">
           <div class="fr fr4">
             <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="fPriceEur" type="number" step="0.01"></div>
@@ -337,7 +423,6 @@
             <div class="fg"><label class="fl">Data</label><input id="fDateEur" type="date"></div>
           </div>
         </div>
-        <!-- BASIS -->
         <div id="rowBasis" style="display:none">
           <div class="fr fr4">
             <div class="fg"><label class="fl">Contract MATIF</label><input id="fMatif" type="text"></div>
@@ -346,7 +431,6 @@
             <div class="fg"><label class="fl">Data</label><input id="fDateB" type="date"></div>
           </div>
         </div>
-        <!-- Currency toggle (only for fix, only for short/vanzare) -->
         <div id="rowCurrencyToggle" style="display:none;margin-bottom:7px;">
           <div class="fg">
             <label class="fl">Monedă Preț Vânzare</label>
@@ -374,6 +458,7 @@
         </table>
       </div>
     </div>
+
     <!-- RIGHT -->
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="panel">
@@ -384,12 +469,37 @@
         <div class="ph"><div class="pt">Expunere Net (t) — <span id="expLabel" style="color:var(--acc)">2025</span></div></div>
         <div class="exp" id="expSection"></div>
       </div>
+
+      <!-- ── NOTES PANEL ── -->
+      <div class="panel notes-panel">
+        <div class="ph">
+          <div class="pt">📋 Notițe &amp; To-Do</div>
+          <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
+        </div>
+        <div class="notes-input-row">
+          <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
+          <select id="noteTag" style="width:80px;padding:5px 5px;font-size:10px;height:28px;">
+            <option value="todo">TO-DO</option>
+            <option value="info">INFO</option>
+            <option value="alert">ALERT</option>
+          </select>
+          <button class="btn-note-add" onclick="addNote()">+</button>
+        </div>
+        <div class="note-filter-row">
+          <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
+          <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
+          <button class="nf-btn" id="nfInfo" onclick="setNoteFilter('info')">INFO</button>
+          <button class="nf-btn" id="nfAlert" onclick="setNoteFilter('alert')">ALERT</button>
+          <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')" style="margin-left:auto">Deschise</button>
+        </div>
+        <div class="notes-list" id="notesList"></div>
+      </div>
     </div>
   </div>
 </div>
 
 <footer class="footer">
-  <div>Agrotex SRL · Physical Grain & Oilseed Trading</div>
+  <div>Agrotex SRL · Physical Grain &amp; Oilseed Trading</div>
   <div id="ftotal"></div>
 </footer>
 </div><!-- /app -->
@@ -438,7 +548,6 @@
         </select>
       </div>
     </div>
-    <!-- Currency toggle edit (for fix only) -->
     <div id="eRowCurrencyToggle" style="display:none;">
       <div class="fg" style="margin-bottom:7px;">
         <label class="fl">Monedă Preț</label>
@@ -452,7 +561,6 @@
       <div class="fg"><label class="fl">Paritate</label><select id="eParity" onchange="onEditChange()"></select></div>
       <div class="fg"><label class="fl">Locație / Bază</label><input id="eLoc" type="text"></div>
     </div>
-    <!-- fix RON fields -->
     <div id="eRowFixRon">
       <div class="fr fr3">
         <div class="fg"><label class="fl">Preț (RON/t)</label><input id="ePrice" type="number" step="0.01"></div>
@@ -460,7 +568,6 @@
         <div class="fg"><label class="fl">Data</label><input id="eDate" type="date"></div>
       </div>
     </div>
-    <!-- fix EUR fields -->
     <div id="eRowFixEur" style="display:none">
       <div class="fr fr4">
         <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="ePriceEur" type="number" step="0.01"></div>
@@ -469,7 +576,6 @@
         <div class="fg"><label class="fl">Data</label><input id="eDateEur" type="date"></div>
       </div>
     </div>
-    <!-- basis fields -->
     <div id="eRowBasis" style="display:none">
       <div class="fr fr4">
         <div class="fg"><label class="fl">Contract MATIF</label><input id="eMatif" type="text"></div>
@@ -538,10 +644,17 @@ let trades   = [];
 let crop     = '2025';
 let selColor = SWATCHES[0];
 let importBuffer = [];
-let bonifPct = {}; // { [productKey]: percent } — bonificatie calitate per produs
+let bonifPct = {};
 let fxRates  = { eurRon: null, eurUsd: null, usdRon: null };
-let formCurrency = 'ron'; // 'ron' | 'eur'  — for fix price in sell form
+let formCurrency = 'ron';
 let editCurrency = 'ron';
+
+// Filter state
+let activeFilter = { prod:'', dir:'', ptype:'', cpty:'', dateFrom:'', dateTo:'' };
+
+// Notes state
+let notes = [];
+let noteFilter = 'all'; // all | todo | info | alert | open
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 async function doLogin(){
@@ -552,7 +665,7 @@ async function doLogin(){
     document.getElementById('app').style.display='block';
     await loadAll();
     loadFxRates();
-    setInterval(loadFxRates, 3*60*60*1000); // refresh every 3h
+    setInterval(loadFxRates, 3*60*60*1000);
   } else {
     document.getElementById('loginErr').style.display='block';
   }
@@ -563,11 +676,9 @@ async function doLogout(){
   location.reload();
 }
 
-// ── FX RATES (BNR) ────────────────────────────────────────────────────────────
+// ── FX RATES ──────────────────────────────────────────────────────────────────
 async function loadFxRates(){
   try {
-    // BNR XML feed — use a CORS proxy since BNR doesn't set CORS headers
-    // Primary: BNR RSS/XML via allorigins proxy
     const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if(!res.ok) throw new Error('fetch failed');
@@ -587,14 +698,12 @@ async function loadFxRates(){
       fxRates.usdRon = usdRon;
       fxRates.eurUsd = eurRon / usdRon;
       updateFxWidget();
-      // auto-fill EUR/RON field in form
       const cursField = document.getElementById('fCursEur');
       if(cursField && !cursField.value) cursField.value = eurRon.toFixed(4);
     } else {
       throw new Error('no rates in XML');
     }
   } catch(e) {
-    // Fallback: use exchangerate-api
     try {
       const res2 = await fetch('https://open.er-api.com/v6/latest/EUR', { signal: AbortSignal.timeout(8000) });
       const data = await res2.json();
@@ -639,7 +748,9 @@ async function loadAll(){
   products = await pRes.json();
   setSyncStatus('saved','● synced');
   populateProd();
+  populateFilterProd();
   onFormChange();
+  loadNotes();
   render();
 }
 
@@ -665,6 +776,155 @@ async function apiBulkImport(tradeList){
   setSyncStatus('saving','● importing...');
   await fetch('/api/trades/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trades:tradeList})});
   setSyncStatus('saved','● saved');
+}
+
+// ── NOTES (localStorage) ──────────────────────────────────────────────────────
+function loadNotes(){
+  try {
+    const stored = localStorage.getItem('agrotex_notes');
+    notes = stored ? JSON.parse(stored) : [];
+  } catch(e) {
+    notes = [];
+  }
+  renderNotes();
+}
+
+function saveNotes(){
+  try {
+    localStorage.setItem('agrotex_notes', JSON.stringify(notes));
+  } catch(e) {}
+}
+
+function addNote(){
+  const input = document.getElementById('noteInput');
+  const tag   = document.getElementById('noteTag').value;
+  const text  = input.value.trim();
+  if(!text) return;
+  notes.unshift({
+    id: Date.now(),
+    text,
+    tag,
+    done: false,
+    date: today()
+  });
+  input.value = '';
+  saveNotes();
+  renderNotes();
+}
+
+function toggleNote(id){
+  const n = notes.find(x=>x.id===id);
+  if(n) { n.done = !n.done; saveNotes(); renderNotes(); }
+}
+
+function deleteNote(id){
+  notes = notes.filter(x=>x.id!==id);
+  saveNotes();
+  renderNotes();
+}
+
+function setNoteFilter(f){
+  noteFilter = f;
+  ['nfAll','nfTodo','nfInfo','nfAlert','nfOpen'].forEach(id=>{
+    document.getElementById(id).classList.remove('active');
+  });
+  const map = {all:'nfAll',todo:'nfTodo',info:'nfInfo',alert:'nfAlert',open:'nfOpen'};
+  if(map[f]) document.getElementById(map[f]).classList.add('active');
+  renderNotes();
+}
+
+function renderNotes(){
+  let filtered = notes;
+  if(noteFilter === 'open')  filtered = notes.filter(n=>!n.done);
+  else if(noteFilter !== 'all') filtered = notes.filter(n=>n.tag===noteFilter);
+
+  const total = notes.length;
+  const done  = notes.filter(n=>n.done).length;
+  const open  = total - done;
+
+  document.getElementById('notesPanelStats').innerHTML =
+    `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim)">` +
+    `<span style="color:var(--acc)">${open}</span> deschise · ` +
+    `<span style="color:var(--long)">${done}</span> rezolvate</span>`;
+
+  const tagColors = {
+    todo: 'var(--acc)',
+    info: 'var(--neutral)',
+    alert: 'var(--short)'
+  };
+  const tagLabels = { todo:'TO-DO', info:'INFO', alert:'ALERT' };
+
+  if(filtered.length === 0){
+    document.getElementById('notesList').innerHTML =
+      `<div class="notes-empty">// nicio notiță${noteFilter!=='all'?' pentru filtrul selectat':''}</div>`;
+    return;
+  }
+
+  document.getElementById('notesList').innerHTML = filtered.map(n=>`
+    <div class="note-item${n.done?' done':''}" id="note_${n.id}">
+      <div class="note-check${n.done?' checked':''}" onclick="toggleNote(${n.id})" title="${n.done?'Marchează ca deschis':'Marchează ca rezolvat'}"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="note-text">${escHtml(n.text)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+          <span class="note-tag ${n.tag}" style="color:${tagColors[n.tag]||'var(--dim)'}">${tagLabels[n.tag]||n.tag}</span>
+          <span class="note-date">${n.date||''}</span>
+        </div>
+      </div>
+      <button class="note-del" onclick="deleteNote(${n.id})" title="Șterge">✕</button>
+    </div>
+  `).join('');
+}
+
+function escHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── FILTER BAR ────────────────────────────────────────────────────────────────
+function populateFilterProd(){
+  const sel = document.getElementById('ffProd');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Toate</option>' +
+    Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+
+function applyFilter(){
+  activeFilter = {
+    prod:     document.getElementById('ffProd').value,
+    dir:      document.getElementById('ffDir').value,
+    ptype:    document.getElementById('ffPtype').value,
+    cpty:     document.getElementById('ffCpty').value.trim().toLowerCase(),
+    dateFrom: document.getElementById('ffDateFrom').value,
+    dateTo:   document.getElementById('ffDateTo').value,
+  };
+  const isActive = Object.values(activeFilter).some(v=>v!=='');
+  document.getElementById('btnResetFilter').style.display = isActive ? '' : 'none';
+  renderTable();
+}
+
+function resetFilter(){
+  activeFilter = { prod:'', dir:'', ptype:'', cpty:'', dateFrom:'', dateTo:'' };
+  document.getElementById('ffProd').value = '';
+  document.getElementById('ffDir').value = '';
+  document.getElementById('ffPtype').value = '';
+  document.getElementById('ffCpty').value = '';
+  document.getElementById('ffDateFrom').value = '';
+  document.getElementById('ffDateTo').value = '';
+  document.getElementById('btnResetFilter').style.display = 'none';
+  document.getElementById('filterMatch').innerHTML = '';
+  renderTable();
+}
+
+function getFilteredTrades(){
+  let ft = trades.filter(t=>t.crop===crop);
+  const f = activeFilter;
+  if(f.prod)     ft = ft.filter(t=>t.product===f.prod);
+  if(f.dir)      ft = ft.filter(t=>t.dir===f.dir);
+  if(f.ptype)    ft = ft.filter(t=>t.ptype===f.ptype);
+  if(f.cpty)     ft = ft.filter(t=>(t.cpty||'').toLowerCase().includes(f.cpty));
+  if(f.dateFrom) ft = ft.filter(t=>t.date && t.date >= f.dateFrom);
+  if(f.dateTo)   ft = ft.filter(t=>t.date && t.date <= f.dateTo);
+  return ft;
 }
 
 // ── CURRENCY TOGGLE ───────────────────────────────────────────────────────────
@@ -696,12 +956,10 @@ function onFormChange(){
   const needT  = chosen.transport;
   document.getElementById('parityInfo').textContent = needT ? '⚠ cost transport obligatoriu' : '';
 
-  // Show currency toggle only for short (vanzare) + fix
   const showCurToggle = (dir==='short' && ptype==='fix');
   document.getElementById('rowCurrencyToggle').style.display = showCurToggle ? '' : 'none';
   if(!showCurToggle) formCurrency = 'ron';
 
-  // Rows visibility
   const isEur = (showCurToggle && formCurrency==='eur');
   document.getElementById('rowFixRon').style.display   = (ptype==='fix' && !isEur) ? '' : 'none';
   document.getElementById('rowFixEur').style.display   = (ptype==='fix' && isEur)  ? '' : 'none';
@@ -710,13 +968,11 @@ function onFormChange(){
   document.getElementById('grpTransport').style.display    = (ptype==='fix' && !isEur && needT) ? '' : 'none';
   document.getElementById('grpTransportEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
   document.getElementById('grpTransportB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
-  // bonif doar la vanzare fix DAP/FOR/FCA
   const prod = document.getElementById('fProd').value;
   const showBonif = dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
   document.getElementById('grpBonif').style.display = showBonif ? '' : 'none';
   if(!showBonif) document.getElementById('fBonif').value='';
 
-  // Pre-fill BNR rate in EUR field
   if(isEur && fxRates.eurRon) {
     const cf = document.getElementById('fCursEur');
     if(!cf.value) cf.value = fxRates.eurRon.toFixed(4);
@@ -813,6 +1069,7 @@ async function saveProd(){
   products[key]={name,emoji,color:selColor,symbol:sym||name.slice(0,3).toUpperCase()};
   await apiSaveProducts();
   populateProd();
+  populateFilterProd();
   closeModal('modProd');
   render();
 }
@@ -843,7 +1100,6 @@ function parseFile(file){
       let sheetName=wb.SheetNames.find(s=>s!=='Produse'&&s!=='Valori Valide'&&s!=='Info')||wb.SheetNames[0];
       const ws=wb.Sheets[sheetName];
       let rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
-      // Find header row
       let headerIdx=rows.findIndex(r=>r.some(c=>String(c||'').toLowerCase().includes('produs')));
       if(headerIdx<0) headerIdx=0;
       const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim()
@@ -887,7 +1143,6 @@ function parseFile(file){
         const matif     = get(['contract_matif','matif','contract']);
         const cursEurRaw= get(['curs_eur','curs','eur_ron','rate']);
         const transpRaw = get(['cost_transport','transport','transp']);
-        const idRaw     = get(['id']);
         const loc       = get(['locatie','locatia','baza','location','loc']);
         const cpty      = get(['contraparte','counterparty','partener','cpty']);
         const dateRaw   = get(['data','date','zi']);
@@ -902,7 +1157,6 @@ function parseFile(file){
         const pretVal = parseFloat(pretRaw);
         const cursEur = parseFloat(cursEurRaw)||null;
 
-        // Mark incomplete — but still accept
         const incomplete=[];
         if(ptype==='fix' && (isNaN(pretVal)||pretVal<=0)) incomplete.push('pret');
         if(ptype==='basis' && isNaN(pretVal)) incomplete.push('basis');
@@ -1004,24 +1258,20 @@ function openEdit(id){
   document.getElementById('eCpty').value   = t.cpty||'';
   document.getElementById('eNote').value   = t.note||'';
 
-  // RON price fields
   document.getElementById('ePrice').value   = (t.currency==='eur' ? '' : t.price)||'';
   document.getElementById('eDate').value    = t.date||today();
   document.getElementById('eTransp').value  = t.transport||'';
 
-  // EUR price fields
   document.getElementById('ePriceEur').value = t.priceEur||t.price||'';
   document.getElementById('eCursEur').value  = t.cursEur||(fxRates.eurRon?fxRates.eurRon.toFixed(4):'');
   document.getElementById('eDateEur').value  = t.date||today();
   document.getElementById('eTranspEur').value= t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? (t.transport/t.cursEur).toFixed(2) : t.transport||'');
 
-  // Basis fields
   document.getElementById('eMatif').value   = t.matif||'';
   document.getElementById('eBasis').value   = t.basis!==undefined?t.basis:'';
   document.getElementById('eDateB').value   = t.date||today();
   document.getElementById('eTranspB').value = t.transport||'';
 
-  // Currency buttons
   document.getElementById('eCurBtnRon').className = 'cur-btn' + (editCurrency==='ron'?' active':'');
   document.getElementById('eCurBtnEur').className = 'cur-btn' + (editCurrency==='eur'?' active':'');
 
@@ -1043,7 +1293,6 @@ function onEditChange(){
   const chosen = rules.find(r=>r.val===pSel.value)||rules[0];
   const needT  = chosen.transport;
 
-  // Show currency toggle only for short + fix
   const showCurToggle = (dir==='short' && ptype==='fix');
   document.getElementById('eRowCurrencyToggle').style.display = showCurToggle ? '' : 'none';
   if(!showCurToggle) editCurrency = 'ron';
@@ -1057,7 +1306,6 @@ function onEditChange(){
   document.getElementById('eGrpT').style.display    = (ptype==='fix' && !isEur && needT) ? '' : 'none';
   document.getElementById('eGrpTEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
   document.getElementById('eGrpTB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
-  // bonif doar la vanzare fix
   const eProd = document.getElementById('eProd').value;
   const showBonifE = dir==='short' && ptype==='fix' && (eProd==='rapeseed'||eProd==='sunflower');
   document.getElementById('eGrpBonif').style.display = showBonifE ? '' : 'none';
@@ -1131,131 +1379,73 @@ async function saveEdit(){
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
 function exportDB(){
-  if(!Array.isArray(trades)||trades.length===0){
-    alert('Nu există tranzacții de exportat.');
-    return;
-  }
+  if(!Array.isArray(trades)||trades.length===0){alert('Nu există tranzacții de exportat.');return;}
   try {
-    // Export cu coloane compatibile cu importul
     const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','bonif','incomplet']];
     trades.forEach(t=>{
-      // pret_basis = EUR/t pt vanzari EUR, RON/t pt RON fix, basis pt basis
       const pretExport = t.ptype==='fix'
         ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||''))
         : (t.basis!==undefined ? t.basis : '');
-      rows.push([
-        t.id,
-        t.product,          // cheie interna (wheat/corn) — compatibil cu importul
-        t.crop,
-        t.dir,              // long/short
-        t.qty,
-        t.ptype,            // fix/basis
-        t.currency||'ron',
-        t.parity,
-        pretExport,
-        t.cursEur||'',
-        t.matif||'',
-        t.transportEur!=null ? t.transportEur : (t.transport||0),
-        t.loc||'',
-        t.cpty||'',
-        t.date||'',
-        t.note||'',
-        t.bonif||0,
-        t.incomplete?'DA':''
-      ]);
+      rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,t.cursEur||'',t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),t.loc||'',t.cpty||'',t.date||'',t.note||'',t.bonif||0,t.incomplete?'DA':'']);
     });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
-
-    // Summary sheet
-    const pos25 = getPos('2025');
-    const pos26 = getPos('2026');
-    const sumRows = [['Produs','Recolta','Long (t)','Short (t)','Net (t)']];
+    const pos25=getPos('2025'); const pos26=getPos('2026');
+    const sumRows=[['Produs','Recolta','Long (t)','Short (t)','Net (t)']];
     ['2025','2026'].forEach(yr=>{
-      const p = yr==='2025'?pos25:pos26;
-      Object.entries(products).forEach(([k,prod])=>{
-        const pp = p[k]||{long:0,short:0,net:0};
-        sumRows.push([prod.name, yr, pp.long, pp.short, pp.net]);
-      });
+      const p=yr==='2025'?pos25:pos26;
+      Object.entries(products).forEach(([k,prod])=>{const pp=p[k]||{long:0,short:0,net:0};sumRows.push([prod.name,yr,pp.long,pp.short,pp.net]);});
     });
-    const ws2 = XLSX.utils.aoa_to_sheet(sumRows);
-    ws2['!cols'] = [{wch:20},{wch:10},{wch:12},{wch:12},{wch:12}];
+    const ws2=XLSX.utils.aoa_to_sheet(sumRows);
+    ws2['!cols']=[{wch:20},{wch:10},{wch:12},{wch:12},{wch:12}];
     XLSX.utils.book_append_sheet(wb,ws2,'Pozitii');
-
-    const dateStr = new Date().toISOString().slice(0,10);
-    const filename = `agrotex_export_${dateStr}.xlsx`;
-
-    // Always use Blob method for maximum compatibility
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([wbout], {type:'application/octet-stream'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-  } catch(err) {
-    alert('Eroare export: ' + err.message);
-    console.error('Export error:', err);
-  }
+    const dateStr=new Date().toISOString().slice(0,10);
+    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([wbout],{type:'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`agrotex_export_${dateStr}.xlsx`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  } catch(err){alert('Eroare export: '+err.message);}
 }
 
 function downloadTemplate(){
   try {
     const headers=['produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','contract_matif','curs_eur','cost_transport','locatie','contraparte','data','nota'];
-    const example=[
-      'wheat','2025','long','1000','fix','ron','DAP','1050','','','','Carei','Fermier X','2025-09-15',''];
-    const example2=[
-      'corn','2025','short','500','fix','eur','FOR','195','','4.97','','Valea lui Mihai','Trader Y','2025-10-01','vanzare EUR'];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headers, example, example2]);
-    ws['!cols'] = [18,10,12,14,12,10,10,14,16,10,16,20,22,14,24].map(w=>({wch:w}));
+    const ex1=['wheat','2025','long','1000','fix','ron','DAP','1050','','','','Carei','Fermier X','2025-09-15',''];
+    const ex2=['corn','2025','short','500','fix','eur','FOR','195','','4.97','','Valea lui Mihai','Trader Y','2025-10-01','vanzare EUR'];
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([headers,ex1,ex2]);
+    ws['!cols']=[18,10,12,14,12,10,10,14,16,10,16,20,22,14,24].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb,ws,'Import Tranzactii');
-
-    const ws2 = XLSX.utils.aoa_to_sheet([
+    const ws2=XLSX.utils.aoa_to_sheet([
       ['CAMP','VALORI ACCEPTATE / NOTE'],
-      ['recolta','2025 | 2026'],
-      ['directie','long (cumparare) | short (vanzare)'],
-      ['tip_pret','fix | basis'],
-      ['moneda','ron (default) | eur — pentru vanzare EUR/t'],
-      ['paritate (long)','DAP | FCA'],
-      ['paritate (short)','FOR | FCA | DAP'],
+      ['recolta','2025 | 2026'],['directie','long (cumparare) | short (vanzare)'],
+      ['tip_pret','fix | basis'],['moneda','ron (default) | eur'],
+      ['paritate (long)','DAP | FCA'],['paritate (short)','FOR | FCA | DAP'],
       ['produs','wheat | corn | rapeseed | sunflower | soy | triticale | barley'],
-      ['produs (RO)','grau | porumb | rapita | floarea-soarelui | soia | orz | triticale'],
       ['data','YYYY-MM-DD ex: 2025-09-15'],
-      ['pret_basis','RON/t (fix RON) | EUR/t (fix EUR sau basis negativ=discount)'],
-      ['curs_eur','curs EUR/RON folosit pt conversie (optional — se ia automat din BNR)'],
-      ['cost_transport','RON/t — necesar la FCA (achizitie) si DAP (vanzare)'],
-      ['contract_matif','ex: MAT AUG25 — doar pentru tip_pret=basis'],
-      ['','Campurile incomplete sunt acceptate — editabile dupa import'],
     ]);
-    ws2['!cols'] = [{wch:28},{wch:60}];
+    ws2['!cols']=[{wch:28},{wch:60}];
     XLSX.utils.book_append_sheet(wb,ws2,'Valori Valide');
-
-    // Always use Blob for compatibility
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([wbout], {type:'application/octet-stream'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'agrotex_import_template.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-  } catch(err) {
-    alert('Eroare generare template: ' + err.message);
-    console.error('Template error:', err);
-  }
+    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([wbout],{type:'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='agrotex_import_template.xlsx';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  } catch(err){alert('Eroare template: '+err.message);}
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
-  if(id==='modImport') document.getElementById('btnConfirmImport').disabled=false;
-  if(id==='modImport') document.getElementById('btnConfirmImport').textContent='Importă';
+  if(id==='modImport'){
+    document.getElementById('btnConfirmImport').disabled=false;
+    document.getElementById('btnConfirmImport').textContent='Importă';
+  }
 }
 function today(){return new Date().toISOString().split('T')[0];}
 function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
@@ -1288,44 +1478,98 @@ function getPos(cropFilter){
       if(t.ptype==='fix'){
         pos[t.product].buyV+=t.qty*t.price;
         if(t.bonif>0){
-          const priceBuyBonif = t.price*(1+t.bonif/100);
-          pos[t.product].buyVbonif = (pos[t.product].buyVbonif||0) + t.qty*priceBuyBonif;
-          pos[t.product].buyQbonif = (pos[t.product].buyQbonif||0) + t.qty;
+          const priceBuyBonif=t.price*(1+t.bonif/100);
+          pos[t.product].buyVbonif=(pos[t.product].buyVbonif||0)+t.qty*priceBuyBonif;
+          pos[t.product].buyQbonif=(pos[t.product].buyQbonif||0)+t.qty;
         }
       }
     } else {
       if(t.ptype==='basis'){
-        // basis/MATIF = angajament cantitate, pret nedeterminat — nu intra in short real
         pos[t.product].shortBasis+=t.qty;
       } else {
         pos[t.product].shortFix+=t.qty; pos[t.product].sellQ+=t.qty;
         pos[t.product].sellV+=t.qty*t.price;
-        // echivalent FCA = DAP minus transport
-        const isDap = t.parity==='DAP-V'||t.parity==='DAP';
-        const trsp = t.transport||0;
-        const priceFca = isDap && trsp>0 ? t.price - trsp : t.price;
-        pos[t.product].sellVfca += t.qty * priceFca;
-        pos[t.product].sellQfca += t.qty;
-        // cu bonificatie
+        const isDap=t.parity==='DAP-V'||t.parity==='DAP';
+        const trsp=t.transport||0;
+        const priceFca=isDap&&trsp>0?t.price-trsp:t.price;
+        pos[t.product].sellVfca+=t.qty*priceFca;
+        pos[t.product].sellQfca+=t.qty;
         if(t.bonif>0){
-          const mult = 1 + t.bonif/100;
-          const priceFcaBonif = isDap && trsp>0 ? t.price*mult - trsp : t.price*mult;
-          pos[t.product].sellVbonif  = (pos[t.product].sellVbonif||0) + t.qty * priceFcaBonif;
-          pos[t.product].sellQbonif  = (pos[t.product].sellQbonif||0) + t.qty;
+          const mult=1+t.bonif/100;
+          const priceFcaBonif=isDap&&trsp>0?t.price*mult-trsp:t.price*mult;
+          pos[t.product].sellVbonif=(pos[t.product].sellVbonif||0)+t.qty*priceFcaBonif;
+          pos[t.product].sellQbonif=(pos[t.product].sellQbonif||0)+t.qty;
         }
       }
     }
   });
   Object.keys(pos).forEach(k=>{
-    pos[k].short = pos[k].shortFix; // short real = doar fix
-    pos[k].net   = pos[k].long - pos[k].shortFix; // net fara basis
-    pos[k].avgBuy     = pos[k].buyQ     >0 ? pos[k].buyV    /pos[k].buyQ     : 0;
-    pos[k].avgSell    = pos[k].sellQ    >0 ? pos[k].sellV   /pos[k].sellQ    : 0;
-    pos[k].avgSellFca = pos[k].sellQfca >0 ? pos[k].sellVfca/pos[k].sellQfca  : 0;
-    pos[k].avgBuyBonif  = pos[k].buyQbonif >0 ? pos[k].buyVbonif /pos[k].buyQbonif  : 0;
-    pos[k].avgSellBonif = pos[k].sellQbonif>0 ? pos[k].sellVbonif/pos[k].sellQbonif : 0;
+    pos[k].short=pos[k].shortFix;
+    pos[k].net=pos[k].long-pos[k].shortFix;
+    pos[k].avgBuy=pos[k].buyQ>0?pos[k].buyV/pos[k].buyQ:0;
+    pos[k].avgSell=pos[k].sellQ>0?pos[k].sellV/pos[k].sellQ:0;
+    pos[k].avgSellFca=pos[k].sellQfca>0?pos[k].sellVfca/pos[k].sellQfca:0;
+    pos[k].avgBuyBonif=pos[k].buyQbonif>0?pos[k].buyVbonif/pos[k].buyQbonif:0;
+    pos[k].avgSellBonif=pos[k].sellQbonif>0?pos[k].sellVbonif/pos[k].sellQbonif:0;
   });
   return pos;
+}
+
+// ── RENDER TABLE (separate, used by filter) ───────────────────────────────────
+function renderTable(){
+  const ft = getFilteredTrades();
+  const totalCrop = trades.filter(t=>t.crop===crop).length;
+  const isFiltered = Object.values(activeFilter).some(v=>v!=='');
+
+  if(isFiltered){
+    document.getElementById('filterMatch').innerHTML =
+      `<span class="filter-active-dot"></span><span>${ft.length}</span> / ${totalCrop} afișate`;
+  } else {
+    document.getElementById('filterMatch').innerHTML = '';
+  }
+
+  document.getElementById('tcount').textContent = isFiltered
+    ? `${ft.length} / ${totalCrop} tranzacții (${crop})`
+    : `${totalCrop} tranzacții (${crop})`;
+
+  const tbody = document.getElementById('tbody');
+  if(ft.length===0){
+    tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=ft.map(t=>{
+    const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
+    const isEurTrade=t.currency==='eur'&&t.ptype==='fix';
+    let priceDisplay;
+    if(t.ptype==='fix'){
+      if(isEurTrade&&t.priceEur){
+        priceDisplay=`<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">≈${fmtN(t.price)} RON</span>`;
+      } else {
+        priceDisplay=t.price?`<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>`:`<span style="color:var(--short)">—</span>`;
+      }
+    } else {
+      priceDisplay=`<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
+    }
+    const curBadge=isEurTrade?`<span class="teur">EUR</span>`:(t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
+    const trspVal=t.transportEur!=null?t.transportEur:(t.cursEur&&t.transport?t.transport/t.cursEur:null);
+    const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
+    const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
+    const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
+    return`<tr class="tr-click" onclick="openEdit(${t.id})">
+      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
+      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
+      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
+      <td style="color:var(--bright)">${fmtN(t.qty)}</td>
+      <td>${priceDisplay}</td>
+      <td>${curBadge}</td>
+      <td class="tpar">${t.parity}</td>
+      <td class="tdim">${t.loc||'—'}</td>
+      <td>${trsp}</td>
+      <td class="tdim">${t.cpty||'—'}</td>
+      <td class="tdim">${t.date||'—'}</td>
+      <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
+    </tr>`;
+  }).join('');
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -1345,22 +1589,16 @@ function render(){
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
     const mb=Math.max(p.long,p.shortFix,1);
     const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
-    // pretul final = cu bonif daca exista, altfel normal — fara mentiune in card
-    const avgBuyFinal  = p.avgBuyBonif  > 0 ? p.avgBuyBonif  : p.avgBuy;
-    const avgSellFinal = p.avgSellBonif > 0 ? p.avgSellBonif : (p.avgSellFca>0 ? p.avgSellFca : p.avgSell);
-
-    // marja pe preturile finale
-    const margin = (avgBuyFinal>0 && avgSellFinal>0) ? avgSellFinal - avgBuyFinal : null;
-    const marginColor = margin===null ? '' : margin>=0 ? 'var(--long)' : 'var(--short)';
-    const marginSign  = margin===null ? '' : margin>=0 ? '+' : '';
-    const marginRow   = margin!==null ? `<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08">
+    const avgBuyFinal=p.avgBuyBonif>0?p.avgBuyBonif:p.avgBuy;
+    const avgSellFinal=p.avgSellBonif>0?p.avgSellBonif:(p.avgSellFca>0?p.avgSellFca:p.avgSell);
+    const margin=(avgBuyFinal>0&&avgSellFinal>0)?avgSellFinal-avgBuyFinal:null;
+    const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
+    const marginSign=margin===null?'':margin>=0?'+':'';
+    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08">
       <span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span>
       <span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span>
-    </div>` : '';
-
-    // label vanzare — simplu, fara mentiune bonif
-    const sellLabel = p.avgSellFca>0&&p.avgSellFca!==p.avgSell ? '≈ FCA' : 'DAP';
-
+    </div>`:'';
+    const sellLabel=p.avgSellFca>0&&p.avgSellFca!==p.avgSell?'≈ FCA':'DAP';
     return`<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
@@ -1369,61 +1607,14 @@ function render(){
       <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.shortFix/mb*100}%"></div></div>
       ${basisRow}
       <div class="cmets">
-        <div>
-          <div class="cml">Med. cump.</div>
-          <div class="cmv">${fmtP(avgBuyFinal)}</div>
-        </div>
-        <div>
-          <div class="cml">Med. vânz. ${sellLabel}</div>
-          <div class="cmv">${fmtP(avgSellFinal)}</div>
-        </div>
+        <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(avgBuyFinal)}</div></div>
+        <div><div class="cml">Med. vânz. ${sellLabel}</div><div class="cmv">${fmtP(avgSellFinal)}</div></div>
       </div>
       ${marginRow}
     </div>`;
   }).join('');
 
-  const ft=trades.filter(t=>t.crop===crop);
-  document.getElementById('tcount').textContent=`${ft.length} tranzacții (${crop})`;
-  const tbody=document.getElementById('tbody');
-  if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// nicio tranzacție pentru recolta ${crop}</div></td></tr>`;
-  } else {
-    tbody.innerHTML=ft.map(t=>{
-      const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
-      const isEurTrade = t.currency==='eur' && t.ptype==='fix';
-      let priceDisplay;
-      if(t.ptype==='fix'){
-        if(isEurTrade && t.priceEur){
-          priceDisplay = `<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">≈${fmtN(t.price)} RON</span>`;
-        } else {
-          priceDisplay = t.price ? `<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>` : `<span style="color:var(--short)">—</span>`;
-        }
-      } else {
-        priceDisplay = `<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
-      }
-      const curBadge = isEurTrade
-        ? `<span class="teur">EUR</span>`
-        : (t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
-      const trspVal = t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? t.transport/t.cursEur : null);
-      const trspDisplay = (t.currency==='eur'&&t.ptype==='fix'&&trspVal>0) ? `${fmtN(trspVal)} EUR` : (t.transport&&t.transport>0 ? `${fmtN(t.transport)} RON` : null);
-      const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
-      const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
-      return`<tr class="tr-click" onclick="openEdit(${t.id})">
-        <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
-        <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
-        <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
-        <td style="color:var(--bright)">${fmtN(t.qty)}</td>
-        <td>${priceDisplay}</td>
-        <td>${curBadge}</td>
-        <td class="tpar">${t.parity}</td>
-        <td class="tdim">${t.loc||'—'}</td>
-        <td>${trsp}</td>
-        <td class="tdim">${t.cpty||'—'}</td>
-        <td class="tdim">${t.date||'—'}</td>
-        <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
-      </tr>`;
-    }).join('');
-  }
+  renderTable();
 
   let aggHTML='';
   ['2025','2026'].forEach(yr=>{
