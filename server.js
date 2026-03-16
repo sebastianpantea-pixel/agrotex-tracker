@@ -132,24 +132,26 @@ const MATIF_CONTRACTS = [
 ];
 
 async function fetchMatifContract(code) {
-  const url = `https://live.euronext.com/en/product/commodities-futures/${code}`;
+  // code = 'EBM-DPAR' → symbol='EBM', mic='DPAR'
+  const [symbol, mic] = code.split('-');
+
+  // Use the internal Ajax endpoint that returns the prices table HTML
+  const url = `https://live.euronext.com/en/ajax/getPricesFutures/commodities-futures/${symbol}/${mic}`;
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml',
+      'Accept': 'text/html, */*; q=0.01',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': 'https://live.euronext.com/en/markets/commodities',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': `https://live.euronext.com/en/product/commodities-futures/${code}`,
     },
     signal: AbortSignal.timeout(12000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${code}`);
   const html = await res.text();
 
-  // Parse table rows: extract delivery, bid, ask, last, change, settlement
-  // Pattern: <td ...>May 2026</td><td ...>210.00</td><td ...>209.50</td>...
   const rows = [];
   const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
   let trMatch;
 
   while ((trMatch = trRegex.exec(html)) !== null) {
@@ -158,7 +160,6 @@ async function fetchMatifContract(code) {
     let tdMatch;
     const tdReg = /<td[^>]*>([\s\S]*?)<\/td>/gi;
     while ((tdMatch = tdReg.exec(rowHtml)) !== null) {
-      // Strip HTML tags, decode entities, trim
       const text = tdMatch[1]
         .replace(/<[^>]+>/g, '')
         .replace(/&nbsp;/g, ' ')
@@ -166,7 +167,6 @@ async function fetchMatifContract(code) {
         .trim();
       cells.push(text);
     }
-    // Valid row: first cell looks like "May 2026" / "Sep 2026" etc., and has enough cells
     if (cells.length >= 6 && /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/.test(cells[0])) {
       const parseNum = (s) => {
         const n = parseFloat((s || '').replace(',', '.'));
