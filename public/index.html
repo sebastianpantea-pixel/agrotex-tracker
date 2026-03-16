@@ -63,9 +63,37 @@
   .tab:last-child{border-radius:0 4px 4px 0;border-left:none;}
   .tab.old{background:rgba(96,165,250,.1);color:var(--old);border-color:var(--old);}
   .tab.new{background:rgba(52,211,153,.1);color:var(--new);border-color:var(--new);}
+  .tab.news-tab-active{background:rgba(167,139,250,.1);color:var(--basis);border-color:var(--basis);}
+  .tab:not(:first-child){border-left:none;}
+  .tab:first-child{border-radius:4px 0 0 0;}
+  .tab:last-child{border-radius:0 4px 0 0;}
   .tbadge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:9px;font-size:9px;font-weight:800;}
   .tab.old .tbadge{background:var(--old);color:#000;}
   .tab.new .tbadge{background:var(--new);color:#000;}
+
+  /* ── NEWS FEED ── */
+  #newsSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
+  .news-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .news-filter-btn{padding:4px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .15s;white-space:nowrap;}
+  .news-filter-btn.active{background:rgba(167,139,250,.15);color:var(--basis);border-color:var(--basis);}
+  .news-filter-btn:hover{color:var(--bright);}
+  .news-updated{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:auto;}
+  .news-refresh-btn{padding:3px 8px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .15s;}
+  .news-refresh-btn:hover{color:var(--acc);border-color:var(--acc);}
+  .news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;}
+  .news-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .15s;text-decoration:none;}
+  .news-card:hover{border-color:var(--border2);background:var(--surface2);}
+  .news-card-top{display:flex;align-items:center;gap:6px;}
+  .news-source-badge{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;padding:2px 6px;border-radius:2px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+  .news-source-badge.ro{background:rgba(96,165,250,.1);color:var(--old);border:1px solid rgba(96,165,250,.2);}
+  .news-source-badge.en{background:rgba(52,211,153,.1);color:var(--new);border:1px solid rgba(52,211,153,.2);}
+  .news-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:auto;white-space:nowrap;}
+  .news-title{font-size:12px;font-weight:600;color:var(--bright);line-height:1.4;}
+  .news-desc{font-size:11px;color:var(--dim);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .news-empty{padding:40px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;}
+  .news-loading{display:flex;align-items:center;justify-content:center;padding:40px;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);}
+  .news-spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--basis);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   /* MAIN */
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
@@ -289,6 +317,26 @@
   /* FOOTER */
   .footer{padding:7px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:.5px;}
 
+  /* ── NEWS FEED ── */
+  .news-filter-row{display:flex;gap:5px;padding:6px 13px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;}
+  .news-list{max-height:320px;overflow-y:auto;}
+  .news-list::-webkit-scrollbar{width:3px;}
+  .news-list::-webkit-scrollbar-track{background:var(--bg);}
+  .news-list::-webkit-scrollbar-thumb{background:var(--border2);}
+  .news-item{padding:8px 13px;border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;}
+  .news-item:last-child{border-bottom:none;}
+  .news-item:hover{background:var(--surface2);}
+  .news-title{font-size:12px;color:var(--bright);line-height:1.4;margin-bottom:3px;font-weight:500;}
+  .news-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .news-source{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
+  .news-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
+  .news-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;padding:1px 4px;border-radius:2px;letter-spacing:.5px;}
+  .news-tag.RO{background:rgba(96,165,250,.12);color:var(--old);border:1px solid rgba(96,165,250,.25);}
+  .news-tag.INT{background:rgba(52,211,153,.1);color:var(--new);border:1px solid rgba(52,211,153,.2);}
+  .news-tag.HOT{background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
+  .news-empty{padding:22px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;}
+  .news-loading{padding:16px 13px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;animation:blink 1.5s infinite;}
+
   @media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -393,6 +441,24 @@
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
   <div class="tab"     id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026  <span class="tbadge" id="b26">0</span></div>
+  <div class="tab"     id="tabNews" onclick="setNewsTab()" style="margin-left:14px;border-radius:4px;">📰 Știri <span class="tbadge" id="bNews" style="background:var(--basis);color:#000;display:none">0</span></div>
+</div>
+
+<!-- NEWS SECTION -->
+<div id="newsSection">
+  <div class="news-toolbar">
+    <button class="news-filter-btn active" id="nfAll2"    onclick="setNewsFilter('all')">Toate</button>
+    <button class="news-filter-btn"        id="nfRo"      onclick="setNewsFilter('ro')">🇷🇴 Română</button>
+    <button class="news-filter-btn"        id="nfEn"      onclick="setNewsFilter('en')">🌍 Internațional</button>
+    <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
+    <button class="news-filter-btn"        id="nfAgri"    onclick="setNewsFilter('agri')">🌾 Cereale</button>
+    <button class="news-filter-btn"        id="nfMacro"   onclick="setNewsFilter('macro')">📈 Macro</button>
+    <span class="news-updated" id="newsUpdated"></span>
+    <button class="news-refresh-btn" onclick="loadNews(true)">↻ Refresh</button>
+  </div>
+  <div class="news-grid" id="newsGrid">
+    <div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>
+  </div>
 </div>
 
 <div class="main">
@@ -555,6 +621,26 @@
       <div class="panel">
         <div class="ph"><div class="pt">Expunere Net (t) — <span id="expLabel" style="color:var(--acc)">2025</span></div></div>
         <div class="exp" id="expSection"></div>
+      </div>
+
+      <!-- ── NEWS FEED ── -->
+      <div class="panel">
+        <div class="ph">
+          <div class="pt">📰 Știri Piețe & Agro</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);" id="newsUpdated"></span>
+            <button class="btn-sm" onclick="loadNews(true)" style="padding:2px 7px;font-size:9px;" title="Refresh știri">↻</button>
+          </div>
+        </div>
+        <div class="news-filter-row">
+          <button class="nf-btn active" id="nfNews-all"  onclick="setNewsFilter('all')">Toate</button>
+          <button class="nf-btn" id="nfNews-ro"   onclick="setNewsFilter('RO')">🇷🇴 RO</button>
+          <button class="nf-btn" id="nfNews-int"  onclick="setNewsFilter('INT')">🌍 INT</button>
+          <button class="nf-btn" id="nfNews-hot"  onclick="setNewsFilter('hot')" style="margin-left:auto">🔥 Relevante</button>
+        </div>
+        <div class="news-list" id="newsList">
+          <div class="news-loading">// se încarcă știrile...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1571,6 +1657,13 @@ function setCrop(y){
   document.getElementById('fCrop').value=y;
   document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
   document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
+  // deactivate news tab if active
+  if(newsTabActive) {
+    newsTabActive = false;
+    document.getElementById('tabNews').className='tab';
+    document.querySelector('.main').style.display='flex';
+    document.getElementById('newsSection').style.display='none';
+  }
   render();
 }
 
@@ -1757,6 +1850,131 @@ function render(){
   document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
 }
 
+// ── NEWS FEED ─────────────────────────────────────────────────────────────────
+let newsData = [];
+let newsFilter = 'all';
+let newsTabActive = false;
+
+// Keywords for agri/macro categorization
+const AGRI_KEYWORDS = ['grâu','porumb','rapiță','rapita','cereale','oleaginoase','recoltă','recolta','fermi','agricol','apia','madr','export','import','grain','wheat','corn','rapeseed','barley','orz','soia','matif','cbot','harvest','crop','usda','wasde','agri'];
+const MACRO_KEYWORDS = ['bursă','bursa','financiar','macroeconomic','bnr','curs','inflatie','inflație','dobândă','dobanda','energie','petrol','gaze','piață','piata','market','futures','price','euro','dollar','fed','ecb','tariff','taxa','economic'];
+
+function newsItemCategory(item) {
+  const text = (item.title + ' ' + item.desc).toLowerCase();
+  const isAgri  = AGRI_KEYWORDS.some(k => text.includes(k));
+  const isMacro = MACRO_KEYWORDS.some(k => text.includes(k));
+  return { isAgri, isMacro };
+}
+
+function setNewsTab() {
+  // Hide main content, show news
+  newsTabActive = true;
+  document.getElementById('tab25').className = 'tab';
+  document.getElementById('tab26').className = 'tab';
+  document.getElementById('tabNews').className = 'tab news-tab-active';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('newsSection').style.display = 'flex';
+  if (newsData.length === 0) loadNews();
+}
+
+function setCropFromNews() {
+  newsTabActive = false;
+  document.getElementById('tabNews').className = 'tab';
+  document.querySelector('.main').style.display = 'flex';
+  document.getElementById('newsSection').style.display = 'none';
+}
+
+function setNewsFilter(f) {
+  newsFilter = f;
+  ['nfAll2','nfRo','nfEn','nfAgri','nfMacro'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  const map = {all:'nfAll2', ro:'nfRo', en:'nfEn', agri:'nfAgri', macro:'nfMacro'};
+  if (map[f]) document.getElementById(map[f]).classList.add('active');
+  renderNews();
+}
+
+function fmtNewsDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'acum';
+  if (diff < 3600) return Math.floor(diff/60) + 'm';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit'});
+}
+
+function renderNews() {
+  const grid = document.getElementById('newsGrid');
+  if (!newsData.length) {
+    grid.innerHTML = '<div class="news-empty">// nicio știre disponibilă momentan</div>';
+    return;
+  }
+
+  let items = newsData;
+  if (newsFilter === 'ro') items = items.filter(i => i.lang === 'ro');
+  else if (newsFilter === 'en') items = items.filter(i => i.lang === 'en');
+  else if (newsFilter === 'agri') items = items.filter(i => newsItemCategory(i).isAgri);
+  else if (newsFilter === 'macro') items = items.filter(i => newsItemCategory(i).isMacro);
+
+  if (!items.length) {
+    grid.innerHTML = '<div class="news-empty">// nicio știre pentru filtrul selectat</div>';
+    return;
+  }
+
+  grid.innerHTML = items.slice(0, 60).map(item => {
+    const langClass = item.lang === 'ro' ? 'ro' : 'en';
+    const dateStr = fmtNewsDate(item.ts);
+    const cat = newsItemCategory(item);
+    const catTags = [cat.isAgri ? '🌾' : '', cat.isMacro ? '📈' : ''].filter(Boolean).join(' ');
+    return `<a class="news-card" href="${item.link}" target="_blank" rel="noopener noreferrer">
+      <div class="news-card-top">
+        <span class="news-source-badge ${langClass}">${item.flag} ${item.source}</span>
+        ${catTags ? `<span style="font-size:10px">${catTags}</span>` : ''}
+        <span class="news-date">${dateStr}</span>
+      </div>
+      <div class="news-title">${item.title}</div>
+      ${item.desc ? `<div class="news-desc">${item.desc}</div>` : ''}
+    </a>`;
+  }).join('');
+}
+
+async function loadNews(forceRefresh = false) {
+  const grid = document.getElementById('newsGrid');
+  if (!newsData.length) {
+    grid.innerHTML = '<div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>';
+  }
+  try {
+    const url = forceRefresh ? '/api/news?refresh=1' : '/api/news';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    newsData = data.items || [];
+
+    // Update badge
+    const badge = document.getElementById('bNews');
+    if (newsData.length) { badge.textContent = newsData.length; badge.style.display = ''; }
+
+    // Update timestamp
+    const upd = document.getElementById('newsUpdated');
+    if (upd) {
+      const t = new Date(data.fetchedAt);
+      const timeStr = t.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+      upd.textContent = (data.cached ? `cache ` : ``) + timeStr + ` · ${newsData.length} știri`;
+    }
+    renderNews();
+
+    // Auto-refresh every 30 min
+    setTimeout(() => { if (newsTabActive) loadNews(); }, 30 * 60 * 1000);
+  } catch(e) {
+    console.error('News load error:', e);
+    if (!newsData.length) {
+      grid.innerHTML = '<div class="news-empty">// eroare la încărcarea știrilor</div>';
+    }
+  }
+}
+
 // ── MATIF QUOTES ──────────────────────────────────────────────────────────────
 async function loadMatif(){
   try {
@@ -1822,6 +2040,74 @@ async function loadMatif(){
   }
 }
 
+// ── NEWS FEED ─────────────────────────────────────────────────────────────────
+let newsData = [];
+let newsFilter = 'all';
+
+async function loadNews(forceRefresh) {
+  try {
+    const url = forceRefresh ? '/api/news?refresh=1' : '/api/news';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    newsData = data.items || [];
+
+    const updEl = document.getElementById('newsUpdated');
+    if (updEl) {
+      const t = new Date(data.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+      updEl.textContent = data.cached ? `cache ${t}` : t;
+    }
+    renderNews();
+  } catch(e) {
+    document.getElementById('newsList').innerHTML =
+      `<div class="news-empty">// eroare la încărcarea știrilor</div>`;
+  }
+}
+
+function setNewsFilter(f) {
+  newsFilter = f;
+  ['all','ro','int','hot'].forEach(x => {
+    const el = document.getElementById('nfNews-' + x);
+    if (el) el.classList.toggle('active', x === f);
+  });
+  renderNews();
+}
+
+function renderNews() {
+  let items = newsData;
+  if (newsFilter === 'RO')  items = items.filter(i => i.tag === 'RO');
+  if (newsFilter === 'INT') items = items.filter(i => i.tag === 'INT');
+  if (newsFilter === 'hot') items = items.filter(i => i.score >= 3);
+
+  if (!items.length) {
+    document.getElementById('newsList').innerHTML =
+      `<div class="news-empty">// nicio știre pentru filtrul selectat</div>`;
+    return;
+  }
+
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 60)  return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24)  return `${h}h`;
+    return `${Math.floor(h/24)}z`;
+  }
+
+  const tagClass = (score, tag) => score >= 3 ? 'HOT' : tag;
+
+  document.getElementById('newsList').innerHTML = items.slice(0, 40).map(item => `
+    <div class="news-item" onclick="window.open('${escHtml(item.link)}','_blank')">
+      <div class="news-title">${escHtml(item.title)}</div>
+      <div class="news-meta">
+        <span class="news-tag ${tagClass(item.score, item.tag)}">${item.score >= 3 ? '🔥' : ''} ${item.tag}</span>
+        <span class="news-source">${escHtml(item.source)}</span>
+        <span class="news-date">${timeAgo(item.date)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
@@ -1834,8 +2120,10 @@ fetch('/api/me').then(r=>r.json()).then(d=>{
     loadAll();
     loadFxRates();
     loadMatif();
+    loadNews();
     setInterval(loadFxRates, 3*60*60*1000);
-    setInterval(loadMatif,   5*60*1000); // refresh MATIF every 5 min
+    setInterval(loadMatif,   5*60*1000);
+    setInterval(loadNews,   15*60*1000); // refresh news every 15 min
   }
 });
 
