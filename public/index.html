@@ -465,18 +465,20 @@
   <div class="top-row">
     <div class="cards" id="cards"></div>
 
-    <!-- ── NOTES PANEL (top right) ── -->
-    <div class="panel notes-panel">
-      <div class="ph">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="pt" id="notesPanelTitle" style="cursor:pointer;opacity:1;" onclick="showNotesView()">📋 Notițe &amp; To-Do</div>
-          <div class="pt" id="newsPanelTitle" style="cursor:pointer;opacity:.4;" onclick="showNewsView()">📰 Știri <span class="tbadge" id="bNews" style="background:var(--basis);color:#000;display:none">0</span></div>
+    <!-- ── NEWS TAB BUTTON (deasupra notițelor) ── -->
+    <div style="display:flex;flex-direction:column;gap:0;">
+      <div style="display:flex;gap:0;align-items:flex-end;">
+        <div class="tab" id="tabNews" onclick="setNewsTab()" style="border-radius:4px 4px 0 0;border-bottom:none;margin:0;font-size:11px;padding:6px 14px;">
+          📰 Știri <span class="tbadge" id="bNews" style="background:var(--basis);color:#000;display:none">0</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
       </div>
 
-      <!-- NOTES VIEW -->
-      <div id="notesView">
+      <!-- ── NOTES PANEL ── -->
+      <div class="panel notes-panel" style="border-radius:0 4px 4px 4px;">
+        <div class="ph">
+          <div class="pt">📋 Notițe &amp; To-Do</div>
+          <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
+        </div>
         <div class="notes-input-row">
           <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
           <select id="noteTag" style="width:80px;padding:5px 5px;font-size:10px;height:28px;">
@@ -494,19 +496,6 @@
           <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')" style="margin-left:auto">Deschise</button>
         </div>
         <div class="notes-list" id="notesList"></div>
-      </div>
-
-      <!-- NEWS VIEW (inline în panel) -->
-      <div id="newsPanelView" style="display:none;">
-        <div class="news-filter-row" style="margin-bottom:6px;">
-          <button class="nf-btn active" id="nfPAll"   onclick="setPanelNewsFilter('all')">Toate</button>
-          <button class="nf-btn" id="nfPRo"    onclick="setPanelNewsFilter('ro')">🇷🇴 RO</button>
-          <button class="nf-btn" id="nfPInt"   onclick="setPanelNewsFilter('en')">🌍 INT</button>
-          <button class="nf-btn" id="nfPAgri"  onclick="setPanelNewsFilter('agri')">🌾</button>
-          <button class="nf-btn" id="nfPMacro" onclick="setPanelNewsFilter('macro')">📈</button>
-          <button class="nf-btn" onclick="loadNews(true)" style="margin-left:auto">↻</button>
-        </div>
-        <div class="notes-list" id="newsPanelList" style="max-height:340px;overflow-y:auto;"></div>
       </div>
     </div>
   </div>
@@ -1654,7 +1643,12 @@ function setCrop(y){
   document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
   document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
   // deactivate news tab if active
-  newsTabActive = false;
+  if(newsTabActive) {
+    newsTabActive = false;
+    document.getElementById('tabNews').className = 'tab';
+    document.querySelector('.main').style.display = 'flex';
+    document.getElementById('newsSection').style.display = 'none';
+  }
   render();
 }
 
@@ -1847,7 +1841,6 @@ function render(){
 let newsData = [];
 let newsFilter = 'all';
 let newsTabActive = false;
-let panelNewsFilter = 'all';
 
 // Keywords for agri/macro categorization
 const AGRI_KEYWORDS = ['grâu','porumb','rapiță','rapita','cereale','oleaginoase','recoltă','recolta','fermi','agricol','apia','madr','export','import','grain','wheat','corn','rapeseed','barley','orz','soia','matif','cbot','harvest','crop','usda','wasde','agri'];
@@ -1860,62 +1853,23 @@ function newsItemCategory(item) {
   return { isAgri, isMacro };
 }
 
-function showNotesView() {
-  document.getElementById('notesView').style.display = '';
-  document.getElementById('newsPanelView').style.display = 'none';
-  document.getElementById('notesPanelTitle').style.opacity = '1';
-  document.getElementById('newsPanelTitle').style.opacity = '.4';
-  document.getElementById('notesPanelStats').style.display = '';
-}
-
-function showNewsView() {
-  document.getElementById('notesView').style.display = 'none';
-  document.getElementById('newsPanelView').style.display = '';
-  document.getElementById('notesPanelTitle').style.opacity = '.4';
-  document.getElementById('newsPanelTitle').style.opacity = '1';
-  document.getElementById('notesPanelStats').style.display = 'none';
+function setNewsTab() {
+  newsTabActive = true;
+  document.getElementById('tab25').className = 'tab';
+  document.getElementById('tab26').className = 'tab';
+  document.getElementById('tabNews').className = 'tab news-tab-active';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('newsSection').style.display = 'flex';
   if (newsData.length === 0) loadNews();
-  else renderPanelNews();
+  else renderNews();
 }
 
-function setPanelNewsFilter(f) {
-  panelNewsFilter = f;
-  ['nfPAll','nfPRo','nfPInt','nfPAgri','nfPMacro'].forEach(id => {
-    document.getElementById(id)?.classList.remove('active');
-  });
-  const map = {all:'nfPAll', ro:'nfPRo', en:'nfPInt', agri:'nfPAgri', macro:'nfPMacro'};
-  if (map[f]) document.getElementById(map[f])?.classList.add('active');
-  renderPanelNews();
+function setCropFromNews() {
+  newsTabActive = false;
+  document.getElementById('tabNews').className = 'tab';
+  document.querySelector('.main').style.display = 'flex';
+  document.getElementById('newsSection').style.display = 'none';
 }
-
-function renderPanelNews() {
-  const list = document.getElementById('newsPanelList');
-  if (!list) return;
-  if (!newsData.length) {
-    list.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:10px 0">// nicio știre disponibilă</div>';
-    return;
-  }
-  let items = newsData;
-  if (panelNewsFilter === 'ro') items = items.filter(i => i.lang === 'ro');
-  else if (panelNewsFilter === 'en') items = items.filter(i => i.lang === 'en');
-  else if (panelNewsFilter === 'agri') items = items.filter(i => newsItemCategory(i).isAgri);
-  else if (panelNewsFilter === 'macro') items = items.filter(i => newsItemCategory(i).isMacro);
-
-  list.innerHTML = items.slice(0, 40).map(item => {
-    const flag = item.lang === 'ro' ? '🇷🇴' : '🌍';
-    const dateStr = fmtNewsDate(item.ts || new Date(item.date).getTime());
-    return `<a href="${item.link}" target="_blank" rel="noopener" style="display:block;padding:7px 0;border-bottom:1px solid var(--border2);text-decoration:none;color:inherit;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-        <span style="font-size:9px;color:var(--dim)">${flag} ${item.source}</span>
-        <span style="font-size:9px;color:var(--dim)">${dateStr}</span>
-      </div>
-      <div style="font-size:11px;color:var(--fg);line-height:1.4;font-weight:500;">${item.title}</div>
-    </a>`;
-  }).join('');
-}
-
-function setNewsTab() { showNewsView(); }
-function setCropFromNews() { showNotesView(); }
 
 function fmtNewsDate(ts) {
   if (!ts) return '';
