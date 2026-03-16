@@ -80,6 +80,8 @@
   .news-updated{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:auto;}
   .news-refresh-btn{padding:3px 8px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .15s;}
   .news-refresh-btn:hover{color:var(--acc);border-color:var(--acc);}
+  .news-back-btn{padding:4px 12px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--fg);transition:all .15s;letter-spacing:.03em;}
+  .news-back-btn:hover{color:var(--acc);border-color:var(--acc);background:var(--surface3);}
   .news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;}
   .news-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .15s;text-decoration:none;}
   .news-card:hover{border-color:var(--border2);background:var(--surface2);}
@@ -447,6 +449,8 @@
 <!-- NEWS SECTION -->
 <div id="newsSection">
   <div class="news-toolbar">
+    <button class="news-back-btn" onclick="setCropFromNews()">← Înapoi</button>
+    <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
     <button class="news-filter-btn active" id="nfAll2"    onclick="setNewsFilter('all')">Toate</button>
     <button class="news-filter-btn"        id="nfRo"      onclick="setNewsFilter('ro')">🇷🇴 Română</button>
     <button class="news-filter-btn"        id="nfEn"      onclick="setNewsFilter('en')">🌍 Internațional</button>
@@ -1869,6 +1873,16 @@ function setCropFromNews() {
   document.getElementById('tabNews').className = 'tab';
   document.querySelector('.main').style.display = 'flex';
   document.getElementById('newsSection').style.display = 'none';
+}
+
+function setNewsFilter(f) {
+  newsFilter = f;
+  ['nfAll2','nfRo','nfEn','nfAgri','nfMacro'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  const map = {all:'nfAll2', ro:'nfRo', en:'nfEn', agri:'nfAgri', macro:'nfMacro'};
+  if (map[f]) document.getElementById(map[f])?.classList.add('active');
+  renderNews();
 }
 
 function fmtNewsDate(ts) {
