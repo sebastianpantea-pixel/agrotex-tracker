@@ -370,7 +370,7 @@ app.get('/api/news/test', requireAuth, async (req, res) => {
   res.json(results.map(r => r.value || r.reason));
 });
 
-
+app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
