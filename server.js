@@ -237,6 +237,222 @@ app.get('/api/matif', requireAuth, async (req, res) => {
   }
 });
 
+// ── NEWS FEED (RSS aggregator — cereale, piețe, agro România) ─────────────────
+let newsCache = { data: null, ts: 0 };
+const NEWS_TTL = 15 * 60 * 1000; // 15 minute cache
+
+const NEWS_SOURCES = [
+  { name: 'Agrointeligenta', url: 'https://agrointel.ro/feed', lang: 'ro', tag: 'RO' },
+  { name: 'Agerpres Economie', url: 'https://www.agerpres.ro/rss/economie.rss', lang: 'ro', tag: 'RO' },
+  { name: 'World Grain', url: 'https://www.world-grain.com/rss/news', lang: 'en', tag: 'INT' },
+  { name: 'USDA News', url: 'https://www.usda.gov/rss/latest-releases.xml', lang: 'en', tag: 'INT' },
+  { name: 'Reuters Commodities', url: 'https://feeds.reuters.com/reuters/businessNews', lang: 'en', tag: 'INT' },
+];
+
+// Keywords to boost relevance score (not filter — show all but sort by relevance)
+const KEYWORDS_HIGH = ['grâu','wheat','porumb','corn','rapiță','rapeseed','canola','cereale','grain','oleaginoase','oilseed','MATIF','CBOT','futures','recoltă','harvest','export','import','USDA','IGC','Euronext'];
+const KEYWORDS_MED  = ['agricol','agricultură','agriculture','fermier','farmer','piață','market','preț','price','România','Romania','UE','EU','subvenț','subsid'];
+
+function scoreItem(title, desc) {
+  const text = ((title || '') + ' ' + (desc || '')).toLowerCase();
+  let score = 0;
+  KEYWORDS_HIGH.forEach(k => { if (text.includes(k.toLowerCase())) score += 3; });
+  KEYWORDS_MED.forEach(k  => { if (text.includes(k.toLowerCase())) score += 1; });
+  return score;
+}
+
+async function fetchRSS(source) {
+  const res = await fetch(source.url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader',
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const xml = await res.text();
+
+  const items = [];
+  // Parse <item> blocks
+  const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+  let m;
+  while ((m = itemRegex.exec(xml)) !== null) {
+    const block = m[1];
+    const get = (tag) => {
+      const r = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i');
+      const match = r.exec(block);
+      return match ? match[1].replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim() : '';
+    };
+    const title = get('title');
+    const link  = get('link') || (/<link>([\s\S]*?)<\/link>/i.exec(block) || [])[1] || '';
+    const desc  = get('description').substring(0, 200);
+    const pubDate = get('pubDate') || get('dc:date') || '';
+    const date = pubDate ? new Date(pubDate) : new Date();
+
+    if (title && link) {
+      items.push({
+        title,
+        link: link.trim(),
+        desc,
+        date: date.toISOString(),
+        source: source.name,
+        tag: source.tag,
+        lang: source.lang,
+        score: scoreItem(title, desc),
+      });
+    }
+  }
+  return items;
+}
+
+app.get('/api/news', requireAuth, async (req, res) => {
+  try {
+    const now = Date.now();
+    if (newsCache.data && (now - newsCache.ts) < NEWS_TTL) {
+      return res.json({ ...newsCache.data, cached: true, age: Math.round((now - newsCache.ts) / 1000) });
+    }
+
+    const allItems = [];
+    const sourceResults = await Promise.allSettled(
+      NEWS_SOURCES.map(s => fetchRSS(s).then(items => ({ source: s.name, items, ok: true }))
+                                        .catch(e => ({ source: s.name, items: [], ok: false, error: e.message })))
+    );
+
+    sourceResults.forEach(r => {
+      if (r.status === 'fulfilled') allItems.push(...r.value.items);
+    });
+
+    // Sort: score desc, then date desc — take top 60
+    allItems.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return new Date(b.date) - new Date(a.date);
+    });
+
+    const payload = {
+      items: allItems.slice(0, 60),
+      total: allItems.length,
+      sources: sourceResults.map(r => r.value || r.reason),
+      fetchedAt: new Date().toISOString(),
+      cached: false,
+      age: 0,
+    };
+
+    if (allItems.length > 0) newsCache = { data: payload, ts: now };
+    res.json(payload);
+  } catch (err) {
+    console.error('News fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── NEWS FEED (RSS aggregator — no API key needed) ────────────────────────────
+let newsCache = { data: null, ts: 0 };
+const NEWS_TTL = 30 * 60 * 1000; // 30 minutes
+
+const NEWS_SOURCES = [
+  // Romanian
+  { id: 'agrointel',  label: 'Agrointeligența', lang: 'ro', flag: '🇷🇴', url: 'https://agrointel.ro/feed' },
+  { id: 'agerpres',   label: 'Agerpres',         lang: 'ro', flag: '🇷🇴', url: 'https://www.agerpres.ro/rss/economie.rss' },
+  { id: 'ziare_agri', label: 'Ziare.com Agri',   lang: 'ro', flag: '🇷🇴', url: 'https://www.ziare.com/rss/agricultura.xml' },
+  // International
+  { id: 'worldgrain',    label: 'World Grain',      lang: 'en', flag: '🌍', url: 'https://www.world-grain.com/rss/news' },
+  { id: 'graincentral',  label: 'Grain Central',    lang: 'en', flag: '🌍', url: 'https://www.graincentral.com/feed' },
+  { id: 'reuters_agri',  label: 'Reuters Commodities', lang: 'en', flag: '🌍', url: 'https://feeds.reuters.com/reuters/businessNews' },
+  { id: 'usda_fas',      label: 'USDA FAS',         lang: 'en', flag: '🌍', url: 'https://www.fas.usda.gov/rss.xml' },
+];
+
+function parseRSSDate(str) {
+  if (!str) return new Date(0);
+  try { return new Date(str); } catch { return new Date(0); }
+}
+
+function stripHtml(str) {
+  if (!str) return '';
+  return str.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
+}
+
+function extractTag(xml, tag) {
+  const m = xml.match(new RegExp(`<${tag}(?:[^>]*)>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return m ? stripHtml(m[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim()) : '';
+}
+
+async function fetchRSSSource(source) {
+  const res = await fetch(source.url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; AgrotexTracker/1.0)',
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const xml = await res.text();
+
+  // Extract <item> blocks
+  const itemRegex = /<item[\s>]([\s\S]*?)<\/item>/gi;
+  const items = [];
+  let match;
+  while ((match = itemRegex.exec(xml)) !== null && items.length < 15) {
+    const block = match[1];
+    const title = extractTag(block, 'title');
+    const link  = extractTag(block, 'link') || block.match(/<link>([^<]+)<\/link>/)?.[1]?.trim() || '';
+    const desc  = extractTag(block, 'description');
+    const pubDate = extractTag(block, 'pubDate') || extractTag(block, 'dc:date') || extractTag(block, 'published');
+    if (!title || !link) continue;
+    items.push({
+      id:      source.id + '_' + Buffer.from(link).toString('base64').slice(0, 16),
+      source:  source.label,
+      sourceId: source.id,
+      lang:    source.lang,
+      flag:    source.flag,
+      title:   title.slice(0, 180),
+      link,
+      desc:    desc.slice(0, 300),
+      date:    pubDate,
+      ts:      parseRSSDate(pubDate).getTime(),
+    });
+  }
+  return items;
+}
+
+app.get('/api/news', requireAuth, async (req, res) => {
+  try {
+    const now = Date.now();
+    if (newsCache.data && (now - newsCache.ts) < NEWS_TTL) {
+      return res.json({ ...newsCache.data, cached: true, age: Math.round((now - newsCache.ts) / 1000) });
+    }
+
+    const results = await Promise.allSettled(NEWS_SOURCES.map(s => fetchRSSSource(s)));
+
+    let allItems = [];
+    const sourceStatus = {};
+    results.forEach((r, i) => {
+      const s = NEWS_SOURCES[i];
+      if (r.status === 'fulfilled') {
+        allItems = allItems.concat(r.value);
+        sourceStatus[s.id] = { ok: true, count: r.value.length };
+      } else {
+        sourceStatus[s.id] = { ok: false, error: r.reason?.message };
+      }
+    });
+
+    // Sort by date descending
+    allItems.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+    const payload = {
+      items: allItems.slice(0, 100),
+      sourceStatus,
+      fetchedAt: new Date().toISOString(),
+      cached: false,
+      age: 0,
+    };
+    if (allItems.length > 0) newsCache = { data: payload, ts: now };
+    res.json(payload);
+  } catch (err) {
+    console.error('News feed error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
