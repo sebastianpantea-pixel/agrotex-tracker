@@ -120,6 +120,123 @@ app.put('/api/products', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── MATIF QUOTES (Euronext scraping — delayed 15 min, no API key needed) ──────
+// Cache to avoid hammering Euronext (refresh max once per 5 min)
+let matifCache = { data: null, ts: 0 };
+const MATIF_TTL = 5 * 60 * 1000; // 5 minutes
+
+const MATIF_CONTRACTS = [
+  { key: 'wheat',    code: 'EBM-DPAR', name: 'Grâu (EBM)'    },
+  { key: 'corn',     code: 'EMA-DPAR', name: 'Porumb (EMA)'   },
+  { key: 'rapeseed', code: 'ECO-DPAR', name: 'Rapiță (ECO)'  },
+];
+
+async function fetchMatifContract(code) {
+  const url = `https://live.euronext.com/en/product/commodities-futures/${code}`;
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://live.euronext.com/en/markets/commodities',
+    },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${code}`);
+  const html = await res.text();
+
+  // Parse table rows: extract delivery, bid, ask, last, change, settlement
+  // Pattern: <td ...>May 2026</td><td ...>210.00</td><td ...>209.50</td>...
+  const rows = [];
+  const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+  let trMatch;
+
+  while ((trMatch = trRegex.exec(html)) !== null) {
+    const rowHtml = trMatch[1];
+    const cells = [];
+    let tdMatch;
+    const tdReg = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    while ((tdMatch = tdReg.exec(rowHtml)) !== null) {
+      // Strip HTML tags, decode entities, trim
+      const text = tdMatch[1]
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .trim();
+      cells.push(text);
+    }
+    // Valid row: first cell looks like "May 2026" / "Sep 2026" etc., and has enough cells
+    if (cells.length >= 6 && /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/.test(cells[0])) {
+      const parseNum = (s) => {
+        const n = parseFloat((s || '').replace(',', '.'));
+        return isNaN(n) ? null : n;
+      };
+      rows.push({
+        delivery: cells[0],
+        bid:      parseNum(cells[1]),
+        ask:      parseNum(cells[2]),
+        last:     parseNum(cells[3]),
+        change:   parseNum(cells[5]),
+        settl:    parseNum(cells[10]) || parseNum(cells[9]) || parseNum(cells[8]),
+      });
+    }
+  }
+
+  return rows;
+}
+
+app.get('/api/matif', requireAuth, async (req, res) => {
+  try {
+    const now = Date.now();
+    // Serve from cache if fresh
+    if (matifCache.data && (now - matifCache.ts) < MATIF_TTL) {
+      return res.json({ ...matifCache.data, cached: true, age: Math.round((now - matifCache.ts) / 1000) });
+    }
+
+    const results = {};
+    const errors = {};
+
+    await Promise.allSettled(
+      MATIF_CONTRACTS.map(async ({ key, code, name }) => {
+        try {
+          const rows = await fetchMatifContract(code);
+          // Front month = first row with a bid or settlement price
+          const front = rows.find(r => r.bid !== null || r.settl !== null) || rows[0] || null;
+          results[key] = {
+            name,
+            code,
+            front,
+            allRows: rows.slice(0, 6), // first 6 expiries
+          };
+        } catch (e) {
+          errors[key] = e.message;
+          results[key] = { name, code, front: null, allRows: [], error: e.message };
+        }
+      })
+    );
+
+    const payload = {
+      quotes: results,
+      errors,
+      fetchedAt: new Date().toISOString(),
+      cached: false,
+      age: 0,
+    };
+
+    // Only cache if we got at least one valid result
+    const hasData = Object.values(results).some(r => r.front !== null);
+    if (hasData) {
+      matifCache = { data: payload, ts: now };
+    }
+
+    res.json(payload);
+  } catch (err) {
+    console.error('MATIF fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
