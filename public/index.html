@@ -140,7 +140,27 @@
   .cur-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:var(--acc);}
   .cur-btn:hover{color:var(--bright);}
 
-  /* ── FILTER ROW — sub capul de tabel ── */
+  /* ── MATIF WIDGET ── */
+  .matif-widget{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:default;}
+  .matif-pair{display:flex;flex-direction:column;align-items:center;min-width:72px;position:relative;}
+  .matif-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+  .matif-price{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--bright);}
+  .matif-price.loading{color:var(--dim);}
+  .matif-change{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;}
+  .matif-change.up{color:var(--long);}
+  .matif-change.down{color:var(--short);}
+  .matif-change.flat{color:var(--dim);}
+  .matif-delivery{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--dim);opacity:.7;}
+  .matif-updated{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;}
+  /* Tooltip popup on hover */
+  .matif-pair:hover .matif-tooltip{display:block;}
+  .matif-tooltip{display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:8px 10px;min-width:220px;z-index:300;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+  .matif-tooltip::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:var(--surface3);border-left:1px solid var(--border2);border-top:1px solid var(--border2);transform:translateX(-50%) rotate(45deg);}
+  .tt-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;color:var(--acc);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;border-bottom:1px solid var(--border2);padding-bottom:4px;}
+  .tt-row{display:flex;justify-content:space-between;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text);padding:2px 0;}
+  .tt-row span:first-child{color:var(--dim);font-size:9px;}
+  .tt-row span:last-child{font-weight:600;color:var(--bright);}
+
   .filter-row td{padding:5px 9px;background:var(--surface3);border-bottom:2px solid var(--border2);}
   .filter-bar-inner{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
   .filter-bar-inner select,.filter-bar-inner input{padding:3px 6px;font-size:10px;height:22px;width:auto;background:var(--bg);border:1px solid var(--border2);border-radius:2px;color:var(--bright);font-family:'IBM Plex Mono',monospace;outline:none;}
@@ -314,6 +334,50 @@
       </div>
       <div class="fx-sep"></div>
       <div class="fx-updated" id="fxUpdated">BNR</div>
+    </div>
+    <div class="sep"></div>
+    <!-- MATIF WIDGET -->
+    <div class="matif-widget" id="matifWidget">
+      <div class="matif-pair" id="matifWheat">
+        <div class="matif-label">🌾 EBM</div>
+        <div class="matif-price loading" id="mWheatPrice">—</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <div class="matif-change flat" id="mWheatChange"></div>
+          <div class="matif-delivery" id="mWheatDel"></div>
+        </div>
+        <div class="matif-tooltip" id="mWheatTooltip">
+          <div class="tt-title">🌾 Grâu MATIF (EBM)</div>
+          <div id="mWheatRows"></div>
+        </div>
+      </div>
+      <div class="fx-sep"></div>
+      <div class="matif-pair" id="matifCorn">
+        <div class="matif-label">🌽 EMA</div>
+        <div class="matif-price loading" id="mCornPrice">—</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <div class="matif-change flat" id="mCornChange"></div>
+          <div class="matif-delivery" id="mCornDel"></div>
+        </div>
+        <div class="matif-tooltip" id="mCornTooltip">
+          <div class="tt-title">🌽 Porumb MATIF (EMA)</div>
+          <div id="mCornRows"></div>
+        </div>
+      </div>
+      <div class="fx-sep"></div>
+      <div class="matif-pair" id="matifRape">
+        <div class="matif-label">🌿 ECO</div>
+        <div class="matif-price loading" id="mRapePrice">—</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <div class="matif-change flat" id="mRapeChange"></div>
+          <div class="matif-delivery" id="mRapeDel"></div>
+        </div>
+        <div class="matif-tooltip" id="mRapeTooltip">
+          <div class="tt-title">🌿 Rapiță MATIF (ECO)</div>
+          <div id="mRapeRows"></div>
+        </div>
+      </div>
+      <div class="fx-sep"></div>
+      <div class="matif-updated" id="matifUpdated" title="Date Euronext cu delay ~15 min">15′ delay</div>
     </div>
     <div class="sep"></div>
     <div class="sync" id="syncStatus">●</div>
@@ -1693,6 +1757,71 @@ function render(){
   document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
 }
 
+// ── MATIF QUOTES ──────────────────────────────────────────────────────────────
+async function loadMatif(){
+  try {
+    const res = await fetch('/api/matif');
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const q = data.quotes || {};
+
+    function fmtMatifPrice(v){ return v!=null ? Number(v).toFixed(2) : '—'; }
+    function delivShort(s){ return s ? s.replace('September','Sep').replace('December','Dec').replace('January','Jan').replace('February','Feb').replace('March','Mar').replace('April','Apr').replace('August','Aug').replace('October','Oct').replace('November','Nov').replace('June','Jun').replace('July','Jul') : ''; }
+
+    function updatePair(key, priceId, changeId, delId, rowsId){
+      const item = q[key];
+      if(!item || !item.front) return;
+      const f = item.front;
+      // Price: prefer last, then bid, then settl
+      const price = f.last != null ? f.last : (f.bid != null ? f.bid : f.settl);
+      const priceEl = document.getElementById(priceId);
+      if(priceEl){ priceEl.textContent = fmtMatifPrice(price); priceEl.className='matif-price'; }
+      // Change
+      const chEl = document.getElementById(changeId);
+      if(chEl && f.change != null){
+        const sign = f.change > 0 ? '+' : '';
+        chEl.textContent = sign + f.change.toFixed(2);
+        chEl.className = 'matif-change ' + (f.change > 0 ? 'up' : f.change < 0 ? 'down' : 'flat');
+      }
+      // Delivery month
+      const delEl = document.getElementById(delId);
+      if(delEl) delEl.textContent = delivShort(f.delivery);
+      // Tooltip rows
+      const rowsEl = document.getElementById(rowsId);
+      if(rowsEl && item.allRows && item.allRows.length){
+        rowsEl.innerHTML = item.allRows.map(r => {
+          const p = r.last != null ? r.last : (r.bid != null ? r.bid : r.settl);
+          const chSign = (r.change||0) >= 0 ? '+' : '';
+          const chColor = (r.change||0) > 0 ? 'var(--long)' : (r.change||0) < 0 ? 'var(--short)' : 'var(--dim)';
+          return `<div class="tt-row">
+            <span>${delivShort(r.delivery)}</span>
+            <span>${fmtMatifPrice(p)} EUR/t</span>
+            <span style="color:${chColor};font-size:9px">${chSign}${(r.change||0).toFixed(2)}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    updatePair('wheat',    'mWheatPrice', 'mWheatChange', 'mWheatDel', 'mWheatRows');
+    updatePair('corn',     'mCornPrice',  'mCornChange',  'mCornDel',  'mCornRows');
+    updatePair('rapeseed', 'mRapePrice',  'mRapeChange',  'mRapeDel',  'mRapeRows');
+
+    // Timestamp
+    const updEl = document.getElementById('matifUpdated');
+    if(updEl){
+      const age = data.age || 0;
+      const fetchTime = new Date(data.fetchedAt);
+      const timeStr = fetchTime.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+      updEl.textContent = data.cached ? `cache ${timeStr}` : `Euronext ${timeStr}`;
+      updEl.title = `Date Euronext cu delay ~15 min. Actualizat: ${timeStr}`;
+    }
+  } catch(e) {
+    console.error('MATIF load error:', e);
+    const updEl = document.getElementById('matifUpdated');
+    if(updEl) updEl.textContent = 'eroare';
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
@@ -1704,7 +1833,9 @@ fetch('/api/me').then(r=>r.json()).then(d=>{
     document.getElementById('app').style.display='block';
     loadAll();
     loadFxRates();
+    loadMatif();
     setInterval(loadFxRates, 3*60*60*1000);
+    setInterval(loadMatif,   5*60*1000); // refresh MATIF every 5 min
   }
 });
 
