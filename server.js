@@ -242,11 +242,14 @@ let newsCache = { data: null, ts: 0 };
 const NEWS_TTL = 15 * 60 * 1000; // 15 minute cache
 
 const NEWS_SOURCES = [
+  // Romanian — funcțional
   { name: 'Agrointeligenta', url: 'https://agrointel.ro/feed', lang: 'ro', tag: 'RO' },
-  { name: 'Agerpres Economie', url: 'https://www.agerpres.ro/rss/economie.rss', lang: 'ro', tag: 'RO' },
-  { name: 'World Grain', url: 'https://www.world-grain.com/rss/news', lang: 'en', tag: 'INT' },
-  { name: 'USDA News', url: 'https://www.usda.gov/rss/latest-releases.xml', lang: 'en', tag: 'INT' },
-  { name: 'Reuters Commodities', url: 'https://feeds.reuters.com/reuters/businessNews', lang: 'en', tag: 'INT' },
+  // International — verificate funcționale
+  { name: 'USDA News',        url: 'https://www.usda.gov/rss/latest-releases.xml',  lang: 'en', tag: 'INT' },
+  { name: 'Grain Central',    url: 'https://www.graincentral.com/news/feed',         lang: 'en', tag: 'INT' },
+  { name: 'Brownfield Ag',    url: 'https://brownfieldagnews.com/feed',              lang: 'en', tag: 'INT' },
+  { name: 'Northern Ag',      url: 'https://northernag.net/feed',                   lang: 'en', tag: 'INT' },
+  { name: 'AgWeb',            url: 'https://www.agweb.com/rss/news',                lang: 'en', tag: 'INT' },
 ];
 
 // Keywords to boost relevance score (not filter — show all but sort by relevance)
@@ -346,7 +349,28 @@ app.get('/api/news', requireAuth, async (req, res) => {
 });
 
 
-app.use(express.static(path.join(__dirname, 'public')));
+// ── NEWS TEST ENDPOINT — verifică fiecare sursă RSS ──────────────────────────
+app.get('/api/news/test', requireAuth, async (req, res) => {
+  const results = await Promise.allSettled(
+    NEWS_SOURCES.map(async (s) => {
+      const start = Date.now();
+      try {
+        const r = await fetch(s.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader' },
+          signal: AbortSignal.timeout(10000),
+        });
+        const text = await r.text();
+        const itemCount = (text.match(/<item/gi) || []).length;
+        return { name: s.name, url: s.url, status: r.status, ok: r.ok, items: itemCount, ms: Date.now() - start };
+      } catch (e) {
+        return { name: s.name, url: s.url, status: 0, ok: false, error: e.message, ms: Date.now() - start };
+      }
+    })
+  );
+  res.json(results.map(r => r.value || r.reason));
+});
+
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
