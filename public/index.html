@@ -1896,7 +1896,8 @@ function setNewsFilter(f) {
 
 function fmtNewsDate(ts) {
   if (!ts) return '';
-  const d = new Date(ts);
+  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+  if (isNaN(d.getTime())) return '';
   const now = new Date();
   const diff = Math.floor((now - d) / 1000);
   if (diff < 60) return 'acum';
@@ -1925,12 +1926,13 @@ function renderNews() {
 
   grid.innerHTML = items.slice(0, 60).map(item => {
     const langClass = item.lang === 'ro' ? 'ro' : 'en';
-    const dateStr = fmtNewsDate(item.ts);
+    const dateStr = fmtNewsDate(item.ts || new Date(item.date).getTime());
     const cat = newsItemCategory(item);
     const catTags = [cat.isAgri ? '🌾' : '', cat.isMacro ? '📈' : ''].filter(Boolean).join(' ');
+    const flag = item.lang === 'ro' ? '🇷🇴' : '🌍';
     return `<a class="news-card" href="${item.link}" target="_blank" rel="noopener noreferrer">
       <div class="news-card-top">
-        <span class="news-source-badge ${langClass}">${item.flag} ${item.source}</span>
+        <span class="news-source-badge ${langClass}">${flag} ${item.source}</span>
         ${catTags ? `<span style="font-size:10px">${catTags}</span>` : ''}
         <span class="news-date">${dateStr}</span>
       </div>
