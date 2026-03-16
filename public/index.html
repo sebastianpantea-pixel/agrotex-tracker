@@ -426,6 +426,7 @@
       </div>
       <div class="fx-sep"></div>
       <div class="matif-updated" id="matifUpdated" title="Date Euronext cu delay ~15 min">15′ delay</div>
+      <div style="cursor:pointer;font-size:11px;color:var(--dim);padding:0 2px;transition:color .2s;" title="Refresh MATIF" onclick="loadMatif(0)" id="matifRefreshBtn">↻</div>
     </div>
     <div class="sep"></div>
     <div class="sync" id="syncStatus">●</div>
@@ -1979,6 +1980,12 @@ async function loadNews(forceRefresh = false) {
 
 // ── MATIF QUOTES ──────────────────────────────────────────────────────────────
 async function loadMatif(retryCount = 0){
+  // Animatie refresh buton
+  const btn = document.getElementById('matifRefreshBtn');
+  if(btn && retryCount === 0) {
+    btn.style.animation = 'spin .8s linear infinite';
+    btn.style.color = 'var(--acc)';
+  }
   try {
     const res = await fetch('/api/matif');
     if(!res.ok) throw new Error('HTTP ' + res.status);
@@ -2038,6 +2045,9 @@ async function loadMatif(retryCount = 0){
       updEl.title = `Date Euronext cu delay ~15 min. Actualizat: ${timeStr}`;
     }
 
+    // Oprește animația
+    if(btn) { btn.style.animation = ''; btn.style.color = 'var(--dim)'; }
+
     // Dacă nu am date și mai avem retry-uri, reîncearcă după 4s
     if(!hasData && retryCount < 3) {
       setTimeout(() => loadMatif(retryCount + 1), 4000);
@@ -2047,6 +2057,7 @@ async function loadMatif(retryCount = 0){
     console.error('MATIF load error:', e);
     const updEl = document.getElementById('matifUpdated');
     if(updEl) updEl.textContent = 'eroare';
+    if(btn) { btn.style.animation = ''; btn.style.color = 'var(--short)'; }
     // Retry la eroare
     if(retryCount < 3) setTimeout(() => loadMatif(retryCount + 1), 5000);
   }
