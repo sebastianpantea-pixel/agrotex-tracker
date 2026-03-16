@@ -242,14 +242,26 @@ let newsCache = { data: null, ts: 0 };
 const NEWS_TTL = 15 * 60 * 1000; // 15 minute cache
 
 const NEWS_SOURCES = [
-  // Romanian — funcțional
-  { name: 'Agrointeligenta', url: 'https://agrointel.ro/feed', lang: 'ro', tag: 'RO' },
-  // International — verificate funcționale
-  { name: 'USDA News',        url: 'https://www.usda.gov/rss/latest-releases.xml',  lang: 'en', tag: 'INT' },
-  { name: 'Grain Central',    url: 'https://www.graincentral.com/news/feed',         lang: 'en', tag: 'INT' },
-  { name: 'Brownfield Ag',    url: 'https://brownfieldagnews.com/feed',              lang: 'en', tag: 'INT' },
-  { name: 'Northern Ag',      url: 'https://northernag.net/feed',                   lang: 'en', tag: 'INT' },
-  { name: 'AgWeb',            url: 'https://www.agweb.com/rss/news',                lang: 'en', tag: 'INT' },
+  // ── ROMÂNIA ──────────────────────────────────────────────────────────────
+  { name: 'Agrointeligenta', url: 'https://agrointel.ro/feed',                  lang: 'ro', tag: 'RO',    filter: null },
+  { name: 'Ziarul Financiar', url: 'https://www.zf.ro/rss',                     lang: 'ro', tag: 'RO',    filter: null },
+  { name: 'Bursa.ro',         url: 'https://www.bursa.ro/rss.xml',              lang: 'ro', tag: 'RO',    filter: null },
+  { name: 'HotNews Eco',      url: 'https://economie.hotnews.ro/rss',           lang: 'ro', tag: 'RO',    filter: null },
+  // ── INTERNATIONAL AGRI ───────────────────────────────────────────────────
+  { name: 'USDA News',        url: 'https://www.usda.gov/rss/latest-releases.xml', lang: 'en', tag: 'INT', filter: 'grain' },
+  { name: 'Brownfield Ag',    url: 'https://brownfieldagnews.com/feed',         lang: 'en', tag: 'INT',   filter: null },
+  { name: 'Northern Ag',      url: 'https://northernag.net/feed',               lang: 'en', tag: 'INT',   filter: null },
+  { name: 'SpreadCharts',     url: 'https://spreadcharts.com/feed',             lang: 'en', tag: 'INT',   filter: null },
+  // ── INTERNATIONAL MACRO/FINANCIAR ────────────────────────────────────────
+  { name: 'OilPrice',         url: 'https://oilprice.com/rss/main',             lang: 'en', tag: 'MACRO', filter: null },
+  { name: 'Farm Progress',    url: 'https://www.farmprogress.com/rss/all',      lang: 'en', tag: 'INT',   filter: null },
+];
+
+// Keywords USDA — filter strict cereale & oleaginoase
+const USDA_GRAIN_KEYWORDS = [
+  'wheat','corn','grain','soybean','soy','rapeseed','canola','sunflower',
+  'oilseed','barley','crop','harvest','export','wasde','comodity','commodity',
+  'cereale','porumb','grau','rapita'
 ];
 
 // Keywords to boost relevance score (not filter — show all but sort by relevance)
@@ -276,7 +288,8 @@ async function fetchRSS(source) {
   const xml = await res.text();
 
   const items = [];
-  // Parse <item> blocks
+  const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+
   const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
   let m;
   while ((m = itemRegex.exec(xml)) !== null) {
@@ -292,18 +305,28 @@ async function fetchRSS(source) {
     const pubDate = get('pubDate') || get('dc:date') || '';
     const date = pubDate ? new Date(pubDate) : new Date();
 
-    if (title && link) {
-      items.push({
-        title,
-        link: link.trim(),
-        desc,
-        date: date.toISOString(),
-        source: source.name,
-        tag: source.tag,
-        lang: source.lang,
-        score: scoreItem(title, desc),
-      });
+    if (!title || !link) continue;
+
+    // Filtru 24h — sari peste știri mai vechi
+    if (date.getTime() < cutoff24h) continue;
+
+    // Filtru USDA — doar cereale & oleaginoase
+    if (source.filter === 'grain') {
+      const text = (title + ' ' + desc).toLowerCase();
+      const isGrain = USDA_GRAIN_KEYWORDS.some(k => text.includes(k));
+      if (!isGrain) continue;
     }
+
+    items.push({
+      title,
+      link: link.trim(),
+      desc,
+      date: date.toISOString(),
+      source: source.name,
+      tag: source.tag,
+      lang: source.lang,
+      score: scoreItem(title, desc),
+    });
   }
   return items;
 }
@@ -351,6 +374,7 @@ app.get('/api/news', requireAuth, async (req, res) => {
 
 // ── NEWS TEST ENDPOINT — verifică fiecare sursă RSS ──────────────────────────
 app.get('/api/news/test', requireAuth, async (req, res) => {
+  const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
   const results = await Promise.allSettled(
     NEWS_SOURCES.map(async (s) => {
       const start = Date.now();
@@ -360,10 +384,13 @@ app.get('/api/news/test', requireAuth, async (req, res) => {
           signal: AbortSignal.timeout(10000),
         });
         const text = await r.text();
-        const itemCount = (text.match(/<item/gi) || []).length;
-        return { name: s.name, url: s.url, status: r.status, ok: r.ok, items: itemCount, ms: Date.now() - start };
+        const totalItems = (text.match(/<item/gi) || []).length;
+        // Count items within 24h (rough check via pubDate)
+        const pubDates = [...text.matchAll(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/gi)].map(m => new Date(m[1]));
+        const recent = pubDates.filter(d => d.getTime() > cutoff24h).length;
+        return { name: s.name, tag: s.tag, filter: s.filter||'none', url: s.url, status: r.status, ok: r.ok, totalItems, recent24h: recent, ms: Date.now() - start };
       } catch (e) {
-        return { name: s.name, url: s.url, status: 0, ok: false, error: e.message, ms: Date.now() - start };
+        return { name: s.name, tag: s.tag, url: s.url, status: 0, ok: false, error: e.message, ms: Date.now() - start };
       }
     })
   );
