@@ -1623,9 +1623,7 @@ function checkCfoAlert(t) {
   // Draft mesaj CFO
   const draft = `${t.dir === 'long' ? 'Am cumpărat' : 'Am vândut'} ${(t.qty||0).toLocaleString('ro-RO')} tone de ${prod.name} (${t.crop}) ${t.dir === 'long' ? 'de la' : 'către'} ${cpty}, la ${priceText}, paritate ${t.parity||'—'}.${t.loc ? ' Baza ' + t.loc + '.' : ''}
 
-Valoare totală estimată: ${valStr} RON.${t.note ? '\n\n' + t.note : ''}
-
-Sebastian`;
+Valoare totală estimată: ${valStr} RON.${t.note ? '\n\n' + t.note : ''}`;
 
   document.getElementById('cfoDraft').value = draft;
   document.getElementById('modCfo').style.display = 'flex';
@@ -1708,7 +1706,8 @@ function downloadTemplate(){
 function closeModal(id){
   const el = document.getElementById(id);
   el.classList.remove('open');
-  el.style.display = 'none';
+  // modCfo folosește style.display, celelalte folosesc clasa .open
+  if(id === 'modCfo') el.style.display = 'none';
   if(id==='modImport'){
     document.getElementById('btnConfirmImport').disabled=false;
     document.getElementById('btnConfirmImport').textContent='Importă';
