@@ -637,6 +637,28 @@
 </footer>
 </div><!-- /app -->
 
+<!-- CFO ALERT MODAL -->
+<div class="overlay" id="modCfo" style="display:none;">
+  <div class="modal" style="width:520px;max-width:98vw;">
+    <div class="mtitle" style="color:#f59e0b;display:flex;align-items:center;gap:8px;">
+      ⚠️ Tranzacție peste 1.000.000 RON — Notifică CFO
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:14px;">
+      Această tranzacție depășește pragul de 1 milion RON și necesită notificarea CFO-ului.
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:10px;color:var(--dim);margin-bottom:8px;font-family:'IBM Plex Mono',monospace;">DETALII TRANZACȚIE</div>
+      <div id="cfoDetails" style="font-size:12px;line-height:1.8;color:var(--fg);"></div>
+    </div>
+    <div style="margin-bottom:8px;font-size:10px;color:var(--dim);font-family:'IBM Plex Mono',monospace;">DRAFT MESAJ CFO</div>
+    <textarea id="cfoDraft" readonly style="width:100%;min-height:110px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:10px;font-size:12px;color:var(--fg);font-family:'IBM Plex Mono',monospace;resize:vertical;line-height:1.6;box-sizing:border-box;"></textarea>
+    <div class="mbtns" style="margin-top:14px;">
+      <button class="btn-cancel" onclick="closeModal('modCfo')">Închide</button>
+      <button class="btn-save" style="background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.5);color:#f59e0b;" onclick="copyCfoDraft()">📋 Copiază Mesaj</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD PRODUCT MODAL -->
 <div class="overlay" id="modProd">
   <div class="modal">
@@ -1214,6 +1236,7 @@ async function addTrade(){
   trades.unshift(t);
   document.getElementById('btnAdd').disabled=false;
   render();
+  checkCfoAlert(t);
   ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -1553,6 +1576,70 @@ async function saveEdit(){
   if(idx>=0) trades[idx]={...t,id};
   closeModal('modEdit');
   render();
+  checkCfoAlert({...t, id});
+}
+
+// ── CFO ALERT (tranzacții peste 1.000.000 RON) ───────────────────────────────
+function checkCfoAlert(t) {
+  // Calculează valoarea în RON
+  let priceRon = 0;
+  if (t.ptype === 'fix') {
+    priceRon = t.currency === 'eur'
+      ? (t.priceEur || 0) * (t.cursEur || fxRates.eurRon || 5)
+      : (t.price || 0);
+  } else {
+    // Basis — folosim prețul MATIF curent ca estimare
+    const matifPrices = { wheat: 207, corn: 208, rapeseed: 498 };
+    const mp = matifPrices[t.product] || 250;
+    const eurRon = fxRates.eurRon || 5.09;
+    priceRon = (mp + (t.basis || 0)) * eurRon;
+  }
+  const valoareTotala = priceRon * (t.qty || 0);
+  if (valoareTotala < 1000000) return;
+
+  // Pregătește detalii
+  const prod = products[t.product] || { name: t.product, emoji: '' };
+  const dirText = t.dir === 'long' ? 'CUMPĂRARE' : 'VÂNZARE';
+  const dirVerb = t.dir === 'long' ? 'am cumpărat' : 'am vândut';
+  const dirPrep = t.dir === 'long' ? 'de la' : 'către';
+  const cpty = t.cpty || '—';
+  const priceText = t.ptype === 'fix'
+    ? (t.currency === 'eur' ? `${(t.priceEur||0).toFixed(2)} EUR/t (≈ ${priceRon.toFixed(0)} RON/t)` : `${priceRon.toFixed(0)} RON/t`)
+    : `MATIF ${t.matif} + ${t.basis} EUR/t basis`;
+  const valStr = new Intl.NumberFormat('ro-RO', {minimumFractionDigits:0}).format(Math.round(valoareTotala));
+  const dateStr = t.date || new Date().toISOString().substring(0,10);
+
+  // Populează detalii în modal
+  document.getElementById('cfoDetails').innerHTML = `
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Produs:</span> <strong>${prod.emoji} ${prod.name} — Recoltă ${t.crop}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Direcție:</span> <strong style="color:${t.dir==='long'?'var(--long)':'var(--short)'}">${dirText}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Cantitate:</span> <strong>${(t.qty||0).toLocaleString('ro-RO')} t</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Preț:</span> <strong>${priceText}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Contraparte:</span> <strong>${cpty}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Paritate:</span> <strong>${t.parity||'—'}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Valoare totală:</span> <strong style="color:#f59e0b">${valStr} RON</strong></div>
+  `;
+
+  // Draft mesaj CFO
+  const draft = `${t.dir === 'long' ? 'Am cumpărat' : 'Am vândut'} ${(t.qty||0).toLocaleString('ro-RO')} tone de ${prod.name} (${t.crop}) ${t.dir === 'long' ? 'de la' : 'către'} ${cpty}, la ${priceText}, paritate ${t.parity||'—'}.${t.loc ? ' Baza ' + t.loc + '.' : ''}
+
+Valoare totală estimată: ${valStr} RON.${t.note ? '\n\n' + t.note : ''}
+
+Sebastian`;
+
+  document.getElementById('cfoDraft').value = draft;
+  document.getElementById('modCfo').style.display = 'flex';
+}
+
+function copyCfoDraft() {
+  const ta = document.getElementById('cfoDraft');
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.querySelector('#modCfo .btn-save');
+    btn.textContent = '✅ Copiat!';
+    setTimeout(() => { btn.innerHTML = '📋 Copiază Mesaj'; }, 2000);
+  }).catch(() => {
+    ta.select(); document.execCommand('copy');
+  });
 }
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
@@ -1619,7 +1706,9 @@ function downloadTemplate(){
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function closeModal(id){
-  document.getElementById(id).classList.remove('open');
+  const el = document.getElementById(id);
+  el.classList.remove('open');
+  el.style.display = 'none';
   if(id==='modImport'){
     document.getElementById('btnConfirmImport').disabled=false;
     document.getElementById('btnConfirmImport').textContent='Importă';
