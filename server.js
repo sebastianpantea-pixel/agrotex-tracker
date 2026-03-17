@@ -179,6 +179,7 @@ async function fetchMatifContract(code) {
         last:     parseNum(cells[3]),
         change:   parseNum(cells[5]),
         settl:    parseNum(cells[10]) || parseNum(cells[9]) || parseNum(cells[8]),
+        isOpen:   parseNum(cells[1]) !== null, // bid present = market open
       });
     }
   }
