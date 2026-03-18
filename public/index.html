@@ -2087,12 +2087,13 @@ async function loadMatif(retryCount = 0){
       const item = q[key];
       if(!item || !item.front) return;
       const f = item.front;
-      // Price: dacă piața e deschisă (bid prezent) → last sau bid; dacă e închisă → settlement precedent
-      const marketOpen = f.isOpen || f.bid !== null;
-      const price = marketOpen
-        ? (f.last != null ? f.last : f.bid)
-        : (f.settl != null ? f.settl : f.last);
-      const priceLabel = marketOpen ? '' : 'settl';
+      // Logică preț:
+      // - last != null → s-a tranzacționat → afișează last (cotație live)
+      // - last == null → nicio tranzacție încă → afișează settl (settlement ieri)
+      // - settl == null → fallback bid
+      const marketTraded = f.last !== null;
+      const price = marketTraded ? f.last : (f.settl !== null ? f.settl : f.bid);
+      const priceLabel = !marketTraded ? 'settl' : '';
       const priceEl = document.getElementById(priceId);
       if(priceEl){ priceEl.textContent = fmtMatifPrice(price); priceEl.className='matif-price'; }
       // Label 'settl' sub preț când piața e închisă
@@ -2112,16 +2113,17 @@ async function loadMatif(retryCount = 0){
       if(rowsEl && item.allRows && item.allRows.length){
         rowsEl.innerHTML = item.allRows.map(r => {
           const rOpen = r.isOpen || r.bid !== null;
-          const p = rOpen
-            ? (r.last != null ? r.last : r.bid)
-            : (r.settl != null ? r.settl : r.last);
+          const p = r.last !== null
+            ? r.last
+            : (r.settl !== null ? r.settl : r.bid);
+          const rTraded = r.last !== null;
           const chSign = (r.change||0) >= 0 ? '+' : '';
           const chColor = (r.change||0) > 0 ? 'var(--long)' : (r.change||0) < 0 ? 'var(--short)' : 'var(--dim)';
-          const settlLabel = !rOpen ? '<span style="font-size:8px;color:var(--dim);opacity:.7"> S</span>' : '';
+          const settlLabel = !rTraded ? '<span style="font-size:8px;color:var(--dim);opacity:.7"> S</span>' : '';
           return `<div class="tt-row">
             <span>${delivShort(r.delivery)}</span>
             <span>${fmtMatifPrice(p)} EUR/t${settlLabel}</span>
-            <span style="color:${chColor};font-size:9px">${rOpen ? chSign+(r.change||0).toFixed(2) : ''}</span>
+            <span style="color:${chColor};font-size:9px">${rTraded ? chSign+(r.change||0).toFixed(2) : ''}</span>
           </div>`;
         }).join('');
       }
