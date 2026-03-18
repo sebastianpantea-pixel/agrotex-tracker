@@ -284,8 +284,9 @@
   .note-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
   .note-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;letter-spacing:.5px;cursor:pointer;}
   .note-tag.todo{background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
-  .note-tag.info{background:rgba(59,130,246,.1);color:var(--neutral);border:1px solid rgba(59,130,246,.2);}
-  .note-tag.alert{background:rgba(239,68,68,.1);color:var(--short);border:1px solid rgba(239,68,68,.2);}
+  .note-tag.waiting{background:rgba(167,139,250,.12);color:var(--basis);border:1px solid rgba(167,139,250,.25);}
+  .note-tag.bid{background:rgba(34,197,94,.1);color:var(--long);border:1px solid rgba(34,197,94,.2);}
+  .note-tag.offer{background:rgba(239,68,68,.1);color:var(--short);border:1px solid rgba(239,68,68,.2);}
   .note-filter-row{display:flex;gap:5px;padding:6px 13px;border-bottom:1px solid var(--border);background:var(--surface2);}
   .nf-btn{padding:3px 8px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--dim);transition:all .15s;letter-spacing:.5px;}
   .nf-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:rgba(245,158,11,.4);}
@@ -482,18 +483,20 @@
         </div>
         <div class="notes-input-row">
           <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
-          <select id="noteTag" style="width:80px;padding:5px 5px;font-size:10px;height:28px;">
+          <select id="noteTag" style="width:100px;padding:5px 5px;font-size:10px;height:28px;">
             <option value="todo">TO-DO</option>
-            <option value="info">INFO</option>
-            <option value="alert">ALERT</option>
+            <option value="waiting">WAITING FOR</option>
+            <option value="bid">BID</option>
+            <option value="offer">OFERTĂ</option>
           </select>
           <button class="btn-note-add" onclick="addNote()">+</button>
         </div>
         <div class="note-filter-row">
           <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
           <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
-          <button class="nf-btn" id="nfInfo" onclick="setNoteFilter('info')">INFO</button>
-          <button class="nf-btn" id="nfAlert" onclick="setNoteFilter('alert')">ALERT</button>
+          <button class="nf-btn" id="nfWaiting" onclick="setNoteFilter('waiting')">WAITING</button>
+          <button class="nf-btn" id="nfBid" onclick="setNoteFilter('bid')">BID</button>
+          <button class="nf-btn" id="nfOffer" onclick="setNoteFilter('offer')">OFERTĂ</button>
           <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')" style="margin-left:auto">Deschise</button>
         </div>
         <div class="notes-list" id="notesList"></div>
@@ -1025,10 +1028,10 @@ function deleteNote(id){
 
 function setNoteFilter(f){
   noteFilter = f;
-  ['nfAll','nfTodo','nfInfo','nfAlert','nfOpen'].forEach(id=>{
-    document.getElementById(id).classList.remove('active');
+  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen'].forEach(id=>{
+    document.getElementById(id)?.classList.remove('active');
   });
-  const map = {all:'nfAll',todo:'nfTodo',info:'nfInfo',alert:'nfAlert',open:'nfOpen'};
+  const map = {all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen'};
   if(map[f]) document.getElementById(map[f]).classList.add('active');
   renderNotes();
 }
@@ -1048,11 +1051,12 @@ function renderNotes(){
     `<span style="color:var(--long)">${done}</span> rezolvate</span>`;
 
   const tagColors = {
-    todo: 'var(--acc)',
-    info: 'var(--neutral)',
-    alert: 'var(--short)'
+    todo:    'var(--acc)',
+    waiting: 'var(--basis)',
+    bid:     'var(--long)',
+    offer:   'var(--short)'
   };
-  const tagLabels = { todo:'TO-DO', info:'INFO', alert:'ALERT' };
+  const tagLabels = { todo:'TO-DO', waiting:'WAITING FOR', bid:'BID', offer:'OFERTĂ' };
 
   if(filtered.length === 0){
     document.getElementById('notesList').innerHTML =
