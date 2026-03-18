@@ -2098,7 +2098,7 @@ async function loadMatif(retryCount = 0){
       if(priceEl){ priceEl.textContent = fmtMatifPrice(price); priceEl.className='matif-price'; }
       // Label 'settl' sub preț când piața e închisă
       const chEl = document.getElementById(changeId);
-      if(!marketOpen && priceLabel) {
+      if(!marketTraded && priceLabel) {
         if(chEl){ chEl.textContent = 'settlement'; chEl.className = 'matif-change flat'; }
       } else if(chEl && f.change != null){
         const sign = f.change > 0 ? '+' : '';
