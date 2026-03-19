@@ -497,7 +497,8 @@
           <button class="nf-btn" id="nfWaiting" onclick="setNoteFilter('waiting')">WAITING</button>
           <button class="nf-btn" id="nfBid" onclick="setNoteFilter('bid')">BID</button>
           <button class="nf-btn" id="nfOffer" onclick="setNoteFilter('offer')">OFERTĂ</button>
-          <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')" style="margin-left:auto">Deschise</button>
+          <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')">Deschise</button>
+          <button class="nf-btn" id="nfLogbook" onclick="setNoteFilter('logbook')" style="margin-left:auto" title="Istoric notițe rezolvate">📒</button>
         </div>
         <div class="notes-list" id="notesList"></div>
       </div>
@@ -1017,7 +1018,13 @@ function addNote(){
 
 function toggleNote(id){
   const n = notes.find(x=>x.id===id);
-  if(n) { n.done = !n.done; saveNotes(); renderNotes(); }
+  if(n) {
+    n.done = !n.done;
+    if(n.done) n.doneAt = today();
+    else delete n.doneAt;
+    saveNotes();
+    renderNotes();
+  }
 }
 
 function deleteNote(id){
@@ -1028,19 +1035,15 @@ function deleteNote(id){
 
 function setNoteFilter(f){
   noteFilter = f;
-  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen'].forEach(id=>{
+  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen','nfLogbook'].forEach(id=>{
     document.getElementById(id)?.classList.remove('active');
   });
-  const map = {all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen'};
+  const map = {all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen',logbook:'nfLogbook'};
   if(map[f]) document.getElementById(map[f]).classList.add('active');
   renderNotes();
 }
 
 function renderNotes(){
-  let filtered = notes;
-  if(noteFilter === 'open')  filtered = notes.filter(n=>!n.done);
-  else if(noteFilter !== 'all') filtered = notes.filter(n=>n.tag===noteFilter);
-
   const total = notes.length;
   const done  = notes.filter(n=>n.done).length;
   const open  = total - done;
@@ -1057,6 +1060,56 @@ function renderNotes(){
     offer:   'var(--short)'
   };
   const tagLabels = { todo:'TO-DO', waiting:'WAITING FOR', bid:'BID', offer:'OFERTĂ' };
+
+  // ── LOGBOOK VIEW ──────────────────────────────────────────────────────────
+  if(noteFilter === 'logbook') {
+    const done_notes = notes.filter(n => n.done);
+    if(!done_notes.length) {
+      document.getElementById('notesList').innerHTML =
+        `<div class="notes-empty">// nicio notiță rezolvată încă</div>`;
+      return;
+    }
+    // Grupează pe luni
+    const MONTHS_RO = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+    const groups = {};
+    done_notes.forEach(n => {
+      const d = new Date(n.doneAt || n.date || '2025-01-01');
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const label = `${MONTHS_RO[d.getMonth()]} ${d.getFullYear()}`;
+      if(!groups[key]) groups[key] = { label, items: [] };
+      groups[key].items.push(n);
+    });
+    // Sortează lunile descrescător
+    const sortedKeys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+    document.getElementById('notesList').innerHTML = sortedKeys.map(key => {
+      const g = groups[key];
+      const items = g.items.sort((a,b) => (b.doneAt||b.date||'').localeCompare(a.doneAt||a.date||''));
+      return `
+        <div style="padding:6px 13px 4px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--border);position:sticky;top:0;">
+          ${g.label} <span style="color:var(--border2);font-weight:400">· ${items.length}</span>
+        </div>
+        ${items.map(n => `
+          <div class="note-item done" style="opacity:.75;">
+            <div class="note-check checked" onclick="toggleNote(${n.id})" title="Marchează ca deschis"></div>
+            <div style="flex:1;min-width:0;">
+              <div class="note-text">${escHtml(n.text)}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+                <span class="note-tag ${n.tag}" style="color:${tagColors[n.tag]||'var(--dim)'}">${tagLabels[n.tag]||n.tag}</span>
+                <span class="note-date">${n.doneAt || n.date || ''}</span>
+              </div>
+            </div>
+            <button class="note-del" onclick="deleteNote(${n.id})" title="Șterge">✕</button>
+          </div>
+        `).join('')}
+      `;
+    }).join('');
+    return;
+  }
+
+  // ── NORMAL VIEW ───────────────────────────────────────────────────────────
+  let filtered = notes;
+  if(noteFilter === 'open')  filtered = notes.filter(n=>!n.done);
+  else if(noteFilter !== 'all') filtered = notes.filter(n=>n.tag===noteFilter);
 
   if(filtered.length === 0){
     document.getElementById('notesList').innerHTML =
