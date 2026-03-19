@@ -24,6 +24,13 @@ db.exec(`
     data TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS target (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(year)
+  );
 `);
 
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
@@ -238,7 +245,22 @@ app.get('/api/matif', requireAuth, async (req, res) => {
   }
 });
 
-// ── NEWS FEED (RSS aggregator — cereale, piețe, agro România) ─────────────────
+// ── TARGET / BUDGET ───────────────────────────────────────────────────────────
+app.get('/api/target/:year', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT data FROM target WHERE year = ?').get(req.params.year);
+  res.json(row ? JSON.parse(row.data) : null);
+});
+
+app.put('/api/target/:year', requireAuth, (req, res) => {
+  const year = parseInt(req.params.year);
+  const data = JSON.stringify(req.body);
+  db.prepare(`INSERT INTO target (year, data, updated_at) VALUES (?, ?, datetime('now'))
+    ON CONFLICT(year) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`)
+    .run(year, data);
+  res.json({ ok: true });
+});
+
+
 let newsCache = { data: null, ts: 0 };
 const NEWS_TTL = 15 * 60 * 1000; // 15 minute cache
 
