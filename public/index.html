@@ -341,6 +341,22 @@
   .news-loading{padding:16px 13px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;animation:blink 1.5s infinite;}
 
   @media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
+
+  /* TARGET TABLE */
+  .tgt-table{width:100%;border-collapse:collapse;}
+  .tgt-th{padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border:1px solid var(--border);background:var(--surface2);text-align:center;white-space:nowrap;}
+  .tgt-th.total{background:var(--surface3);color:var(--bright);}
+  .tgt-label{padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--bright);border:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+  .tgt-cell{padding:4px 6px;border:1px solid var(--border);text-align:right;}
+  .tgt-input{width:100%;background:transparent;border:none;outline:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--bright);text-align:right;padding:2px 4px;}
+  .tgt-input:focus{background:rgba(245,158,11,.07);border-radius:2px;}
+  .tgt-total{padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--surface3);text-align:right;color:var(--bright);}
+  .tgt-diff-pos{color:var(--long);font-weight:700;}
+  .tgt-diff-neg{color:var(--short);font-weight:700;}
+  .tgt-section-realizat{background:rgba(34,197,94,.04);}
+  .tgt-section-adaos{background:rgba(96,165,250,.04);}
+  .tgt-section-marja{background:rgba(167,139,250,.04);}
+  .tgt-section-diff{background:rgba(245,158,11,.04);}
 </style>
 </head>
 <body>
@@ -450,6 +466,7 @@
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
   <div class="tab"     id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026  <span class="tbadge" id="b26">0</span></div>
+  <div class="tab"     id="tabTarget" onclick="setTargetTab()" style="margin-left:auto;border-radius:4px 4px 0 0;">🎯 Target</div>
 </div>
 
 <!-- NEWS SECTION -->
@@ -468,6 +485,29 @@
   </div>
   <div class="news-grid" id="newsGrid">
     <div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>
+  </div>
+</div>
+
+<!-- TARGET SECTION -->
+<div id="targetSection" style="display:none;padding:14px 22px;flex-direction:column;gap:14px;">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button class="news-back-btn" onclick="closeTargetTab()">← Înapoi</button>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);">An:</div>
+    <select id="targetYear" onchange="loadTarget()" style="width:80px;padding:4px 8px;font-size:11px;">
+      <option value="2025">2025</option>
+      <option value="2026" selected>2026</option>
+      <option value="2027">2027</option>
+    </select>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:4px;" id="targetSaveStatus"></div>
+    <button class="btn-sm" onclick="saveTarget()" style="margin-left:auto;">💾 Salvează</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table id="targetTable" style="border-collapse:collapse;min-width:900px;width:100%;">
+      <thead>
+        <tr id="targetHeaderRow"></tr>
+      </thead>
+      <tbody id="targetBody"></tbody>
+    </table>
   </div>
 </div>
 
@@ -1787,13 +1827,19 @@ function setCrop(y){
   document.getElementById('fCrop').value=y;
   document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
   document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
-  // deactivate news tab if active
+  // deactivate news/target tab if active
   if(newsTabActive) {
     newsTabActive = false;
     const tn = document.getElementById('tabNews');
     if(tn) { tn.style.color = 'var(--dim)'; tn.style.borderColor = 'var(--border2)'; }
     document.querySelector('.main').style.display = 'flex';
     document.getElementById('newsSection').style.display = 'none';
+  }
+  if(targetTabActive) {
+    targetTabActive = false;
+    document.getElementById('tabTarget').className = 'tab';
+    document.getElementById('targetSection').style.display = 'none';
+    document.querySelector('.main').style.display = 'flex';
   }
   render();
 }
@@ -2224,6 +2270,174 @@ async function loadMatif(retryCount = 0){
   }
 }
 
+
+// ── TARGET / BUDGET ───────────────────────────────────────────────────────────
+const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+const TARGET_ROWS = [
+  { key: 'plan',     label: 'Plan (tone)',      cls: '',                     editable: true,  fmt: 'num' },
+  { key: 'realizat', label: 'Realizat (tone)',  cls: 'tgt-section-realizat', editable: true,  fmt: 'num' },
+  { key: 'adaos',    label: 'Adaos (RON)',       cls: 'tgt-section-adaos',   editable: true,  fmt: 'ron' },
+  { key: 'marja',    label: 'Marjă / tonă',      cls: 'tgt-section-marja',   editable: true,  fmt: 'ron' },
+  { key: 'diff',     label: 'Diferență (tone)',  cls: 'tgt-section-diff',    editable: false, fmt: 'diff' },
+];
+
+// targetData[year] = { plan:[12], realizat:[12], adaos:[12], marja:[12] }
+let targetData = {};
+let targetTabActive = false;
+
+function setTargetTab() {
+  targetTabActive = true;
+  document.getElementById('tab25').className = 'tab';
+  document.getElementById('tab26').className = 'tab';
+  document.getElementById('tabTarget').className = 'tab news-tab-active';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('newsSection').style.display = 'none';
+  document.getElementById('targetSection').style.display = 'flex';
+  loadTarget();
+}
+
+function closeTargetTab() {
+  targetTabActive = false;
+  document.getElementById('tabTarget').className = 'tab';
+  document.getElementById('targetSection').style.display = 'none';
+  document.querySelector('.main').style.display = 'flex';
+}
+
+async function loadTarget() {
+  const year = document.getElementById('targetYear').value;
+  if(!targetData[year]) {
+    try {
+      const res = await fetch(`/api/target/${year}`);
+      const data = await res.json();
+      if(data) {
+        targetData[year] = data;
+      } else {
+        // Default vuide
+        targetData[year] = { plan: Array(12).fill(''), realizat: Array(12).fill(''), adaos: Array(12).fill(''), marja: Array(12).fill('') };
+      }
+    } catch(e) {
+      targetData[year] = { plan: Array(12).fill(''), realizat: Array(12).fill(''), adaos: Array(12).fill(''), marja: Array(12).fill('') };
+    }
+  }
+  renderTarget();
+}
+
+async function saveTarget() {
+  const year = document.getElementById('targetYear').value;
+  // Citește valorile curente din inputs
+  TARGET_ROWS.filter(r=>r.editable).forEach(row => {
+    targetData[year][row.key] = TARGET_MONTHS.map((_, mi) => {
+      const el = document.getElementById(`tgt_${row.key}_${mi}`);
+      return el ? el.value : '';
+    });
+  });
+  try {
+    await fetch(`/api/target/${year}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(targetData[year])
+    });
+    const s = document.getElementById('targetSaveStatus');
+    s.textContent = '✓ Salvat';
+    s.style.color = 'var(--long)';
+    setTimeout(() => { s.textContent = ''; }, 2000);
+  } catch(e) {
+    const s = document.getElementById('targetSaveStatus');
+    s.textContent = '✗ Eroare';
+    s.style.color = 'var(--short)';
+  }
+}
+
+function renderTarget() {
+  const year = document.getElementById('targetYear').value;
+  const d = targetData[year] || {};
+
+  // Header
+  document.getElementById('targetHeaderRow').innerHTML =
+    `<th class="tgt-th" style="text-align:left;min-width:130px;"></th>` +
+    TARGET_MONTHS.map(m => `<th class="tgt-th">${m}</th>`).join('') +
+    `<th class="tgt-th total">Total</th>`;
+
+  // Body
+  const tbody = document.getElementById('targetBody');
+  tbody.innerHTML = TARGET_ROWS.map(row => {
+    const vals = d[row.key] || Array(12).fill('');
+
+    // Calculează diff = realizat - plan
+    let cells, total;
+    if(row.key === 'diff') {
+      const plan     = d.plan     || Array(12).fill('');
+      const realizat = d.realizat || Array(12).fill('');
+      const diffs = TARGET_MONTHS.map((_, mi) => {
+        const p = parseFloat(plan[mi]) || 0;
+        const r = parseFloat(realizat[mi]) || 0;
+        return p || r ? r - p : null;
+      });
+      const totalPlan = (d.plan||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const totalReal = (d.realizat||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const totalDiff = totalReal - totalPlan;
+      cells = diffs.map(v => {
+        if(v === null) return `<td class="tgt-cell ${row.cls}"></td>`;
+        const cls = v >= 0 ? 'tgt-diff-pos' : 'tgt-diff-neg';
+        const sign = v > 0 ? '+' : '';
+        return `<td class="tgt-cell ${row.cls}"><span class="${cls}">${sign}${fmtN(v)}</span></td>`;
+      }).join('');
+      const tcls = totalDiff >= 0 ? 'tgt-diff-pos' : 'tgt-diff-neg';
+      const tsign = totalDiff > 0 ? '+' : '';
+      total = `<td class="tgt-total"><span class="${tcls}">${totalPlan||totalReal ? tsign+fmtN(totalDiff) : ''}</span></td>`;
+    } else {
+      cells = TARGET_MONTHS.map((_, mi) => {
+        const v = vals[mi] || '';
+        return `<td class="tgt-cell ${row.cls}">
+          <input class="tgt-input" id="tgt_${row.key}_${mi}" value="${v}"
+            onchange="onTargetChange('${year}','${row.key}',${mi},this.value)"
+            onkeydown="if(event.key==='Tab'){event.preventDefault();focusNextTarget('${row.key}',${mi});}">
+        </td>`;
+      }).join('');
+      const sum = vals.reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const sumFmt = sum ? (row.fmt==='ron' ? fmtN(sum)+' RON' : fmtN(sum)) : '';
+      total = `<td class="tgt-total">${sumFmt}</td>`;
+    }
+
+    return `<tr>
+      <td class="tgt-label">${row.label}</td>
+      ${cells}
+      ${total}
+    </tr>`;
+  }).join('');
+}
+
+function onTargetChange(year, key, mi, val) {
+  if(!targetData[year]) return;
+  if(!targetData[year][key]) targetData[year][key] = Array(12).fill('');
+  targetData[year][key][mi] = val;
+  // Re-renderează doar rândul diff
+  renderTargetDiffRow(year);
+  // Auto-save după 2s inactivitate
+  clearTimeout(window._targetSaveTimer);
+  window._targetSaveTimer = setTimeout(() => saveTarget(), 2000);
+}
+
+function renderTargetDiffRow(year) {
+  const d = targetData[year] || {};
+  const plan     = d.plan     || Array(12).fill('');
+  const realizat = d.realizat || Array(12).fill('');
+  TARGET_MONTHS.forEach((_, mi) => {
+    const p = parseFloat(plan[mi]) || 0;
+    const r = parseFloat(realizat[mi]) || 0;
+    // Update total col too
+  });
+  // Re-render tot (simplu)
+  renderTarget();
+}
+
+function focusNextTarget(key, mi) {
+  const nextMi = mi + 1;
+  if(nextMi < 12) {
+    const el = document.getElementById(`tgt_${key}_${nextMi}`);
+    if(el) el.focus();
+  }
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.getElementById('fDate').value=today();
