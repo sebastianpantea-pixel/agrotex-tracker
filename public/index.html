@@ -500,6 +500,7 @@
     </select>
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:4px;" id="targetSaveStatus"></div>
     <button class="btn-sm" onclick="saveTarget()" style="margin-left:auto;">💾 Salvează</button>
+    <button class="btn-import" onclick="exportTarget()">⬇ Export Excel</button>
   </div>
   <div style="overflow-x:auto;">
     <table id="targetTable" style="border-collapse:collapse;min-width:900px;width:100%;">
@@ -2437,6 +2438,70 @@ function focusNextTarget(key, mi) {
     const el = document.getElementById(`tgt_${key}_${nextMi}`);
     if(el) el.focus();
   }
+}
+
+function exportTarget() {
+  const year = document.getElementById('targetYear').value;
+  const d = targetData[year] || {};
+
+  const plan     = d.plan     || Array(12).fill('');
+  const realizat = d.realizat || Array(12).fill('');
+  const adaos    = d.adaos    || Array(12).fill('');
+  const marja    = d.marja    || Array(12).fill('');
+
+  // Header row
+  const header = ['', ...TARGET_MONTHS, 'Total'];
+
+  // Rows
+  const rowPlan = ['Plan (tone)',
+    ...plan.map(v => parseFloat(v)||''),
+    plan.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''
+  ];
+  const rowReal = ['Realizat (tone)',
+    ...realizat.map(v => parseFloat(v)||''),
+    realizat.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''
+  ];
+  const rowAdaos = ['Adaos (RON)',
+    ...adaos.map(v => parseFloat(v)||''),
+    adaos.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''
+  ];
+  const rowMarja = ['Marjă / tonă',
+    ...marja.map(v => parseFloat(v)||''),
+    ''
+  ];
+  const rowDiff = ['Diferență (tone)',
+    ...TARGET_MONTHS.map((_, mi) => {
+      const p = parseFloat(plan[mi])||0;
+      const r = parseFloat(realizat[mi])||0;
+      return (p||r) ? r - p : '';
+    }),
+    (() => {
+      const tp = plan.reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const tr = realizat.reduce((s,v)=>s+(parseFloat(v)||0),0);
+      return (tp||tr) ? tr - tp : '';
+    })()
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([header, rowPlan, rowReal, rowAdaos, rowMarja, rowDiff]);
+
+  // Stiluri coloane
+  ws['!cols'] = [{ wch: 18 }, ...Array(12).fill({ wch: 12 }), { wch: 14 }];
+
+  // Freeze prima coloană și primul rând
+  ws['!freeze'] = { xSplit: 1, ySplit: 1 };
+
+  XLSX.utils.book_append_sheet(wb, ws, `Target ${year}`);
+
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob  = new Blob([wbout], { type: 'application/octet-stream' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url;
+  a.download = `agrotex_target_${year}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
