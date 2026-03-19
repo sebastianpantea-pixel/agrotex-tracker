@@ -2241,8 +2241,45 @@ fetch('/api/me').then(r=>r.json()).then(d=>{
     setInterval(loadFxRates, 3*60*60*1000);
     setInterval(loadMatif,   5*60*1000);
     setInterval(loadNews,   15*60*1000); // refresh news every 15 min
+    setInterval(syncTrades,  60*1000);   // sync trades every 60s (multi-user)
   }
 });
+
+// ── SYNC TRADES (multi-user, 60s) ─────────────────────────────────────────────
+async function syncTrades() {
+  // Nu sincroniza dacă un modal e deschis — evită să deranjeze editarea activă
+  const anyModalOpen = ['modEdit','modProd','modImport','modCfo'].some(id => {
+    const el = document.getElementById(id);
+    return el && (el.classList.contains('open') || el.style.display === 'flex');
+  });
+  if(anyModalOpen) return;
+
+  try {
+    const [tRes, pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
+    if(!tRes.ok || !pRes.ok) return;
+
+    const newTrades   = await tRes.json();
+    const newProducts = await pRes.json();
+
+    // Compară dacă s-a schimbat ceva
+    const tradesChanged   = JSON.stringify(newTrades)   !== JSON.stringify(trades);
+    const productsChanged = JSON.stringify(newProducts) !== JSON.stringify(products);
+
+    if(tradesChanged || productsChanged) {
+      trades   = Array.isArray(newTrades) ? newTrades : trades;
+      products = newProducts || products;
+      if(productsChanged) { populateProd(); populateFilterProd(); }
+      render();
+      // Indicator vizual discret
+      const s = document.getElementById('syncStatus');
+      if(s) {
+        s.textContent = '● sync';
+        s.className = 'sync saved';
+        setTimeout(() => { s.textContent = '● synced'; }, 1500);
+      }
+    }
+  } catch(e) { /* silențios — nu deranja userul */ }
+}
 
 setInterval(()=>{
   if(document.getElementById('app').style.display!=='none'){
