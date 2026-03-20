@@ -501,6 +501,8 @@
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:4px;" id="targetSaveStatus"></div>
     <button class="btn-sm" onclick="saveTarget()" style="margin-left:auto;">💾 Salvează</button>
     <button class="btn-import" onclick="exportTarget()">⬇ Export Excel</button>
+    <button class="btn-import" onclick="document.getElementById('targetFileInput').click()">⬆ Import Excel</button>
+    <input type="file" id="targetFileInput" accept=".xlsx,.xls" style="display:none" onchange="importTarget(event)">
   </div>
   <div style="overflow-x:auto;">
     <table id="targetTable" style="border-collapse:collapse;min-width:900px;width:100%;">
@@ -2430,6 +2432,74 @@ function renderTargetDiffRow(year) {
   });
   // Re-render tot (simplu)
   renderTarget();
+}
+
+function importTarget(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const year = document.getElementById('targetYear').value;
+  const s = document.getElementById('targetSaveStatus');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb   = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      // Caută sheet-ul potrivit (ex: "Target 2026" sau primul sheet)
+      const sheetName = wb.SheetNames.find(n => n.includes(year)) || wb.SheetNames[0];
+      const ws   = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+
+      // rows[0] = header (gol, Ian, Feb, ... Total)
+      // rows[1..5] = Plan, Realizat, Adaos, Marjă, Diferență
+      const KEY_MAP = {
+        'plan':     ['plan','plan (tone)'],
+        'realizat': ['realizat','realizat (tone)'],
+        'adaos':    ['adaos','adaos (ron)'],
+        'marja':    ['marj','marja','marjă'],
+      };
+
+      const imported = { plan: Array(12).fill(''), realizat: Array(12).fill(''), adaos: Array(12).fill(''), marja: Array(12).fill('') };
+      let found = 0;
+
+      rows.slice(1).forEach(row => {
+        if(!row || !row[0]) return;
+        const rowLabel = String(row[0]).toLowerCase().trim();
+        for(const [key, aliases] of Object.entries(KEY_MAP)) {
+          if(aliases.some(a => rowLabel.includes(a))) {
+            // Coloanele 1-12 = lunile Ian-Dec (coloana 13 = Total, ignorată)
+            for(let mi = 0; mi < 12; mi++) {
+              const val = row[mi + 1];
+              imported[key][mi] = (val !== undefined && val !== null && val !== '') ? String(val) : '';
+            }
+            found++;
+            break;
+          }
+        }
+      });
+
+      if(found === 0) {
+        s.textContent = '✗ Format nerecunoscut';
+        s.style.color = 'var(--short)';
+        setTimeout(() => { s.textContent = ''; }, 3000);
+        return;
+      }
+
+      targetData[year] = imported;
+      renderTarget();
+      // Salvează automat pe server
+      saveTarget();
+      s.textContent = `✓ Importat ${found} rânduri`;
+      s.style.color = 'var(--long)';
+      setTimeout(() => { s.textContent = ''; }, 2500);
+    } catch(err) {
+      s.textContent = '✗ Eroare: ' + err.message;
+      s.style.color = 'var(--short)';
+      setTimeout(() => { s.textContent = ''; }, 3000);
+    }
+    // Reset input ca să poată reimporta același fișier
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function focusNextTarget(key, mi) {
