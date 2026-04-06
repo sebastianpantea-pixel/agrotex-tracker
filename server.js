@@ -36,10 +36,10 @@ db.exec(`
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
 if (!prodRow) {
   const defaultProducts = JSON.stringify({
-    wheat:     { name:'Grâu',              emoji:'🌾', color:'#e2a857', symbol:'WHT' },
-    corn:      { name:'Porumb',            emoji:'🌽', color:'#f0c040', symbol:'CRN' },
-    rapeseed:  { name:'Rapiță',            emoji:'🌿', color:'#8bc34a', symbol:'RAP' },
-    sunflower: { name:'Floarea-soarelui',  emoji:'🌻', color:'#ffb300', symbol:'SFW' },
+    wheat:     { name:'Grâu',             emoji:'🌾', color:'#e2a857', symbol:'WHT' },
+    corn:      { name:'Porumb',           emoji:'🌽', color:'#f0c040', symbol:'CRN' },
+    rapeseed:  { name:'Rapiță',           emoji:'🌿', color:'#8bc34a', symbol:'RAP' },
+    sunflower: { name:'Floarea-soarelui', emoji:'🌻', color:'#ffb300', symbol:'SFW' },
   });
   db.prepare('INSERT INTO products (data) VALUES (?)').run(defaultProducts);
 }
@@ -123,7 +123,7 @@ app.get('/api/products', requireAuth, (req, res) => {
 });
 
 app.put('/api/products', requireAuth, (req, res) => {
-  db.prepare(`UPDATE products SET data = ?, updated_at = datetime('now') WHERE id = (SELECT id FROM products LIMIT 1)`)
+  db.prepare('UPDATE products SET data = ?, updated_at = datetime(\'now\') WHERE id = (SELECT id FROM products LIMIT 1)')
     .run(JSON.stringify(req.body));
   res.json({ ok: true });
 });
@@ -415,7 +415,7 @@ app.get('/api/news/test', requireAuth, async (req, res) => {
   res.json(results.map(r => r.value || r.reason));
 });
 
-// ── WEATHER / OPEN-METEO V2 + SOIL MOISTURE ──────────────────────────────────
+// ── WEATHER / OPEN-METEO V3 + SOIL MOISTURE FROM HOURLY ─────────────────────
 const WEATHER_PRESET_LOCATIONS = [
   { name: 'Oradea', country: 'Romania', latitude: 47.0722, longitude: 21.9211, timezone: 'Europe/Bucharest' },
   { name: 'Apa', country: 'Romania', latitude: 47.7667, longitude: 23.1833, timezone: 'Europe/Bucharest' },
@@ -428,19 +428,28 @@ let weatherPresetCache = { data: null, ts: 0 };
 const WEATHER_PRESET_TTL = 30 * 60 * 1000;
 
 function round2(n) {
-  return Math.round((Number(n) || 0) * 100) / 100;
+  const x = Number(n);
+  return Number.isFinite(x) ? Math.round(x * 100) / 100 : null;
 }
 
-function pickSoilValue(daily, key, idx) {
-  if (!daily || !Array.isArray(daily[key])) return null;
-  const v = daily[key][idx];
-  return Number.isFinite(v) ? v : null;
-}
-
-function averageOrNull(list) {
-  const vals = list.filter(v => Number.isFinite(v));
+function averageOrNull(values) {
+  const vals = values.filter(v => Number.isFinite(v));
   if (!vals.length) return null;
   return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+function sumOrZero(values) {
+  return values.reduce((a, b) => a + (Number(b) || 0), 0);
+}
+
+function maxOrNull(values) {
+  const vals = values.filter(v => Number.isFinite(v));
+  return vals.length ? Math.max(...vals) : null;
+}
+
+function minOrNull(values) {
+  const vals = values.filter(v => Number.isFinite(v));
+  return vals.length ? Math.min(...vals) : null;
 }
 
 function weatherCodeToLabel(code) {
@@ -479,9 +488,9 @@ function weatherCodeToLabel(code) {
 
 function buildRiskFlags({ daily, current }) {
   const risks = [];
-  const minTemp = Math.min(...(daily.temperature_2m_min || []).filter(Number.isFinite));
-  const maxWind = Math.max(...(daily.wind_speed_10m_max || []).filter(Number.isFinite));
-  const maxRain = Math.max(...(daily.precipitation_sum || []).filter(Number.isFinite));
+  const minTemp = minOrNull(daily.temperature_2m_min || []);
+  const maxWind = maxOrNull(daily.wind_speed_10m_max || []);
+  const maxRain = maxOrNull(daily.precipitation_sum || []);
   const currentTemp = Number(current.temperature_2m);
 
   if (Number.isFinite(minTemp) && minTemp <= 0) risks.push('risc îngheț');
@@ -502,53 +511,99 @@ function daysSinceLastMeaningfulRain(pastDaily) {
   return null;
 }
 
+function groupHourlySoilByDate(hourly) {
+  const byDate = {};
+  const times = hourly.time || [];
+  for (let i = 0; i < times.length; i++) {
+    const ts = times[i];
+    const date = String(ts).slice(0, 10);
+    if (!byDate[date]) {
+      byDate[date] = {
+        s01: [],
+        s13: [],
+        s39: [],
+        s927: [],
+        s2781: [],
+      };
+    }
+    byDate[date].s01.push(hourly.soil_moisture_0_to_1cm?.[i]);
+    byDate[date].s13.push(hourly.soil_moisture_1_to_3cm?.[i]);
+    byDate[date].s39.push(hourly.soil_moisture_3_to_9cm?.[i]);
+    byDate[date].s927.push(hourly.soil_moisture_9_to_27cm?.[i]);
+    byDate[date].s2781.push(hourly.soil_moisture_27_to_81cm?.[i]);
+  }
+  return byDate;
+}
+
+function buildDailySoilMapFromHourly(hourly) {
+  const grouped = groupHourlySoilByDate(hourly);
+  const out = {};
+  for (const [date, v] of Object.entries(grouped)) {
+    const surface = averageOrNull(v.s01);
+    const mid = averageOrNull([
+      averageOrNull(v.s13),
+      averageOrNull(v.s39),
+      averageOrNull(v.s927),
+    ]);
+    const deep = averageOrNull([
+      averageOrNull(v.s2781),
+    ]);
+    out[date] = {
+      soilSurface: round2(surface),
+      soilMid: round2(mid),
+      soilDeep: round2(deep),
+    };
+  }
+  return out;
+}
+
 function buildWeatherPayload(location, raw) {
   const current = raw.current || {};
   const daily = raw.daily || {};
   const pastDaily = raw.pastDaily || {};
+  const dailySoilMap = buildDailySoilMapFromHourly(raw.hourly || {});
+  const currentDate = String(current.time || '').slice(0, 10);
+  const currentSoil = dailySoilMap[currentDate] || { soilSurface: null, soilMid: null, soilDeep: null };
 
   const dates = daily.time || [];
-  const dailyForecast = dates.map((date, idx) => ({
-    date,
-    tempMin: daily.temperature_2m_min?.[idx] ?? null,
-    tempMax: daily.temperature_2m_max?.[idx] ?? null,
-    precip: daily.precipitation_sum?.[idx] ?? null,
-    windMax: daily.wind_speed_10m_max?.[idx] ?? null,
-    humidityMean: daily.relative_humidity_2m_mean?.[idx] ?? null,
-    weatherCode: daily.weather_code?.[idx] ?? null,
-    weatherLabel: weatherCodeToLabel(daily.weather_code?.[idx]),
-    soilSurface: pickSoilValue(daily, 'soil_moisture_0_to_1cm_mean', idx),
-    soilMid: averageOrNull([
-      pickSoilValue(daily, 'soil_moisture_1_to_3cm_mean', idx),
-      pickSoilValue(daily, 'soil_moisture_3_to_9cm_mean', idx),
-      pickSoilValue(daily, 'soil_moisture_9_to_27cm_mean', idx),
-    ]),
-    soilDeep: averageOrNull([
-      pickSoilValue(daily, 'soil_moisture_27_to_81cm_mean', idx),
-    ]),
-  }));
+  const dailyForecast = dates.map((date, idx) => {
+    const soil = dailySoilMap[date] || { soilSurface: null, soilMid: null, soilDeep: null };
+    return {
+      date,
+      tempMin: Number.isFinite(daily.temperature_2m_min?.[idx]) ? daily.temperature_2m_min[idx] : null,
+      tempMax: Number.isFinite(daily.temperature_2m_max?.[idx]) ? daily.temperature_2m_max[idx] : null,
+      precip: Number.isFinite(daily.precipitation_sum?.[idx]) ? daily.precipitation_sum[idx] : null,
+      windMax: Number.isFinite(daily.wind_speed_10m_max?.[idx]) ? daily.wind_speed_10m_max[idx] : null,
+      humidityMean: Number.isFinite(daily.relative_humidity_2m_mean?.[idx]) ? daily.relative_humidity_2m_mean[idx] : null,
+      weatherCode: Number.isFinite(daily.weather_code?.[idx]) ? daily.weather_code[idx] : null,
+      weatherLabel: weatherCodeToLabel(daily.weather_code?.[idx]),
+      soilSurface: soil.soilSurface,
+      soilMid: soil.soilMid,
+      soilDeep: soil.soilDeep,
+    };
+  });
 
-  const next7Precip = (daily.precipitation_sum || []).reduce((a, b) => a + (Number(b) || 0), 0);
-  const last7Precip = (pastDaily.precipitation_sum || []).slice(-7).reduce((a, b) => a + (Number(b) || 0), 0);
-  const last30Precip = (pastDaily.precipitation_sum || []).reduce((a, b) => a + (Number(b) || 0), 0);
+  const next7Precip = sumOrZero(daily.precipitation_sum || []);
+  const last7Precip = sumOrZero((pastDaily.precipitation_sum || []).slice(-7));
+  const last30Precip = sumOrZero(pastDaily.precipitation_sum || []);
 
   const summary = {
     currentTemp: round2(current.temperature_2m),
     currentHumidity: round2(current.relative_humidity_2m),
     currentWind: round2(current.wind_speed_10m),
     currentPrecip: round2(current.precipitation),
-    currentWeatherCode: current.weather_code ?? null,
+    currentWeatherCode: Number.isFinite(current.weather_code) ? current.weather_code : null,
     currentWeatherLabel: weatherCodeToLabel(current.weather_code),
     next7Precip: round2(next7Precip),
     last7Precip: round2(last7Precip),
     last30Precip: round2(last30Precip),
     daysSinceRain: daysSinceLastMeaningfulRain(pastDaily),
-    minTemp7: round2(Math.min(...(daily.temperature_2m_min || []).filter(Number.isFinite))),
-    maxTemp7: round2(Math.max(...(daily.temperature_2m_max || []).filter(Number.isFinite))),
-    maxWind7: round2(Math.max(...(daily.wind_speed_10m_max || []).filter(Number.isFinite))),
-    soilSurface: round2(averageOrNull(dailyForecast.map(d => d.soilSurface))),
-    soilMid: round2(averageOrNull(dailyForecast.map(d => d.soilMid))),
-    soilDeep: round2(averageOrNull(dailyForecast.map(d => d.soilDeep))),
+    minTemp7: round2(minOrNull(daily.temperature_2m_min || [])),
+    maxTemp7: round2(maxOrNull(daily.temperature_2m_max || [])),
+    maxWind7: round2(maxOrNull(daily.wind_speed_10m_max || [])),
+    soilSurface: currentSoil.soilSurface,
+    soilMid: currentSoil.soilMid,
+    soilDeep: currentSoil.soilDeep,
     risks: buildRiskFlags({ daily, current }),
   };
 
@@ -578,12 +633,14 @@ async function fetchWeatherForLocation(location) {
       'temperature_2m_min',
       'precipitation_sum',
       'wind_speed_10m_max',
-      'relative_humidity_2m_mean',
-      'soil_moisture_0_to_1cm_mean',
-      'soil_moisture_1_to_3cm_mean',
-      'soil_moisture_3_to_9cm_mean',
-      'soil_moisture_9_to_27cm_mean',
-      'soil_moisture_27_to_81cm_mean'
+      'relative_humidity_2m_mean'
+    ].join(','),
+    hourly: [
+      'soil_moisture_0_to_1cm',
+      'soil_moisture_1_to_3cm',
+      'soil_moisture_3_to_9cm',
+      'soil_moisture_9_to_27cm',
+      'soil_moisture_27_to_81cm'
     ].join(','),
     past_days: '30',
     forecast_days: '7',
@@ -597,17 +654,6 @@ async function fetchWeatherForLocation(location) {
   if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
   const raw = await res.json();
 
-  const payload = buildWeatherPayload(location, {
-    current: raw.current,
-    daily: raw.daily,
-    pastDaily: raw.daily_units ? {
-      time: raw.daily?.time?.slice(0, 30) || [],
-      precipitation_sum: raw.daily?.precipitation_sum?.slice(0, 30) || [],
-    } : { time: [], precipitation_sum: [] }
-  });
-
-  // Corecție: open-meteo întoarce în același daily și trecutul și viitorul când folosești past_days + forecast_days.
-  // Aici refacem explicit segmentele.
   const allDates = raw.daily?.time || [];
   const today = new Date();
   const tzNow = new Date(today.toLocaleString('en-US', { timeZone: location.timezone || 'UTC' }));
@@ -615,6 +661,7 @@ async function fetchWeatherForLocation(location) {
 
   const dailyIndexesFuture = [];
   const dailyIndexesPast = [];
+
   allDates.forEach((d, idx) => {
     if (d < todayStr) dailyIndexesPast.push(idx);
     else if (d >= todayStr && dailyIndexesFuture.length < 7) dailyIndexesFuture.push(idx);
@@ -628,11 +675,6 @@ async function fetchWeatherForLocation(location) {
     precipitation_sum: dailyIndexesFuture.map(i => raw.daily.precipitation_sum?.[i]),
     wind_speed_10m_max: dailyIndexesFuture.map(i => raw.daily.wind_speed_10m_max?.[i]),
     relative_humidity_2m_mean: dailyIndexesFuture.map(i => raw.daily.relative_humidity_2m_mean?.[i]),
-    soil_moisture_0_to_1cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_0_to_1cm_mean?.[i]),
-    soil_moisture_1_to_3cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_1_to_3cm_mean?.[i]),
-    soil_moisture_3_to_9cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_3_to_9cm_mean?.[i]),
-    soil_moisture_9_to_27cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_9_to_27cm_mean?.[i]),
-    soil_moisture_27_to_81cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_27_to_81cm_mean?.[i]),
   };
 
   const pastDaily = {
@@ -644,6 +686,7 @@ async function fetchWeatherForLocation(location) {
     current: raw.current,
     daily: futureDaily,
     pastDaily,
+    hourly: raw.hourly || {},
   });
 }
 
