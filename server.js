@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 const APP_PASSWORD = process.env.APP_PASSWORD || 'agrotex2025';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'agrotex-secret-key-change-me';
 
-// DB setup
+// DB setup — Render persistent disk mounts at /data, fallback to local
 const DB_DIR = fs.existsSync('/data') ? '/data' : __dirname;
 const db = new Database(path.join(DB_DIR, 'agrotex.db'));
 
@@ -36,10 +36,10 @@ db.exec(`
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
 if (!prodRow) {
   const defaultProducts = JSON.stringify({
-    wheat:     { name:'Grâu',             emoji:'🌾', color:'#e2a857', symbol:'WHT' },
-    corn:      { name:'Porumb',           emoji:'🌽', color:'#f0c040', symbol:'CRN' },
-    rapeseed:  { name:'Rapiță',           emoji:'🌿', color:'#8bc34a', symbol:'RAP' },
-    sunflower: { name:'Floarea-soarelui', emoji:'🌻', color:'#ffb300', symbol:'SFW' },
+    wheat:     { name:'Grâu',              emoji:'🌾', color:'#e2a857', symbol:'WHT' },
+    corn:      { name:'Porumb',            emoji:'🌽', color:'#f0c040', symbol:'CRN' },
+    rapeseed:  { name:'Rapiță',            emoji:'🌿', color:'#8bc34a', symbol:'RAP' },
+    sunflower: { name:'Floarea-soarelui',  emoji:'🌻', color:'#ffb300', symbol:'SFW' },
   });
   db.prepare('INSERT INTO products (data) VALUES (?)').run(defaultProducts);
 }
@@ -123,7 +123,7 @@ app.get('/api/products', requireAuth, (req, res) => {
 });
 
 app.put('/api/products', requireAuth, (req, res) => {
-  db.prepare("UPDATE products SET data = ?, updated_at = datetime('now') WHERE id = (SELECT id FROM products LIMIT 1)")
+  db.prepare(`UPDATE products SET data = ?, updated_at = datetime('now') WHERE id = (SELECT id FROM products LIMIT 1)`)
     .run(JSON.stringify(req.body));
   res.json({ ok: true });
 });
@@ -133,18 +133,17 @@ let matifCache = { data: null, ts: 0 };
 const MATIF_TTL = 5 * 60 * 1000;
 
 const MATIF_CONTRACTS = [
-  { key: 'wheat',    code: 'EBM-DPAR', name: 'Grâu (EBM)'    },
-  { key: 'corn',     code: 'EMA-DPAR', name: 'Porumb (EMA)'  },
-  { key: 'rapeseed', code: 'ECO-DPAR', name: 'Rapiță (ECO)'  },
+  { key: 'wheat',    code: 'EBM-DPAR', name: 'Grâu (EBM)' },
+  { key: 'corn',     code: 'EMA-DPAR', name: 'Porumb (EMA)' },
+  { key: 'rapeseed', code: 'ECO-DPAR', name: 'Rapiță (ECO)' },
 ];
 
 async function fetchMatifContract(code) {
   const [symbol, mic] = code.split('-');
   const url = `https://live.euronext.com/en/ajax/getPricesFutures/commodities-futures/${symbol}/${mic}`;
-
   const res = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0',
       'Accept': 'text/html, */*; q=0.01',
       'Accept-Language': 'en-US,en;q=0.9',
       'X-Requested-With': 'XMLHttpRequest',
@@ -152,7 +151,6 @@ async function fetchMatifContract(code) {
     },
     signal: AbortSignal.timeout(12000),
   });
-
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${code}`);
   const html = await res.text();
 
@@ -165,7 +163,6 @@ async function fetchMatifContract(code) {
     const cells = [];
     let tdMatch;
     const tdReg = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-
     while ((tdMatch = tdReg.exec(rowHtml)) !== null) {
       const text = tdMatch[1]
         .replace(/<[^>]+>/g, '')
@@ -180,7 +177,6 @@ async function fetchMatifContract(code) {
         const n = parseFloat((s || '').replace(',', '.'));
         return isNaN(n) ? null : n;
       };
-
       rows.push({
         delivery: cells[0],
         bid: parseNum(cells[1]),
@@ -199,13 +195,8 @@ async function fetchMatifContract(code) {
 app.get('/api/matif', requireAuth, async (req, res) => {
   try {
     const now = Date.now();
-
     if (matifCache.data && (now - matifCache.ts) < MATIF_TTL) {
-      return res.json({
-        ...matifCache.data,
-        cached: true,
-        age: Math.round((now - matifCache.ts) / 1000),
-      });
+      return res.json({ ...matifCache.data, cached: true, age: Math.round((now - matifCache.ts) / 1000) });
     }
 
     const results = {};
@@ -247,7 +238,7 @@ app.get('/api/matif', requireAuth, async (req, res) => {
   }
 });
 
-// ── TARGET ────────────────────────────────────────────────────────────────────
+// ── TARGET / BUDGET ───────────────────────────────────────────────────────────
 app.get('/api/target/:year', requireAuth, (req, res) => {
   const row = db.prepare('SELECT data FROM target WHERE year = ?').get(req.params.year);
   res.json(row ? JSON.parse(row.data) : null);
@@ -256,14 +247,10 @@ app.get('/api/target/:year', requireAuth, (req, res) => {
 app.put('/api/target/:year', requireAuth, (req, res) => {
   const year = parseInt(req.params.year, 10);
   const data = JSON.stringify(req.body);
-
   db.prepare(`
-    INSERT INTO target (year, data, updated_at)
-    VALUES (?, ?, datetime('now'))
-    ON CONFLICT(year) DO UPDATE
-    SET data = excluded.data, updated_at = excluded.updated_at
+    INSERT INTO target (year, data, updated_at) VALUES (?, ?, datetime('now'))
+    ON CONFLICT(year) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
   `).run(year, data);
-
   res.json({ ok: true });
 });
 
@@ -272,16 +259,16 @@ let newsCache = { data: null, ts: 0 };
 const NEWS_TTL = 15 * 60 * 1000;
 
 const NEWS_SOURCES = [
-  { name: 'Agrointeligenta', url: 'https://agrointel.ro/feed',                     lang: 'ro', tag: 'RO',    filter: null },
-  { name: 'Ziarul Financiar', url: 'https://www.zf.ro/rss',                        lang: 'ro', tag: 'RO',    filter: null },
-  { name: 'Bursa.ro',         url: 'https://www.bursa.ro/rss.xml',                 lang: 'ro', tag: 'RO',    filter: null },
-  { name: 'HotNews Eco',      url: 'https://economie.hotnews.ro/rss',              lang: 'ro', tag: 'RO',    filter: null },
-  { name: 'USDA News',        url: 'https://www.usda.gov/rss/latest-releases.xml', lang: 'en', tag: 'INT',   filter: 'grain' },
-  { name: 'Brownfield Ag',    url: 'https://brownfieldagnews.com/feed',            lang: 'en', tag: 'INT',   filter: null },
-  { name: 'Northern Ag',      url: 'https://northernag.net/feed',                  lang: 'en', tag: 'INT',   filter: null },
-  { name: 'SpreadCharts',     url: 'https://spreadcharts.com/feed',                lang: 'en', tag: 'INT',   filter: null },
-  { name: 'OilPrice',         url: 'https://oilprice.com/rss/main',                lang: 'en', tag: 'MACRO', filter: null },
-  { name: 'Farm Progress',    url: 'https://www.farmprogress.com/rss/all',         lang: 'en', tag: 'INT',   filter: null },
+  { name: 'Agrointeligenta', url: 'https://agrointel.ro/feed', lang: 'ro', tag: 'RO', filter: null },
+  { name: 'Ziarul Financiar', url: 'https://www.zf.ro/rss', lang: 'ro', tag: 'RO', filter: null },
+  { name: 'Bursa.ro', url: 'https://www.bursa.ro/rss.xml', lang: 'ro', tag: 'RO', filter: null },
+  { name: 'HotNews Eco', url: 'https://economie.hotnews.ro/rss', lang: 'ro', tag: 'RO', filter: null },
+  { name: 'USDA News', url: 'https://www.usda.gov/rss/latest-releases.xml', lang: 'en', tag: 'INT', filter: 'grain' },
+  { name: 'Brownfield Ag', url: 'https://brownfieldagnews.com/feed', lang: 'en', tag: 'INT', filter: null },
+  { name: 'Northern Ag', url: 'https://northernag.net/feed', lang: 'en', tag: 'INT', filter: null },
+  { name: 'SpreadCharts', url: 'https://spreadcharts.com/feed', lang: 'en', tag: 'INT', filter: null },
+  { name: 'OilPrice', url: 'https://oilprice.com/rss/main', lang: 'en', tag: 'MACRO', filter: null },
+  { name: 'Farm Progress', url: 'https://www.farmprogress.com/rss/all', lang: 'en', tag: 'INT', filter: null },
 ];
 
 const USDA_GRAIN_KEYWORDS = [
@@ -291,7 +278,7 @@ const USDA_GRAIN_KEYWORDS = [
 ];
 
 const KEYWORDS_HIGH = ['grâu','wheat','porumb','corn','rapiță','rapeseed','canola','cereale','grain','oleaginoase','oilseed','MATIF','CBOT','futures','recoltă','harvest','export','import','USDA','IGC','Euronext'];
-const KEYWORDS_MED  = ['agricol','agricultură','agriculture','fermier','farmer','piață','market','preț','price','România','Romania','UE','EU','subvenț','subsid'];
+const KEYWORDS_MED = ['agricol','agricultură','agriculture','fermier','farmer','piață','market','preț','price','România','Romania','UE','EU','subvenț','subsid'];
 
 function scoreItem(title, desc) {
   const text = ((title || '') + ' ' + (desc || '')).toLowerCase();
@@ -309,7 +296,6 @@ async function fetchRSS(source) {
     },
     signal: AbortSignal.timeout(10000),
   });
-
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const xml = await res.text();
 
@@ -318,7 +304,6 @@ async function fetchRSS(source) {
 
   const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
   let m;
-
   while ((m = itemRegex.exec(xml)) !== null) {
     const block = m[1];
     const get = (tag) => {
@@ -327,11 +312,11 @@ async function fetchRSS(source) {
       return match
         ? match[1]
             .replace(/<[^>]+>/g, '')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g,'&')
+            .replace(/&lt;/g,'<')
+            .replace(/&gt;/g,'>')
+            .replace(/&quot;/g,'"')
+            .replace(/&#39;/g,"'")
             .trim()
         : '';
     };
@@ -362,20 +347,14 @@ async function fetchRSS(source) {
       score: scoreItem(title, desc),
     });
   }
-
   return items;
 }
 
 app.get('/api/news', requireAuth, async (req, res) => {
   try {
     const now = Date.now();
-
     if (newsCache.data && (now - newsCache.ts) < NEWS_TTL) {
-      return res.json({
-        ...newsCache.data,
-        cached: true,
-        age: Math.round((now - newsCache.ts) / 1000),
-      });
+      return res.json({ ...newsCache.data, cached: true, age: Math.round((now - newsCache.ts) / 1000) });
     }
 
     const allItems = [];
@@ -415,7 +394,6 @@ app.get('/api/news', requireAuth, async (req, res) => {
 
 app.get('/api/news/test', requireAuth, async (req, res) => {
   const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
-
   const results = await Promise.allSettled(
     NEWS_SOURCES.map(async (s) => {
       const start = Date.now();
@@ -424,273 +402,271 @@ app.get('/api/news/test', requireAuth, async (req, res) => {
           headers: { 'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader' },
           signal: AbortSignal.timeout(10000),
         });
-
         const text = await r.text();
         const totalItems = (text.match(/<item/gi) || []).length;
         const pubDates = [...text.matchAll(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/gi)].map(m => new Date(m[1]));
         const recent = pubDates.filter(d => d.getTime() > cutoff24h).length;
-
-        return {
-          name: s.name,
-          tag: s.tag,
-          filter: s.filter || 'none',
-          url: s.url,
-          status: r.status,
-          ok: r.ok,
-          totalItems,
-          recent24h: recent,
-          ms: Date.now() - start,
-        };
+        return { name: s.name, tag: s.tag, filter: s.filter || 'none', url: s.url, status: r.status, ok: r.ok, totalItems, recent24h: recent, ms: Date.now() - start };
       } catch (e) {
-        return {
-          name: s.name,
-          tag: s.tag,
-          url: s.url,
-          status: 0,
-          ok: false,
-          error: e.message,
-          ms: Date.now() - start,
-        };
+        return { name: s.name, tag: s.tag, url: s.url, status: 0, ok: false, error: e.message, ms: Date.now() - start };
       }
     })
   );
-
   res.json(results.map(r => r.value || r.reason));
 });
 
-// ── WEATHER / AGRO-METEO ──────────────────────────────────────────────────────
-const WEATHER_PRESETS = [
-  { key: 'oradea',          name: 'Oradea',          lat: 47.0722, lon: 21.9211, country: 'Romania' },
-  { key: 'valea-lui-mihai', name: 'Valea lui Mihai', lat: 47.5167, lon: 22.1500, country: 'Romania' },
-  { key: 'carei',           name: 'Carei',           lat: 47.6833, lon: 22.4667, country: 'Romania' },
-  { key: 'sacueni',         name: 'Săcueni',         lat: 47.3500, lon: 22.1000, country: 'Romania' },
-  { key: 'apa',             name: 'Apa',             lat: 47.7667, lon: 23.1833, country: 'Romania' },
+// ── WEATHER / OPEN-METEO V2 + SOIL MOISTURE ──────────────────────────────────
+const WEATHER_PRESET_LOCATIONS = [
+  { name: 'Oradea', country: 'Romania', latitude: 47.0722, longitude: 21.9211, timezone: 'Europe/Bucharest' },
+  { name: 'Apa', country: 'Romania', latitude: 47.7667, longitude: 23.1833, timezone: 'Europe/Bucharest' },
+  { name: 'Valea lui Mihai', country: 'Romania', latitude: 47.5167, longitude: 22.1500, timezone: 'Europe/Bucharest' },
+  { name: 'Carei', country: 'Romania', latitude: 47.6833, longitude: 22.4667, timezone: 'Europe/Bucharest' },
+  { name: 'Săcueni', country: 'Romania', latitude: 47.3500, longitude: 22.1000, timezone: 'Europe/Bucharest' },
 ];
 
-let weatherCache = new Map();
-const WEATHER_TTL = 30 * 60 * 1000;
-const GEO_TTL = 12 * 60 * 60 * 1000;
+let weatherPresetCache = { data: null, ts: 0 };
+const WEATHER_PRESET_TTL = 30 * 60 * 1000;
 
-function weatherCacheGet(key) {
-  const item = weatherCache.get(key);
-  if (!item) return null;
-  if (Date.now() - item.ts > item.ttl) {
-    weatherCache.delete(key);
-    return null;
-  }
-  return item.data;
+function round2(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
 }
 
-function weatherCacheSet(key, data, ttl = WEATHER_TTL) {
-  weatherCache.set(key, { data, ts: Date.now(), ttl });
+function pickSoilValue(daily, key, idx) {
+  if (!daily || !Array.isArray(daily[key])) return null;
+  const v = daily[key][idx];
+  return Number.isFinite(v) ? v : null;
 }
 
-function isoDate(d) {
-  return new Date(d).toISOString().slice(0, 10);
+function averageOrNull(list) {
+  const vals = list.filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-function safeNum(v, digits = 1) {
-  const n = Number(v);
-  return Number.isFinite(n) ? Number(n.toFixed(digits)) : null;
+function weatherCodeToLabel(code) {
+  const map = {
+    0: 'senin',
+    1: 'mai mult senin',
+    2: 'variabil',
+    3: 'noros',
+    45: 'ceață',
+    48: 'ceață depusă',
+    51: 'burniță',
+    53: 'burniță',
+    55: 'burniță densă',
+    56: 'lapoviță fină',
+    57: 'lapoviță densă',
+    61: 'ploaie slabă',
+    63: 'ploaie',
+    65: 'ploaie puternică',
+    66: 'ploaie înghețată',
+    67: 'ploaie înghețată',
+    71: 'ninsoare',
+    73: 'ninsoare',
+    75: 'ninsoare puternică',
+    77: 'grăunțe de zăpadă',
+    80: 'averse',
+    81: 'averse',
+    82: 'averse puternice',
+    85: 'averse ninsoare',
+    86: 'averse ninsoare',
+    95: 'furtună',
+    96: 'furtună cu grindină',
+    99: 'furtună cu grindină',
+  };
+  return map[code] || 'necunoscut';
 }
 
-function sum(arr) {
-  return (arr || []).reduce((s, v) => s + (Number(v) || 0), 0);
+function buildRiskFlags({ daily, current }) {
+  const risks = [];
+  const minTemp = Math.min(...(daily.temperature_2m_min || []).filter(Number.isFinite));
+  const maxWind = Math.max(...(daily.wind_speed_10m_max || []).filter(Number.isFinite));
+  const maxRain = Math.max(...(daily.precipitation_sum || []).filter(Number.isFinite));
+  const currentTemp = Number(current.temperature_2m);
+
+  if (Number.isFinite(minTemp) && minTemp <= 0) risks.push('risc îngheț');
+  if (Number.isFinite(maxWind) && maxWind >= 45) risks.push('vânt puternic');
+  if (Number.isFinite(maxRain) && maxRain >= 20) risks.push('ploaie semnificativă');
+  if (Number.isFinite(currentTemp) && currentTemp >= 32) risks.push('stress termic');
+  return risks;
 }
 
-function max(arr) {
-  const nums = (arr || []).map(v => Number(v)).filter(v => Number.isFinite(v));
-  return nums.length ? Math.max(...nums) : null;
-}
-
-function min(arr) {
-  const nums = (arr || []).map(v => Number(v)).filter(v => Number.isFinite(v));
-  return nums.length ? Math.min(...nums) : null;
-}
-
-function avg(arr) {
-  const nums = (arr || []).map(v => Number(v)).filter(v => Number.isFinite(v));
-  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
-}
-
-function calcDaysSinceLastRain(times, values, threshold = 0.2) {
-  if (!times || !values || times.length !== values.length) return null;
-
-  for (let i = values.length - 1; i >= 0; i--) {
-    if ((Number(values[i]) || 0) >= threshold) {
-      const dt = new Date(times[i] + 'T12:00:00');
-      const now = new Date();
-      const diff = Math.floor((now - dt) / (24 * 60 * 60 * 1000));
-      return diff < 0 ? 0 : diff;
+function daysSinceLastMeaningfulRain(pastDaily) {
+  if (!pastDaily || !Array.isArray(pastDaily.precipitation_sum)) return null;
+  for (let i = pastDaily.precipitation_sum.length - 1; i >= 0; i--) {
+    const mm = Number(pastDaily.precipitation_sum[i] || 0);
+    if (mm >= 0.5) {
+      return pastDaily.precipitation_sum.length - 1 - i;
     }
   }
-
   return null;
 }
 
-function weatherCodeLabel(code) {
-  const c = Number(code);
-  if (c === 0) return 'senin';
-  if ([1, 2, 3].includes(c)) return 'variabil';
-  if ([45, 48].includes(c)) return 'ceață';
-  if ([51, 53, 55, 56, 57].includes(c)) return 'burniță';
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(c)) return 'ploaie';
-  if ([71, 73, 75, 77, 85, 86].includes(c)) return 'ninsoare';
-  if ([95, 96, 99].includes(c)) return 'furtună';
-  return 'mixt';
-}
+function buildWeatherPayload(location, raw) {
+  const current = raw.current || {};
+  const daily = raw.daily || {};
+  const pastDaily = raw.pastDaily || {};
 
-function buildRisk(summary) {
-  const out = [];
-
-  if (summary.daysSinceRain !== null && summary.daysSinceRain >= 7) out.push('fără ploaie 7+ zile');
-  if (summary.daysSinceRain !== null && summary.daysSinceRain >= 14) out.push('deficit de apă');
-  if ((summary.next7Precip || 0) >= 25) out.push('ploi consistente în 7 zile');
-  if ((summary.maxWind7 || 0) >= 45) out.push('vânt puternic');
-  if ((summary.minTemp7 || 99) <= 0) out.push('risc îngheț');
-  if ((summary.maxTemp7 || -99) >= 30) out.push('stress termic');
-
-  if (!out.length) out.push('fără risc major');
-  return out.slice(0, 3);
-}
-
-async function fetchOpenMeteoForecast(lat, lon) {
-  const url = new URL('https://api.open-meteo.com/v1/forecast');
-  url.searchParams.set('latitude', lat);
-  url.searchParams.set('longitude', lon);
-  url.searchParams.set('timezone', 'auto');
-  url.searchParams.set('forecast_days', '7');
-  url.searchParams.set('current', [
-    'temperature_2m',
-    'relative_humidity_2m',
-    'precipitation',
-    'weather_code',
-    'wind_speed_10m'
-  ].join(','));
-  url.searchParams.set('daily', [
-    'weather_code',
-    'temperature_2m_max',
-    'temperature_2m_min',
-    'precipitation_sum',
-    'wind_speed_10m_max',
-    'relative_humidity_2m_mean'
-  ].join(','));
-
-  const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-  if (!res.ok) throw new Error(`Forecast HTTP ${res.status}`);
-  return await res.json();
-}
-
-async function fetchOpenMeteoHistory(lat, lon, daysBack = 45) {
-  const end = new Date();
-  end.setDate(end.getDate() - 1);
-
-  const start = new Date(end);
-  start.setDate(start.getDate() - (daysBack - 1));
-
-  const url = new URL('https://historical-forecast-api.open-meteo.com/v1/forecast');
-  url.searchParams.set('latitude', lat);
-  url.searchParams.set('longitude', lon);
-  url.searchParams.set('timezone', 'auto');
-  url.searchParams.set('start_date', isoDate(start));
-  url.searchParams.set('end_date', isoDate(end));
-  url.searchParams.set('daily', 'precipitation_sum');
-
-  const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-  if (!res.ok) throw new Error(`History HTTP ${res.status}`);
-  return await res.json();
-}
-
-function buildWeatherPayload(meta, forecast, history) {
-  const current = forecast.current || {};
-  const daily = forecast.daily || {};
-  const histDaily = history.daily || {};
-
-  const dailyForecast = (daily.time || []).map((date, i) => ({
+  const dates = daily.time || [];
+  const dailyForecast = dates.map((date, idx) => ({
     date,
-    weatherCode: daily.weather_code?.[i] ?? null,
-    weatherLabel: weatherCodeLabel(daily.weather_code?.[i]),
-    tempMax: safeNum(daily.temperature_2m_max?.[i]),
-    tempMin: safeNum(daily.temperature_2m_min?.[i]),
-    precip: safeNum(daily.precipitation_sum?.[i]),
-    windMax: safeNum(daily.wind_speed_10m_max?.[i]),
-    humidityMean: safeNum(daily.relative_humidity_2m_mean?.[i], 0),
+    tempMin: daily.temperature_2m_min?.[idx] ?? null,
+    tempMax: daily.temperature_2m_max?.[idx] ?? null,
+    precip: daily.precipitation_sum?.[idx] ?? null,
+    windMax: daily.wind_speed_10m_max?.[idx] ?? null,
+    humidityMean: daily.relative_humidity_2m_mean?.[idx] ?? null,
+    weatherCode: daily.weather_code?.[idx] ?? null,
+    weatherLabel: weatherCodeToLabel(daily.weather_code?.[idx]),
+    soilSurface: pickSoilValue(daily, 'soil_moisture_0_to_1cm_mean', idx),
+    soilMid: averageOrNull([
+      pickSoilValue(daily, 'soil_moisture_1_to_3cm_mean', idx),
+      pickSoilValue(daily, 'soil_moisture_3_to_9cm_mean', idx),
+      pickSoilValue(daily, 'soil_moisture_9_to_27cm_mean', idx),
+    ]),
+    soilDeep: averageOrNull([
+      pickSoilValue(daily, 'soil_moisture_27_to_81cm_mean', idx),
+    ]),
   }));
 
-  const histTimes = histDaily.time || [];
-  const histPrecip = histDaily.precipitation_sum || [];
-
-  const last7 = histPrecip.slice(-7);
-  const last30 = histPrecip.slice(-30);
+  const next7Precip = (daily.precipitation_sum || []).reduce((a, b) => a + (Number(b) || 0), 0);
+  const last7Precip = (pastDaily.precipitation_sum || []).slice(-7).reduce((a, b) => a + (Number(b) || 0), 0);
+  const last30Precip = (pastDaily.precipitation_sum || []).reduce((a, b) => a + (Number(b) || 0), 0);
 
   const summary = {
-    currentTemp: safeNum(current.temperature_2m),
-    currentHumidity: safeNum(current.relative_humidity_2m, 0),
-    currentWind: safeNum(current.wind_speed_10m),
-    currentPrecip: safeNum(current.precipitation),
+    currentTemp: round2(current.temperature_2m),
+    currentHumidity: round2(current.relative_humidity_2m),
+    currentWind: round2(current.wind_speed_10m),
+    currentPrecip: round2(current.precipitation),
     currentWeatherCode: current.weather_code ?? null,
-    currentWeatherLabel: weatherCodeLabel(current.weather_code),
-    next7Precip: safeNum(sum(daily.precipitation_sum), 1),
-    last7Precip: safeNum(sum(last7), 1),
-    last30Precip: safeNum(sum(last30), 1),
-    minTemp7: safeNum(min(daily.temperature_2m_min)),
-    maxTemp7: safeNum(max(daily.temperature_2m_max)),
-    maxWind7: safeNum(max(daily.wind_speed_10m_max)),
-    avgHumidity7: safeNum(avg(daily.relative_humidity_2m_mean), 0),
-    daysSinceRain: calcDaysSinceLastRain(histTimes, histPrecip, 0.2),
+    currentWeatherLabel: weatherCodeToLabel(current.weather_code),
+    next7Precip: round2(next7Precip),
+    last7Precip: round2(last7Precip),
+    last30Precip: round2(last30Precip),
+    daysSinceRain: daysSinceLastMeaningfulRain(pastDaily),
+    minTemp7: round2(Math.min(...(daily.temperature_2m_min || []).filter(Number.isFinite))),
+    maxTemp7: round2(Math.max(...(daily.temperature_2m_max || []).filter(Number.isFinite))),
+    maxWind7: round2(Math.max(...(daily.wind_speed_10m_max || []).filter(Number.isFinite))),
+    soilSurface: round2(averageOrNull(dailyForecast.map(d => d.soilSurface))),
+    soilMid: round2(averageOrNull(dailyForecast.map(d => d.soilMid))),
+    soilDeep: round2(averageOrNull(dailyForecast.map(d => d.soilDeep))),
+    risks: buildRiskFlags({ daily, current }),
   };
 
-  summary.risks = buildRisk(summary);
-
   return {
-    location: {
-      name: meta.name,
-      country: meta.country || '',
-      latitude: meta.lat,
-      longitude: meta.lon,
-      timezone: forecast.timezone || 'auto',
-    },
+    location,
     summary,
     dailyForecast,
-    history: {
-      last7PrecipDaily: last7,
-      last30PrecipDaily: last30,
-      dailyDates: histTimes,
-      dailyPrecip: histPrecip,
-    },
     fetchedAt: new Date().toISOString(),
   };
 }
 
-async function getWeatherForLocation(meta) {
-  const key = `wx:${meta.lat}:${meta.lon}`;
-  const cached = weatherCacheGet(key);
-  if (cached) return cached;
+async function fetchWeatherForLocation(location) {
+  const params = new URLSearchParams({
+    latitude: String(location.latitude),
+    longitude: String(location.longitude),
+    timezone: location.timezone || 'auto',
+    current: [
+      'temperature_2m',
+      'relative_humidity_2m',
+      'precipitation',
+      'weather_code',
+      'wind_speed_10m'
+    ].join(','),
+    daily: [
+      'weather_code',
+      'temperature_2m_max',
+      'temperature_2m_min',
+      'precipitation_sum',
+      'wind_speed_10m_max',
+      'relative_humidity_2m_mean',
+      'soil_moisture_0_to_1cm_mean',
+      'soil_moisture_1_to_3cm_mean',
+      'soil_moisture_3_to_9cm_mean',
+      'soil_moisture_9_to_27cm_mean',
+      'soil_moisture_27_to_81cm_mean'
+    ].join(','),
+    past_days: '30',
+    forecast_days: '7',
+  });
 
-  const [forecast, history] = await Promise.all([
-    fetchOpenMeteoForecast(meta.lat, meta.lon),
-    fetchOpenMeteoHistory(meta.lat, meta.lon, 45),
-  ]);
+  const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'AgrotexTracker/1.0' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
+  const raw = await res.json();
 
-  const payload = buildWeatherPayload(meta, forecast, history);
-  weatherCacheSet(key, payload, WEATHER_TTL);
-  return payload;
+  const payload = buildWeatherPayload(location, {
+    current: raw.current,
+    daily: raw.daily,
+    pastDaily: raw.daily_units ? {
+      time: raw.daily?.time?.slice(0, 30) || [],
+      precipitation_sum: raw.daily?.precipitation_sum?.slice(0, 30) || [],
+    } : { time: [], precipitation_sum: [] }
+  });
+
+  // Corecție: open-meteo întoarce în același daily și trecutul și viitorul când folosești past_days + forecast_days.
+  // Aici refacem explicit segmentele.
+  const allDates = raw.daily?.time || [];
+  const today = new Date();
+  const tzNow = new Date(today.toLocaleString('en-US', { timeZone: location.timezone || 'UTC' }));
+  const todayStr = tzNow.toISOString().slice(0, 10);
+
+  const dailyIndexesFuture = [];
+  const dailyIndexesPast = [];
+  allDates.forEach((d, idx) => {
+    if (d < todayStr) dailyIndexesPast.push(idx);
+    else if (d >= todayStr && dailyIndexesFuture.length < 7) dailyIndexesFuture.push(idx);
+  });
+
+  const futureDaily = {
+    time: dailyIndexesFuture.map(i => raw.daily.time?.[i]),
+    weather_code: dailyIndexesFuture.map(i => raw.daily.weather_code?.[i]),
+    temperature_2m_max: dailyIndexesFuture.map(i => raw.daily.temperature_2m_max?.[i]),
+    temperature_2m_min: dailyIndexesFuture.map(i => raw.daily.temperature_2m_min?.[i]),
+    precipitation_sum: dailyIndexesFuture.map(i => raw.daily.precipitation_sum?.[i]),
+    wind_speed_10m_max: dailyIndexesFuture.map(i => raw.daily.wind_speed_10m_max?.[i]),
+    relative_humidity_2m_mean: dailyIndexesFuture.map(i => raw.daily.relative_humidity_2m_mean?.[i]),
+    soil_moisture_0_to_1cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_0_to_1cm_mean?.[i]),
+    soil_moisture_1_to_3cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_1_to_3cm_mean?.[i]),
+    soil_moisture_3_to_9cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_3_to_9cm_mean?.[i]),
+    soil_moisture_9_to_27cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_9_to_27cm_mean?.[i]),
+    soil_moisture_27_to_81cm_mean: dailyIndexesFuture.map(i => raw.daily.soil_moisture_27_to_81cm_mean?.[i]),
+  };
+
+  const pastDaily = {
+    time: dailyIndexesPast.map(i => raw.daily.time?.[i]),
+    precipitation_sum: dailyIndexesPast.map(i => raw.daily.precipitation_sum?.[i]),
+  };
+
+  return buildWeatherPayload(location, {
+    current: raw.current,
+    daily: futureDaily,
+    pastDaily,
+  });
 }
 
 app.get('/api/weather/presets', requireAuth, async (req, res) => {
   try {
-    const results = await Promise.all(
-      WEATHER_PRESETS.map(async (preset) => {
+    const forceRefresh = req.query.refresh === '1';
+    const now = Date.now();
+
+    if (!forceRefresh && weatherPresetCache.data && (now - weatherPresetCache.ts) < WEATHER_PRESET_TTL) {
+      return res.json({
+        ...weatherPresetCache.data,
+        cached: true,
+        age: Math.round((now - weatherPresetCache.ts) / 1000),
+      });
+    }
+
+    const results = await Promise.allSettled(
+      WEATHER_PRESET_LOCATIONS.map(async (location) => {
         try {
-          return await getWeatherForLocation({ ...preset, lat: preset.lat, lon: preset.lon });
+          return await fetchWeatherForLocation(location);
         } catch (e) {
           return {
-            location: {
-              name: preset.name,
-              country: preset.country,
-              latitude: preset.lat,
-              longitude: preset.lon,
-            },
+            location,
             error: e.message,
             fetchedAt: new Date().toISOString(),
           };
@@ -698,10 +674,54 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
       })
     );
 
-    res.json({ items: results, fetchedAt: new Date().toISOString() });
+    const items = results.map(r => r.status === 'fulfilled' ? r.value : ({
+      location: { name: 'Necunoscut', country: '' },
+      error: r.reason?.message || 'Unknown error',
+      fetchedAt: new Date().toISOString(),
+    }));
+
+    const payload = {
+      items,
+      fetchedAt: new Date().toISOString(),
+      cached: false,
+      age: 0,
+    };
+
+    weatherPresetCache = { data: payload, ts: now };
+    res.json(payload);
   } catch (err) {
     console.error('Weather presets error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/weather/search', requireAuth, async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (!q || q.length < 2) return res.json({ results: [] });
+
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=ro&format=json`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'AgrotexTracker/1.0' },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) throw new Error(`Geocoding HTTP ${r.status}`);
+    const data = await r.json();
+
+    const results = (data.results || []).map(item => ({
+      name: item.name,
+      country: item.country || '',
+      admin1: item.admin1 || '',
+      admin2: item.admin2 || '',
+      latitude: item.latitude,
+      longitude: item.longitude,
+      timezone: item.timezone || 'auto',
+    }));
+
+    res.json({ results });
+  } catch (err) {
+    console.error('Weather search error:', err);
+    res.status(500).json({ error: err.message, results: [] });
   }
 });
 
@@ -711,12 +731,20 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
     const lon = parseFloat(req.query.lon);
     const name = String(req.query.name || 'Locație');
     const country = String(req.query.country || '');
+    const timezone = String(req.query.timezone || 'auto');
 
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      return res.status(400).json({ error: 'Lat/Lon invalide' });
+      return res.status(400).json({ error: 'lat/lon invalid' });
     }
 
-    const payload = await getWeatherForLocation({ name, country, lat, lon });
+    const payload = await fetchWeatherForLocation({
+      name,
+      country,
+      latitude: lat,
+      longitude: lon,
+      timezone,
+    });
+
     res.json(payload);
   } catch (err) {
     console.error('Weather location error:', err);
@@ -724,47 +752,8 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/weather/search', requireAuth, async (req, res) => {
-  try {
-    const q = String(req.query.q || '').trim();
-    if (!q) return res.json({ results: [] });
-
-    const key = `geo:${q.toLowerCase()}`;
-    const cached = weatherCacheGet(key);
-    if (cached) return res.json({ results: cached });
-
-    const url = new URL('https://geocoding-api.open-meteo.com/v1/search');
-    url.searchParams.set('name', q);
-    url.searchParams.set('count', '8');
-    url.searchParams.set('language', 'ro');
-    url.searchParams.set('format', 'json');
-
-    const geoRes = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!geoRes.ok) throw new Error(`Geocoding HTTP ${geoRes.status}`);
-
-    const geo = await geoRes.json();
-    const results = (geo.results || []).map(x => ({
-      id: x.id,
-      name: x.name,
-      country: x.country || '',
-      admin1: x.admin1 || '',
-      admin2: x.admin2 || '',
-      latitude: x.latitude,
-      longitude: x.longitude,
-      timezone: x.timezone || '',
-    }));
-
-    weatherCacheSet(key, results, GEO_TTL);
-    res.json({ results });
-  } catch (err) {
-    console.error('Weather search error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ── STATIC ────────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
-
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
