@@ -10,18 +10,18 @@
   :root {
     --bg:#080b0e; --surface:#0f1318; --surface2:#161b22; --surface3:#1c2330;
     --border:#1e2530; --border2:#2a3444;
-    --text:#b8c4d4; --dim:#4e5e72; --bright:#e0eaf8;
+    --text:#b8c4d4; --dim:#4e5e72; --bright:#e0eaf8; --fg:#e0eaf8;
     --long:#22c55e; --long-dim:#14432a; --long-bg:rgba(34,197,94,0.06);
     --short:#ef4444; --short-dim:#4a1616; --short-bg:rgba(239,68,68,0.06);
     --neutral:#3b82f6; --neutral-dim:#1a3060;
     --acc:#f59e0b; --basis:#a78bfa; --transport:#f97316;
     --old:#60a5fa; --new:#34d399;
     --eur:#f59e0b;
+    --meteo:#38bdf8; --meteo2:#0ea5e9;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
 
-  /* ── LOGIN ── */
   #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
   .login-box{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:36px;width:320px;display:flex;flex-direction:column;gap:18px;}
   .login-logo{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--bright);letter-spacing:3px;text-align:center;}
@@ -31,10 +31,8 @@
   .login-btn{width:100%;padding:10px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:opacity .2s;}
   .login-btn:hover{opacity:.85;}
 
-  /* ── APP ── */
   #app{display:none;}
 
-  /* HEADER */
   .hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
   .logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--bright);letter-spacing:2px;}
   .logo span{color:var(--acc);}
@@ -47,7 +45,6 @@
   .btn-logout{padding:4px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;}
   .btn-logout:hover{color:var(--short);border-color:var(--short-dim);}
 
-  /* FX WIDGET */
   .fx-widget{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;}
   .fx-pair{display:flex;flex-direction:column;align-items:center;min-width:64px;}
   .fx-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;}
@@ -56,7 +53,6 @@
   .fx-sep{width:1px;height:24px;background:var(--border);}
   .fx-updated{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;}
 
-  /* CROP TABS */
   .tabs{display:flex;gap:0;padding:14px 22px 0;}
   .tab{padding:7px 20px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;}
   .tab:first-child{border-radius:4px 0 0 4px;}
@@ -64,6 +60,7 @@
   .tab.old{background:rgba(96,165,250,.1);color:var(--old);border-color:var(--old);}
   .tab.new{background:rgba(52,211,153,.1);color:var(--new);border-color:var(--new);}
   .tab.news-tab-active{background:rgba(167,139,250,.1);color:var(--basis);border-color:var(--basis);}
+  .tab.meteo-tab-active{background:rgba(56,189,248,.10);color:var(--meteo);border-color:var(--meteo);}
   .tab:not(:first-child){border-left:none;}
   .tab:first-child{border-radius:4px 0 0 0;}
   .tab:last-child{border-radius:0 4px 0 0;}
@@ -71,7 +68,6 @@
   .tab.old .tbadge{background:var(--old);color:#000;}
   .tab.new .tbadge{background:var(--new);color:#000;}
 
-  /* ── NEWS FEED ── */
   #newsSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
   .news-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .news-filter-btn{padding:4px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .15s;white-space:nowrap;}
@@ -97,14 +93,60 @@
   .news-spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--basis);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  /* MAIN */
-  .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
+  #meteoSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
+  .meteo-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .meteo-search-wrap{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap;}
+  .meteo-search-input{min-width:280px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:7px 9px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;}
+  .meteo-search-input:focus{border-color:var(--meteo);}
+  .meteo-search-results{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:4px;margin-top:4px;z-index:300;max-height:260px;overflow:auto;box-shadow:0 8px 28px rgba(0,0,0,.35);}
+  .meteo-search-item{padding:9px 11px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .meteo-search-item:last-child{border-bottom:none;}
+  .meteo-search-item:hover{background:var(--surface2);}
+  .meteo-search-name{font-size:11px;color:var(--bright);font-weight:600;}
+  .meteo-search-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px;}
 
-  /* TOP ROW: cards + notes side by side */
+  .meteo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;}
+  .meteo-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;position:relative;}
+  .meteo-card:hover{border-color:var(--border2);}
+  .meteo-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .meteo-name{font-size:12px;font-weight:700;color:var(--bright);}
+  .meteo-country{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px;}
+  .meteo-temp{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--meteo);}
+  .meteo-cond{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .meteo-kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+  .meteo-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:7px 8px;}
+  .meteo-kpi-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .meteo-kpi-v{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--bright);margin-top:2px;}
+  .meteo-risks{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+  .meteo-risk{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:10px;border:1px solid rgba(56,189,248,.25);background:rgba(56,189,248,.08);color:var(--meteo);}
+  .meteo-days{margin-top:10px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .meteo-day{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px;text-align:center;}
+  .meteo-day-date{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);margin-bottom:3px;}
+  .meteo-day-temp{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--bright);}
+  .meteo-day-rain{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--meteo);margin-top:2px;}
+
+  .meteo-detail{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;}
+  .meteo-detail-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  .meteo-detail-title{font-size:14px;font-weight:700;color:var(--bright);}
+  .meteo-detail-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);margin-top:3px;}
+  .meteo-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:12px;}
+  .meteo-summary-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:9px;}
+  .meteo-summary-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .meteo-summary-v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--bright);margin-top:4px;}
+
+  .meteo-table-wrap{overflow:auto;}
+  .meteo-table{width:100%;border-collapse:collapse;}
+  .meteo-table th{padding:6px 9px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+  .meteo-table td{padding:7px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
+  .meteo-table tbody tr:hover td{background:rgba(255,255,255,.015);}
+  .meteo-refresh-btn{padding:4px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .15s;}
+  .meteo-refresh-btn:hover{color:var(--meteo);border-color:var(--meteo);}
+  .meteo-empty{padding:36px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;}
+  .meteo-badge{display:inline-block;padding:2px 6px;border-radius:10px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.08);color:var(--meteo);font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.5px;}
+
+  .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
   .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
   @media(max-width:1200px){.top-row{grid-template-columns:1fr;}}
-
-  /* CARDS */
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:13px;position:relative;overflow:hidden;}
   .card:hover{border-color:var(--border2);}
@@ -137,14 +179,12 @@
   .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
   .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
 
-  /* PANEL */
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
   .ph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--border);background:var(--surface2);}
   .pt{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
   .pc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);}
   .two-col{display:grid;grid-template-columns:1fr 350px;gap:14px;}
 
-  /* FORM */
   .tform{padding:13px;border-bottom:1px solid var(--border);}
   .fr{display:grid;gap:7px;margin-bottom:7px;}
   .fr2{grid-template-columns:1fr 1fr;}
@@ -170,7 +210,6 @@
   .cur-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:var(--acc);}
   .cur-btn:hover{color:var(--bright);}
 
-  /* ── MATIF WIDGET ── */
   .matif-widget{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:default;}
   .matif-pair{display:flex;flex-direction:column;align-items:center;min-width:72px;position:relative;}
   .matif-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
@@ -182,10 +221,9 @@
   .matif-change.flat{color:var(--dim);}
   .matif-delivery{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--dim);opacity:.7;}
   .matif-updated{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;}
-  /* Tooltip popup on hover */
   .matif-pair:hover .matif-tooltip{display:block;}
   .matif-tooltip{display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:8px 10px;min-width:220px;z-index:300;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.5);}
-  .matif-tooltip::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:var(--surface3);border-left:1px solid var(--border2);border-top:1px solid var(--border2);transform:translateX(-50%) rotate(45deg);}
+  .matif-tooltip::before{content:'';position:absolute;top:-5px;left:50%;width:8px;height:8px;background:var(--surface3);border-left:1px solid var(--border2);border-top:1px solid var(--border2);transform:translateX(-50%) rotate(45deg);}
   .tt-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;color:var(--acc);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;border-bottom:1px solid var(--border2);padding-bottom:4px;}
   .tt-row{display:flex;justify-content:space-between;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text);padding:2px 0;}
   .tt-row span:first-child{color:var(--dim);font-size:9px;}
@@ -205,7 +243,6 @@
   .filter-match span{color:var(--acc);}
   .filter-active-dot{width:4px;height:4px;border-radius:50%;background:var(--acc);display:inline-block;margin-right:3px;vertical-align:middle;}
 
-  /* TABLE */
   .tscroll{max-height:350px;overflow-y:auto;}
   .tscroll::-webkit-scrollbar{width:3px;}
   .tscroll::-webkit-scrollbar-track{background:var(--bg);}
@@ -230,7 +267,6 @@
   .tr-click:hover td{background:rgba(245,158,11,.04) !important;}
   .incomplete-badge{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700;background:rgba(239,68,68,.15);color:var(--short);border:1px solid var(--short-dim);margin-left:4px;vertical-align:middle;}
 
-  /* AGG */
   .agg-ch{padding:6px 13px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);}
   .agg-ch.old{color:var(--old);} .agg-ch.new{color:var(--new);}
   .agg-row{display:flex;align-items:center;padding:7px 13px;border-bottom:1px solid var(--border);gap:6px;}
@@ -243,26 +279,12 @@
   .an-l{color:var(--long);font-weight:800;} .an-s{color:var(--short);font-weight:800;} .an-f{color:var(--neutral);}
   .albl{font-size:9px;color:var(--dim);text-align:right;min-width:22px;}
 
-  /* EXPOSURE */
-  .exp{padding:13px;}
-  .exprow{margin-bottom:11px;}
-  .exprow:last-child{margin-bottom:0;}
-  .exphdr{display:flex;justify-content:space-between;margin-bottom:3px;}
-  .expname{font-size:10px;color:var(--dim);font-family:'IBM Plex Mono',monospace;}
-  .expval{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:700;}
-  .exptrack{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
-  .expfill{height:100%;border-radius:2px;transition:width .5s ease;}
-
-  /* SYNC indicator */
   .sync{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);display:flex;align-items:center;gap:5px;}
   .sync.saving{color:var(--acc);}
   .sync.saved{color:var(--long);}
   .sync.error{color:var(--short);}
 
-  /* ── NOTES PANEL ── */
-  .notes-panel{}
   .notes-input-row{display:flex;gap:6px;padding:10px 13px;border-bottom:1px solid var(--border);background:var(--surface3);}
-  .notes-input-row input{flex:1;padding:5px 8px;font-size:11px;}
   .btn-note-add{padding:5px 11px;background:var(--acc);color:#000;border:none;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
   .btn-note-add:hover{opacity:.85;}
   .notes-list{max-height:240px;overflow-y:auto;padding:0;}
@@ -281,7 +303,6 @@
   .note-del{background:none;border:none;cursor:pointer;color:var(--dim);font-size:12px;padding:0 1px;transition:color .15s;flex-shrink:0;margin-top:1px;}
   .note-del:hover{color:var(--short);}
   .notes-empty{padding:22px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;}
-  .note-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
   .note-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;letter-spacing:.5px;cursor:pointer;}
   .note-tag.todo{background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
   .note-tag.waiting{background:rgba(167,139,250,.12);color:var(--basis);border:1px solid rgba(167,139,250,.25);}
@@ -291,11 +312,7 @@
   .nf-btn{padding:2px 5px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--dim);transition:all .15s;letter-spacing:.3px;white-space:nowrap;}
   .nf-btn.active{background:rgba(245,158,11,.15);color:var(--acc);border-color:rgba(245,158,11,.4);}
   .nf-btn:hover{color:var(--bright);}
-  .notes-stats{display:flex;gap:10px;padding:5px 13px;border-bottom:1px solid var(--border);background:var(--surface3);}
-  .nstat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
-  .nstat span{color:var(--text);font-weight:700;}
 
-  /* MODALS */
   .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
   .overlay.open{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:22px;width:360px;display:flex;flex-direction:column;gap:12px;}
@@ -317,33 +334,14 @@
   .import-status.ok{color:var(--long);border-color:var(--long-dim);background:var(--long-bg);}
   .import-status.err{color:var(--short);border-color:var(--short-dim);background:var(--short-bg);}
 
-  /* FOOTER */
   .footer{padding:7px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:.5px;}
 
-  /* ── NEWS FEED ── */
-  .news-filter-row{display:flex;gap:5px;padding:6px 13px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;}
-  .news-list{max-height:320px;overflow-y:auto;}
-  .news-list::-webkit-scrollbar{width:3px;}
-  .news-list::-webkit-scrollbar-track{background:var(--bg);}
-  .news-list::-webkit-scrollbar-thumb{background:var(--border2);}
-  .news-item{padding:8px 13px;border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;}
-  .news-item:last-child{border-bottom:none;}
-  .news-item:hover{background:var(--surface2);}
-  .news-title{font-size:12px;color:var(--bright);line-height:1.4;margin-bottom:3px;font-weight:500;}
-  .news-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  .news-source{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
-  .news-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
-  .news-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;padding:1px 4px;border-radius:2px;letter-spacing:.5px;}
-  .news-tag.RO{background:rgba(96,165,250,.12);color:var(--old);border:1px solid rgba(96,165,250,.25);}
-  .news-tag.INT{background:rgba(52,211,153,.1);color:var(--new);border:1px solid rgba(52,211,153,.2);}
-  .news-tag.HOT{background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
-  .news-empty{padding:22px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;}
-  .news-loading{padding:16px 13px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;animation:blink 1.5s infinite;}
-
   @media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
+  @media(max-width:900px){
+    .hdr{flex-direction:column;gap:10px;align-items:flex-start;}
+    .meteo-days{grid-template-columns:repeat(4,1fr);}
+  }
 
-  /* TARGET TABLE */
-  .tgt-table{width:100%;border-collapse:collapse;}
   .tgt-th{padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border:1px solid var(--border);background:var(--surface2);text-align:center;white-space:nowrap;}
   .tgt-th.total{background:var(--surface3);color:var(--bright);}
   .tgt-label{padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--bright);border:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
@@ -361,21 +359,19 @@
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">AGR<span>O</span>TEX</div>
     <div class="login-sub">Position Tracker</div>
     <div class="fg">
       <label class="fl" style="color:var(--dim)">Parolă de acces</label>
-      <input type="password" id="loginPwd" placeholder="" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="loginPwd" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-err" id="loginErr">Parolă incorectă</div>
     <button class="login-btn" onclick="doLogin()">Intră</button>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
 <header class="hdr">
   <div style="display:flex;align-items:center;gap:13px;">
@@ -403,7 +399,7 @@
       <div class="fx-updated" id="fxUpdated">BNR</div>
     </div>
     <div class="sep"></div>
-    <!-- MATIF WIDGET -->
+
     <div class="matif-widget" id="matifWidget">
       <div class="matif-pair" id="matifWheat">
         <div class="matif-label">🌾 EBM</div>
@@ -447,11 +443,13 @@
       <div class="matif-updated" id="matifUpdated" title="Date Euronext cu delay ~15 min">—</div>
       <div style="cursor:pointer;font-size:11px;color:var(--dim);padding:0 2px;transition:color .2s;" title="Refresh MATIF" onclick="loadMatif(0)" id="matifRefreshBtn">↻</div>
     </div>
+
     <div class="sep"></div>
-    <!-- TAB STIRI în header -->
-    <div id="tabNews" onclick="setNewsTab()" style="cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--dim);padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);transition:all .15s;white-space:nowrap;" onmouseover="this.style.color='var(--acc)';this.style.borderColor='var(--acc)'" onmouseout="this.style.color='var(--dim)';this.style.borderColor='var(--border2)'">
+
+    <div id="tabNews" onclick="setNewsTab()" style="cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--dim);padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);transition:all .15s;white-space:nowrap;" onmouseover="if(!newsTabActive){this.style.color='var(--acc)';this.style.borderColor='var(--acc)'}" onmouseout="if(!newsTabActive){this.style.color='var(--dim)';this.style.borderColor='var(--border2)'}">
       📰 Știri <span class="tbadge" id="bNews" style="background:var(--basis);color:#000;display:none;margin-left:2px;">0</span>
     </div>
+
     <div class="sep"></div>
     <div class="sync" id="syncStatus">●</div>
     <div class="sep"></div>
@@ -465,21 +463,21 @@
 
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
-  <div class="tab"     id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026  <span class="tbadge" id="b26">0</span></div>
-  <div class="tab"     id="tabTarget" onclick="setTargetTab()" style="margin-left:auto;border-radius:4px 4px 0 0;">🎯 Target</div>
+  <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
+  <div class="tab" id="tabTarget" onclick="setTargetTab()" style="margin-left:auto;">🎯 Target</div>
+  <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
 </div>
 
-<!-- NEWS SECTION -->
 <div id="newsSection">
   <div class="news-toolbar">
     <button class="news-back-btn" onclick="setCropFromNews()">← Înapoi</button>
     <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
-    <button class="news-filter-btn active" id="nfAll2"    onclick="setNewsFilter('all')">Toate</button>
-    <button class="news-filter-btn"        id="nfRo"      onclick="setNewsFilter('ro')">🇷🇴 Română</button>
-    <button class="news-filter-btn"        id="nfEn"      onclick="setNewsFilter('en')">🌍 Internațional</button>
+    <button class="news-filter-btn active" id="nfAll2" onclick="setNewsFilter('all')">Toate</button>
+    <button class="news-filter-btn" id="nfRo" onclick="setNewsFilter('ro')">🇷🇴 Română</button>
+    <button class="news-filter-btn" id="nfEn" onclick="setNewsFilter('en')">🌍 Internațional</button>
     <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
-    <button class="news-filter-btn"        id="nfAgri"    onclick="setNewsFilter('agri')">🌾 Cereale</button>
-    <button class="news-filter-btn"        id="nfMacro"   onclick="setNewsFilter('macro')">📈 Macro</button>
+    <button class="news-filter-btn" id="nfAgri" onclick="setNewsFilter('agri')">🌾 Cereale</button>
+    <button class="news-filter-btn" id="nfMacro" onclick="setNewsFilter('macro')">📈 Macro</button>
     <span class="news-updated" id="newsUpdated"></span>
     <button class="news-refresh-btn" onclick="loadNews(true)">↻ Refresh</button>
   </div>
@@ -488,7 +486,6 @@
   </div>
 </div>
 
-<!-- TARGET SECTION -->
 <div id="targetSection" style="display:none;padding:14px 22px;flex-direction:column;gap:14px;">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <button class="news-back-btn" onclick="closeTargetTab()">← Înapoi</button>
@@ -506,11 +503,31 @@
   </div>
   <div style="overflow-x:auto;">
     <table id="targetTable" style="border-collapse:collapse;min-width:900px;width:100%;">
-      <thead>
-        <tr id="targetHeaderRow"></tr>
-      </thead>
+      <thead><tr id="targetHeaderRow"></tr></thead>
       <tbody id="targetBody"></tbody>
     </table>
+  </div>
+</div>
+
+<div id="meteoSection">
+  <div class="meteo-toolbar">
+    <button class="news-back-btn" onclick="closeMeteoTab()">← Înapoi</button>
+    <span class="meteo-badge" id="meteoUpdatedBadge">METEO</span>
+    <button class="meteo-refresh-btn" onclick="loadWeatherPresets(true)">↻ Refresh preseturi</button>
+
+    <div class="meteo-search-wrap" style="position:relative;">
+      <input class="meteo-search-input" id="meteoSearchInput" type="text" placeholder="Caută orice locație din lume..." oninput="onWeatherSearchInput()" onkeydown="if(event.key==='Enter')doWeatherSearch()">
+      <button class="meteo-refresh-btn" onclick="doWeatherSearch()">Caută</button>
+      <div class="meteo-search-results" id="meteoSearchResults"></div>
+    </div>
+  </div>
+
+  <div class="meteo-grid" id="meteoPresetGrid">
+    <div class="meteo-empty">// se încarcă preseturile meteo...</div>
+  </div>
+
+  <div class="meteo-detail" id="meteoDetail">
+    <div class="meteo-empty">// selectează o locație presetată sau caută una nouă</div>
   </div>
 </div>
 
@@ -518,36 +535,35 @@
   <div class="top-row">
     <div class="cards" id="cards"></div>
 
-    <!-- ── NOTES PANEL ── -->
     <div class="panel notes-panel">
-        <div class="ph">
-          <div class="pt">📋 Notițe &amp; To-Do</div>
-          <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
-        </div>
-        <div class="notes-input-row">
-          <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
-          <select id="noteTag" style="width:100px;padding:5px 5px;font-size:10px;height:28px;">
-            <option value="todo">TO-DO</option>
-            <option value="waiting">WAITING FOR</option>
-            <option value="bid">BID</option>
-            <option value="offer">OFERTĂ</option>
-          </select>
-          <button class="btn-note-add" onclick="addNote()">+</button>
-        </div>
-        <div class="note-filter-row">
-          <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
-          <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
-          <button class="nf-btn" id="nfWaiting" onclick="setNoteFilter('waiting')">WAITING</button>
-          <button class="nf-btn" id="nfBid" onclick="setNoteFilter('bid')">BID</button>
-          <button class="nf-btn" id="nfOffer" onclick="setNoteFilter('offer')">OFERTĂ</button>
-          <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')">Deschise</button>
-          <button class="nf-btn" id="nfLogbook" onclick="setNoteFilter('logbook')" style="margin-left:auto" title="Istoric notițe rezolvate">📒</button>
-        </div>
-        <div class="notes-list" id="notesList"></div>
+      <div class="ph">
+        <div class="pt">📋 Notițe &amp; To-Do</div>
+        <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
       </div>
+      <div class="notes-input-row">
+        <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
+        <select id="noteTag" style="width:100px;padding:5px 5px;font-size:10px;height:28px;">
+          <option value="todo">TO-DO</option>
+          <option value="waiting">WAITING FOR</option>
+          <option value="bid">BID</option>
+          <option value="offer">OFERTĂ</option>
+        </select>
+        <button class="btn-note-add" onclick="addNote()">+</button>
+      </div>
+      <div class="note-filter-row">
+        <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
+        <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
+        <button class="nf-btn" id="nfWaiting" onclick="setNoteFilter('waiting')">WAITING</button>
+        <button class="nf-btn" id="nfBid" onclick="setNoteFilter('bid')">BID</button>
+        <button class="nf-btn" id="nfOffer" onclick="setNoteFilter('offer')">OFERTĂ</button>
+        <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')">Deschise</button>
+        <button class="nf-btn" id="nfLogbook" onclick="setNoteFilter('logbook')" style="margin-left:auto" title="Istoric notițe rezolvate">📒</button>
+      </div>
+      <div class="notes-list" id="notesList"></div>
+    </div>
   </div>
+
   <div class="two-col">
-    <!-- LEFT: Registru -->
     <div class="panel">
       <div class="ph">
         <div class="pt">Registru Tranzacții</div>
@@ -573,6 +589,7 @@
           </div>
           <div class="fg"><label class="fl">Cantitate (t)</label><input id="fQty" type="number" min="1"></div>
         </div>
+
         <div class="fr fr3">
           <div class="fg"><label class="fl">Tip Preț</label>
             <select id="fPtype" onchange="onFormChange()">
@@ -587,6 +604,7 @@
           </div>
           <div class="fg"><label class="fl">Locație / Bază</label><input id="fLoc" type="text"></div>
         </div>
+
         <div id="rowFixRon">
           <div class="fr fr3">
             <div class="fg"><label class="fl">Preț (RON/t)</label><input id="fPriceRon" type="number" step="0.01"></div>
@@ -594,6 +612,7 @@
             <div class="fg"><label class="fl">Data</label><input id="fDate" type="date"></div>
           </div>
         </div>
+
         <div id="rowFixEur" style="display:none">
           <div class="fr fr4">
             <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="fPriceEur" type="number" step="0.01"></div>
@@ -602,6 +621,7 @@
             <div class="fg"><label class="fl">Data</label><input id="fDateEur" type="date"></div>
           </div>
         </div>
+
         <div id="rowBasis" style="display:none">
           <div class="fr fr4">
             <div class="fg"><label class="fl">Contract MATIF</label><input id="fMatif" type="text"></div>
@@ -610,6 +630,7 @@
             <div class="fg"><label class="fl">Data</label><input id="fDateB" type="date"></div>
           </div>
         </div>
+
         <div id="rowCurrencyToggle" style="display:none;margin-bottom:7px;">
           <div class="fg">
             <label class="fl">Monedă Preț Vânzare</label>
@@ -619,13 +640,16 @@
             </div>
           </div>
         </div>
+
         <div class="fr fr2">
           <div class="fg"><label class="fl">Contraparte</label><input id="fCpty" type="text"></div>
           <div class="fg"><label class="fl">Notă</label><input id="fNote" type="text"></div>
           <div class="fg" id="grpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="fBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
         </div>
+
         <button class="btn-add" id="btnAdd" onclick="addTrade()">+ Adaugă Tranzacție</button>
       </div>
+
       <div class="tscroll">
         <table>
           <thead>
@@ -637,9 +661,7 @@
             <tr class="filter-row" id="filterBar">
               <td colspan="12">
                 <div class="filter-bar-inner">
-                  <select id="ffProd" onchange="applyFilter()">
-                    <option value="">Toate produsele</option>
-                  </select>
+                  <select id="ffProd" onchange="applyFilter()"><option value="">Toate</option></select>
                   <div class="filter-sep"></div>
                   <select id="ffDir" onchange="applyFilter()">
                     <option value="">▲▼ Dir.</option>
@@ -668,7 +690,6 @@
       </div>
     </div>
 
-    <!-- RIGHT -->
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="panel">
         <div class="ph"><div class="pt">Poziție Netă — Ambele Recolte</div></div>
@@ -682,17 +703,12 @@
   <div>Agrotex SRL · Physical Grain &amp; Oilseed Trading</div>
   <div id="ftotal"></div>
 </footer>
-</div><!-- /app -->
+</div>
 
-<!-- CFO ALERT MODAL -->
 <div class="overlay" id="modCfo" style="display:none;">
   <div class="modal" style="width:520px;max-width:98vw;">
-    <div class="mtitle" style="color:#f59e0b;display:flex;align-items:center;gap:8px;">
-      ⚠️ Tranzacție peste 1.000.000 RON — Notifică CFO
-    </div>
-    <div style="font-size:11px;color:var(--dim);margin-bottom:14px;">
-      Această tranzacție depășește pragul de 1 milion RON și necesită notificarea CFO-ului.
-    </div>
+    <div class="mtitle" style="color:#f59e0b;display:flex;align-items:center;gap:8px;">⚠️ Tranzacție peste 1.000.000 RON — Notifică CFO</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:14px;">Această tranzacție depășește pragul de 1 milion RON și necesită notificarea CFO-ului.</div>
     <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:12px;margin-bottom:14px;">
       <div style="font-size:10px;color:var(--dim);margin-bottom:8px;font-family:'IBM Plex Mono',monospace;">DETALII TRANZACȚIE</div>
       <div id="cfoDetails" style="font-size:12px;line-height:1.8;color:var(--fg);"></div>
@@ -706,7 +722,6 @@
   </div>
 </div>
 
-<!-- ADD PRODUCT MODAL -->
 <div class="overlay" id="modProd">
   <div class="modal">
     <div class="mtitle">Produs Nou</div>
@@ -715,9 +730,7 @@
       <div class="fg"><label class="fl">Simbol</label><input id="mSym" type="text" maxlength="5"></div>
       <div class="fg"><label class="fl">Emoji</label><input id="mEmoji" type="text" maxlength="2" style="width:60px"></div>
     </div>
-    <div class="fg"><label class="fl" style="margin-bottom:5px">Culoare</label>
-      <div class="swatches" id="swatches"></div>
-    </div>
+    <div class="fg"><label class="fl" style="margin-bottom:5px">Culoare</label><div class="swatches" id="swatches"></div></div>
     <div class="mbtns">
       <button class="btn-cancel" onclick="closeModal('modProd')">Anulează</button>
       <button class="btn-save" onclick="saveProd()">Salvează</button>
@@ -725,15 +738,13 @@
   </div>
 </div>
 
-<!-- EDIT TRADE MODAL -->
 <div class="overlay" id="modEdit">
   <div class="modal" style="width:540px;max-width:98vw;">
     <div class="mtitle">Editează Tranzacție <span id="editId" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
+
     <div class="fr fr3">
       <div class="fg"><label class="fl">Produs</label><select id="eProd" onchange="onEditChange()"></select></div>
-      <div class="fg"><label class="fl">Recoltă</label>
-        <select id="eCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
-      </div>
+      <div class="fg"><label class="fl">Recoltă</label><select id="eCrop"><option value="2025">2025</option><option value="2026">2026</option></select></div>
       <div class="fg"><label class="fl">Direcție</label>
         <select id="eDir" onchange="onEditChange()">
           <option value="long">▲ CUMPĂRARE</option>
@@ -741,6 +752,7 @@
         </select>
       </div>
     </div>
+
     <div class="fr fr2">
       <div class="fg"><label class="fl">Cantitate (t)</label><input id="eQty" type="number" min="1"></div>
       <div class="fg"><label class="fl">Tip Preț</label>
@@ -750,6 +762,7 @@
         </select>
       </div>
     </div>
+
     <div id="eRowCurrencyToggle" style="display:none;">
       <div class="fg" style="margin-bottom:7px;">
         <label class="fl">Monedă Preț</label>
@@ -759,10 +772,12 @@
         </div>
       </div>
     </div>
+
     <div class="fr fr2">
       <div class="fg"><label class="fl">Paritate</label><select id="eParity" onchange="onEditChange()"></select></div>
       <div class="fg"><label class="fl">Locație / Bază</label><input id="eLoc" type="text"></div>
     </div>
+
     <div id="eRowFixRon">
       <div class="fr fr3">
         <div class="fg"><label class="fl">Preț (RON/t)</label><input id="ePrice" type="number" step="0.01"></div>
@@ -770,6 +785,7 @@
         <div class="fg"><label class="fl">Data</label><input id="eDate" type="date"></div>
       </div>
     </div>
+
     <div id="eRowFixEur" style="display:none">
       <div class="fr fr4">
         <div class="fg"><label class="fl">Preț (EUR/t)</label><input id="ePriceEur" type="number" step="0.01"></div>
@@ -778,6 +794,7 @@
         <div class="fg"><label class="fl">Data</label><input id="eDateEur" type="date"></div>
       </div>
     </div>
+
     <div id="eRowBasis" style="display:none">
       <div class="fr fr4">
         <div class="fg"><label class="fl">Contract MATIF</label><input id="eMatif" type="text"></div>
@@ -786,11 +803,13 @@
         <div class="fg"><label class="fl">Data</label><input id="eDateB" type="date"></div>
       </div>
     </div>
+
     <div class="fr fr2">
       <div class="fg"><label class="fl">Contraparte</label><input id="eCpty" type="text"></div>
       <div class="fg"><label class="fl">Notă</label><input id="eNote" type="text"></div>
       <div class="fg" id="eGrpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="eBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
     </div>
+
     <div class="mbtns">
       <button class="btn-cancel" onclick="closeModal('modEdit')">Anulează</button>
       <button class="btn-save" onclick="saveEdit()">Salvează</button>
@@ -798,7 +817,6 @@
   </div>
 </div>
 
-<!-- IMPORT MODAL -->
 <div class="overlay" id="modImport">
   <div class="modal import-modal">
     <div class="mtitle">Import Excel / CSV</div>
@@ -826,48 +844,102 @@
 </div>
 
 <script>
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const SWATCHES=['#f59e0b','#e2a857','#f0c040','#22c55e','#8bc34a','#34d399','#3b82f6','#60a5fa','#a78bfa','#e879f9','#ef4444','#f97316','#06b6d4','#ec4899','#94a3b8'];
 const PARITY_RULES={
-  long: [
-    {val:'DAP', label:'DAP', transport:false},
-    {val:'FCA', label:'FCA', transport:true},
-  ],
-  short:[
-    {val:'FOR',   label:'FOR',  transport:false},
-    {val:'FCA-V', label:'FCA',  transport:false},
-    {val:'DAP-V', label:'DAP',  transport:true},
-  ],
+  long:[{val:'DAP',label:'DAP',transport:false},{val:'FCA',label:'FCA',transport:true}],
+  short:[{val:'FOR',label:'FOR',transport:false},{val:'FCA-V',label:'FCA',transport:false},{val:'DAP-V',label:'DAP',transport:true}],
 };
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
 let products = {};
-let trades   = [];
-let crop     = '2025';
+let trades = [];
+let crop = '2025';
 let selColor = SWATCHES[0];
 let importBuffer = [];
-let bonifPct = {};
-let fxRates  = { eurRon: null, eurUsd: null, usdRon: null };
+let fxRates = { eurRon:null, eurUsd:null, usdRon:null };
 let formCurrency = 'ron';
 let editCurrency = 'ron';
+let fxSource = 'BNR';
 
-// Filter state
 let activeFilter = { prod:'', dir:'', ptype:'', cpty:'', dateFrom:'', dateTo:'' };
 
-// Notes state
 let notes = [];
-let noteFilter = 'all'; // all | todo | info | alert | open
+let noteFilter = 'all';
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
+let newsData = [];
+let newsFilter = 'all';
+let newsTabActive = false;
+
+let targetData = {};
+let targetTabActive = false;
+
+let meteoTabActive = false;
+let weatherPresets = [];
+let weatherSelected = null;
+let weatherSearchTimer = null;
+let weatherSearchOpen = false;
+
+const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+const TARGET_ROWS = [
+  { key: 'plan',     label: 'Plan (tone)',      cls: '',                     editable: true,  fmt: 'num' },
+  { key: 'realizat', label: 'Realizat (tone)',  cls: 'tgt-section-realizat', editable: true,  fmt: 'num' },
+  { key: 'adaos',    label: 'Adaos (RON)',      cls: 'tgt-section-adaos',    editable: true,  fmt: 'ron' },
+  { key: 'marja',    label: 'Marjă / tonă',     cls: 'tgt-section-marja',    editable: true,  fmt: 'ron' },
+  { key: 'diff',     label: 'Diferență (tone)', cls: 'tgt-section-diff',     editable: false, fmt: 'diff' },
+];
+
+const AGRI_KEYWORDS = ['grâu','porumb','rapiță','rapita','cereale','oleaginoase','recoltă','recolta','fermi','agricol','apia','madr','export','import','grain','wheat','corn','rapeseed','barley','orz','soia','matif','cbot','harvest','crop','usda','wasde','agri'];
+const MACRO_KEYWORDS = ['bursă','bursa','financiar','macroeconomic','bnr','curs','inflatie','inflație','dobândă','dobanda','energie','petrol','gaze','piață','piata','market','futures','price','euro','dollar','fed','ecb','tariff','taxa','economic'];
+
+function escHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function today(){return new Date().toISOString().split('T')[0];}
+function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtNet(n){return (n>0?'+':'') + fmtN(n);}
+function fmtP(n){return n>0?fmtN(n):'—';}
+function fmtDec(n,d=1){const x=Number(n);return Number.isFinite(x)?x.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';}
+function closeModal(id){
+  const el=document.getElementById(id);
+  el.classList.remove('open');
+  if(id==='modCfo') el.style.display='none';
+  if(id==='modImport'){
+    document.getElementById('btnConfirmImport').disabled=false;
+    document.getElementById('btnConfirmImport').textContent='Importă';
+  }
+}
+function setSyncStatus(state, text){
+  const el=document.getElementById('syncStatus');
+  el.className='sync '+state;
+  el.textContent=text;
+}
+function closeAllSideTabs(){
+  if(newsTabActive){
+    newsTabActive=false;
+    const tn=document.getElementById('tabNews');
+    tn.style.color='var(--dim)';
+    tn.style.borderColor='var(--border2)';
+    document.getElementById('newsSection').style.display='none';
+  }
+  if(targetTabActive){
+    targetTabActive=false;
+    document.getElementById('tabTarget').className='tab';
+    document.getElementById('targetSection').style.display='none';
+  }
+  if(meteoTabActive){
+    meteoTabActive=false;
+    document.getElementById('tabMeteo').className='tab';
+    document.getElementById('meteoSection').style.display='none';
+  }
+  document.querySelector('.main').style.display='flex';
+}
+
 async function doLogin(){
-  const pwd = document.getElementById('loginPwd').value;
-  const res = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+  const pwd=document.getElementById('loginPwd').value;
+  const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
   if(res.ok){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='block';
-    await loadAll();
-    loadFxRates();
-    setInterval(loadFxRates, 3*60*60*1000);
+    await bootApp();
   } else {
     document.getElementById('loginErr').style.display='block';
   }
@@ -878,118 +950,101 @@ async function doLogout(){
   location.reload();
 }
 
-// ── FX RATES ──────────────────────────────────────────────────────────────────
-let fxSource = 'BNR'; // track where rate came from
-
 async function loadFxRates(){
-  // Attempt 1: BNR XML via allorigins proxy
-  try {
-    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  try{
+    const url='https://api.allorigins.win/raw?url='+encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
+    const res=await fetch(url,{signal:AbortSignal.timeout(10000)});
     if(!res.ok) throw new Error('allorigins failed');
-    const text = await res.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, 'text/xml');
-    // Get publication date from XML
-    const pubDate = xml.querySelector('Header PublDate')?.textContent || '';
-    const rates = xml.querySelectorAll('Rate');
-    let eurRon = null, usdRon = null;
-    rates.forEach(r => {
-      const cur = r.getAttribute('currency');
-      const multiplier = parseFloat(r.getAttribute('multiplier') || '1');
-      const val = parseFloat(r.textContent) / multiplier;
-      if(cur === 'EUR') eurRon = val;
-      if(cur === 'USD') usdRon = val;
+    const text=await res.text();
+    const parser=new DOMParser();
+    const xml=parser.parseFromString(text,'text/xml');
+    const pubDate=xml.querySelector('Header PublDate')?.textContent || '';
+    const rates=xml.querySelectorAll('Rate');
+    let eurRon=null, usdRon=null;
+    rates.forEach(r=>{
+      const cur=r.getAttribute('currency');
+      const multiplier=parseFloat(r.getAttribute('multiplier')||'1');
+      const val=parseFloat(r.textContent)/multiplier;
+      if(cur==='EUR') eurRon=val;
+      if(cur==='USD') usdRon=val;
     });
-    if(eurRon && usdRon) {
-      fxRates.eurRon = eurRon;
-      fxRates.usdRon = usdRon;
-      fxRates.eurUsd = eurRon / usdRon;
-      fxSource = 'BNR' + (pubDate ? ' ' + pubDate : '');
+    if(eurRon && usdRon){
+      fxRates.eurRon=eurRon;
+      fxRates.usdRon=usdRon;
+      fxRates.eurUsd=eurRon/usdRon;
+      fxSource='BNR'+(pubDate?' '+pubDate:'');
       updateFxWidget();
-      const cursField = document.getElementById('fCursEur');
-      if(cursField && !cursField.value) cursField.value = eurRon.toFixed(4);
+      const cursField=document.getElementById('fCursEur');
+      if(cursField && !cursField.value) cursField.value=eurRon.toFixed(4);
       return;
     }
     throw new Error('no EUR/USD in XML');
-  } catch(e) { /* fall through */ }
+  }catch(e){}
 
-  // Attempt 2: corsproxy.io → BNR XML
-  try {
-    const url2 = 'https://corsproxy.io/?' + encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
-    const res2 = await fetch(url2, { signal: AbortSignal.timeout(8000) });
+  try{
+    const url2='https://corsproxy.io/?'+encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
+    const res2=await fetch(url2,{signal:AbortSignal.timeout(8000)});
     if(!res2.ok) throw new Error('corsproxy failed');
-    const text2 = await res2.text();
-    const parser = new DOMParser();
-    const xml2 = parser.parseFromString(text2, 'text/xml');
-    const pubDate = xml2.querySelector('Header PublDate')?.textContent || '';
-    const rates2 = xml2.querySelectorAll('Rate');
-    let eurRon = null, usdRon = null;
-    rates2.forEach(r => {
-      const cur = r.getAttribute('currency');
-      const multiplier = parseFloat(r.getAttribute('multiplier') || '1');
-      const val = parseFloat(r.textContent) / multiplier;
-      if(cur === 'EUR') eurRon = val;
-      if(cur === 'USD') usdRon = val;
+    const text2=await res2.text();
+    const parser=new DOMParser();
+    const xml2=parser.parseFromString(text2,'text/xml');
+    const pubDate=xml2.querySelector('Header PublDate')?.textContent || '';
+    const rates2=xml2.querySelectorAll('Rate');
+    let eurRon=null, usdRon=null;
+    rates2.forEach(r=>{
+      const cur=r.getAttribute('currency');
+      const multiplier=parseFloat(r.getAttribute('multiplier')||'1');
+      const val=parseFloat(r.textContent)/multiplier;
+      if(cur==='EUR') eurRon=val;
+      if(cur==='USD') usdRon=val;
     });
-    if(eurRon && usdRon) {
-      fxRates.eurRon = eurRon;
-      fxRates.usdRon = usdRon;
-      fxRates.eurUsd = eurRon / usdRon;
-      fxSource = 'BNR' + (pubDate ? ' ' + pubDate : '');
+    if(eurRon && usdRon){
+      fxRates.eurRon=eurRon;
+      fxRates.usdRon=usdRon;
+      fxRates.eurUsd=eurRon/usdRon;
+      fxSource='BNR'+(pubDate?' '+pubDate:'');
       updateFxWidget();
-      const cursField = document.getElementById('fCursEur');
-      if(cursField && !cursField.value) cursField.value = eurRon.toFixed(4);
+      const cursField=document.getElementById('fCursEur');
+      if(cursField && !cursField.value) cursField.value=eurRon.toFixed(4);
       return;
     }
     throw new Error('no rates in XML');
-  } catch(e2) { /* fall through */ }
+  }catch(e){}
 
-  // Attempt 3: open.er-api (market rate — NOT BNR official)
-  try {
-    const res3 = await fetch('https://open.er-api.com/v6/latest/EUR', { signal: AbortSignal.timeout(8000) });
-    const data = await res3.json();
-    if(data && data.rates) {
-      fxRates.eurRon = data.rates.RON;
-      fxRates.usdRon = data.rates.RON / data.rates.USD;
-      fxRates.eurUsd = data.rates.USD;
-      fxSource = 'piață (non-BNR)';
+  try{
+    const res3=await fetch('https://open.er-api.com/v6/latest/EUR',{signal:AbortSignal.timeout(8000)});
+    const data=await res3.json();
+    if(data && data.rates){
+      fxRates.eurRon=data.rates.RON;
+      fxRates.usdRon=data.rates.RON/data.rates.USD;
+      fxRates.eurUsd=data.rates.USD;
+      fxSource='piață (non-BNR)';
       updateFxWidget();
-      const cursField = document.getElementById('fCursEur');
-      if(cursField && !cursField.value) cursField.value = fxRates.eurRon.toFixed(4);
+      const cursField=document.getElementById('fCursEur');
+      if(cursField && !cursField.value) cursField.value=fxRates.eurRon.toFixed(4);
       return;
     }
-  } catch(e3) { /* all failed */ }
+  }catch(e){}
 
-  document.getElementById('fxUpdated').textContent = 'eroare';
+  document.getElementById('fxUpdated').textContent='eroare';
 }
 
 function updateFxWidget(){
   if(!fxRates.eurRon) return;
-  document.getElementById('fxEurRon').textContent = fxRates.eurRon.toFixed(4);
-  document.getElementById('fxEurRon').className = 'fx-rate';
-  document.getElementById('fxEurUsd').textContent = fxRates.eurUsd.toFixed(4);
-  document.getElementById('fxEurUsd').className = 'fx-rate';
-  document.getElementById('fxUsdRon').textContent = fxRates.usdRon.toFixed(4);
-  document.getElementById('fxUsdRon').className = 'fx-rate';
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
-  const isNonBNR = fxSource.includes('piață');
-  const updEl = document.getElementById('fxUpdated');
-  updEl.innerHTML = `<span title="Sursa: ${fxSource}" style="cursor:help;color:${isNonBNR?'var(--short)':'var(--dim)'}">` +
-    `${isNonBNR ? '⚠ ' : ''}${fxSource}</span>`;
-}
-
-// ── API HELPERS ───────────────────────────────────────────────────────────────
-function setSyncStatus(state, text){
-  const el = document.getElementById('syncStatus');
-  el.className = 'sync ' + state;
-  el.textContent = text;
+  document.getElementById('fxEurRon').textContent=fxRates.eurRon.toFixed(4);
+  document.getElementById('fxEurRon').className='fx-rate';
+  document.getElementById('fxEurUsd').textContent=fxRates.eurUsd.toFixed(4);
+  document.getElementById('fxEurUsd').className='fx-rate';
+  document.getElementById('fxUsdRon').textContent=fxRates.usdRon.toFixed(4);
+  document.getElementById('fxUsdRon').className='fx-rate';
+  const isNonBNR=fxSource.includes('piață');
+  const updEl=document.getElementById('fxUpdated');
+  updEl.innerHTML=`<span title="Sursa: ${fxSource}" style="cursor:help;color:${isNonBNR?'var(--short)':'var(--dim)'}">${isNonBNR?'⚠ ':''}${fxSource}</span>`;
 }
 
 async function loadAll(){
   setSyncStatus('saving','● syncing...');
-  const [tRes, pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
+  const [tRes,pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
   const tData = await tRes.json();
   trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
@@ -1003,135 +1058,99 @@ async function loadAll(){
 
 async function apiAddTrade(t){
   setSyncStatus('saving','● saving...');
-  const res = await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
-  const data = await res.json();
+  const res=await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
+  const data=await res.json();
   setSyncStatus('saved','● saved');
   return data.id;
 }
-
 async function apiDeleteTrade(id){
   setSyncStatus('saving','● saving...');
   await fetch(`/api/trades/${id}`,{method:'DELETE'});
   setSyncStatus('saved','● saved');
 }
-
 async function apiSaveProducts(){
   await fetch('/api/products',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(products)});
 }
-
 async function apiBulkImport(tradeList){
   setSyncStatus('saving','● importing...');
   await fetch('/api/trades/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trades:tradeList})});
   setSyncStatus('saved','● saved');
 }
 
-// ── NOTES (localStorage) ──────────────────────────────────────────────────────
 function loadNotes(){
-  try {
-    const stored = localStorage.getItem('agrotex_notes');
-    notes = stored ? JSON.parse(stored) : [];
-  } catch(e) {
-    notes = [];
-  }
+  try{
+    const stored=localStorage.getItem('agrotex_notes');
+    notes=stored?JSON.parse(stored):[];
+  }catch(e){notes=[];}
   renderNotes();
 }
-
 function saveNotes(){
-  try {
-    localStorage.setItem('agrotex_notes', JSON.stringify(notes));
-  } catch(e) {}
+  try{ localStorage.setItem('agrotex_notes', JSON.stringify(notes)); }catch(e){}
 }
-
 function addNote(){
-  const input = document.getElementById('noteInput');
-  const tag   = document.getElementById('noteTag').value;
-  const text  = input.value.trim();
+  const input=document.getElementById('noteInput');
+  const tag=document.getElementById('noteTag').value;
+  const text=input.value.trim();
   if(!text) return;
-  notes.unshift({
-    id: Date.now(),
-    text,
-    tag,
-    done: false,
-    date: today()
-  });
-  input.value = '';
+  notes.unshift({id:Date.now(),text,tag,done:false,date:today()});
+  input.value='';
   saveNotes();
   renderNotes();
 }
-
 function toggleNote(id){
-  const n = notes.find(x=>x.id===id);
-  if(n) {
-    n.done = !n.done;
-    if(n.done) n.doneAt = today();
-    else delete n.doneAt;
+  const n=notes.find(x=>x.id===id);
+  if(n){
+    n.done=!n.done;
+    if(n.done) n.doneAt=today(); else delete n.doneAt;
     saveNotes();
     renderNotes();
   }
 }
-
 function deleteNote(id){
-  notes = notes.filter(x=>x.id!==id);
+  notes=notes.filter(x=>x.id!==id);
   saveNotes();
   renderNotes();
 }
-
 function setNoteFilter(f){
-  noteFilter = f;
-  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen','nfLogbook'].forEach(id=>{
-    document.getElementById(id)?.classList.remove('active');
-  });
-  const map = {all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen',logbook:'nfLogbook'};
+  noteFilter=f;
+  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen','nfLogbook'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  const map={all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen',logbook:'nfLogbook'};
   if(map[f]) document.getElementById(map[f]).classList.add('active');
   renderNotes();
 }
-
 function renderNotes(){
-  const total = notes.length;
-  const done  = notes.filter(n=>n.done).length;
-  const open  = total - done;
+  const total=notes.length;
+  const done=notes.filter(n=>n.done).length;
+  const open=total-done;
 
   document.getElementById('notesPanelStats').innerHTML =
-    `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim)">` +
-    `<span style="color:var(--acc)">${open}</span> deschise · ` +
-    `<span style="color:var(--long)">${done}</span> rezolvate</span>`;
+    `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim)"><span style="color:var(--acc)">${open}</span> deschise · <span style="color:var(--long)">${done}</span> rezolvate</span>`;
 
-  const tagColors = {
-    todo:    'var(--acc)',
-    waiting: 'var(--basis)',
-    bid:     'var(--long)',
-    offer:   'var(--short)'
-  };
-  const tagLabels = { todo:'TO-DO', waiting:'WAITING FOR', bid:'BID', offer:'OFERTĂ' };
+  const tagColors={todo:'var(--acc)',waiting:'var(--basis)',bid:'var(--long)',offer:'var(--short)'};
+  const tagLabels={todo:'TO-DO',waiting:'WAITING FOR',bid:'BID',offer:'OFERTĂ'};
 
-  // ── LOGBOOK VIEW ──────────────────────────────────────────────────────────
-  if(noteFilter === 'logbook') {
-    const done_notes = notes.filter(n => n.done);
-    if(!done_notes.length) {
-      document.getElementById('notesList').innerHTML =
-        `<div class="notes-empty">// nicio notiță rezolvată încă</div>`;
+  if(noteFilter==='logbook'){
+    const doneNotes=notes.filter(n=>n.done);
+    if(!doneNotes.length){
+      document.getElementById('notesList').innerHTML=`<div class="notes-empty">// nicio notiță rezolvată încă</div>`;
       return;
     }
-    // Grupează pe luni
-    const MONTHS_RO = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
-    const groups = {};
-    done_notes.forEach(n => {
-      const d = new Date(n.doneAt || n.date || '2025-01-01');
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const label = `${MONTHS_RO[d.getMonth()]} ${d.getFullYear()}`;
-      if(!groups[key]) groups[key] = { label, items: [] };
+    const MONTHS_RO=['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+    const groups={};
+    doneNotes.forEach(n=>{
+      const d=new Date(n.doneAt||n.date||'2025-01-01');
+      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const label=`${MONTHS_RO[d.getMonth()]} ${d.getFullYear()}`;
+      if(!groups[key]) groups[key]={label,items:[]};
       groups[key].items.push(n);
     });
-    // Sortează lunile descrescător
-    const sortedKeys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
-    document.getElementById('notesList').innerHTML = sortedKeys.map(key => {
-      const g = groups[key];
-      const items = g.items.sort((a,b) => (b.doneAt||b.date||'').localeCompare(a.doneAt||a.date||''));
+    const sortedKeys=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+    document.getElementById('notesList').innerHTML=sortedKeys.map(key=>{
+      const g=groups[key];
+      const items=g.items.sort((a,b)=>(b.doneAt||b.date||'').localeCompare(a.doneAt||a.date||''));
       return `
-        <div style="padding:6px 13px 4px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--border);position:sticky;top:0;">
-          ${g.label} <span style="color:var(--border2);font-weight:400">· ${items.length}</span>
-        </div>
-        ${items.map(n => `
+        <div style="padding:6px 13px 4px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--border);position:sticky;top:0;">${g.label} <span style="color:var(--border2);font-weight:400">· ${items.length}</span></div>
+        ${items.map(n=>`
           <div class="note-item done" style="opacity:.75;">
             <div class="note-check checked" onclick="toggleNote(${n.id})" title="Marchează ca deschis"></div>
             <div style="flex:1;min-width:0;">
@@ -1149,18 +1168,16 @@ function renderNotes(){
     return;
   }
 
-  // ── NORMAL VIEW ───────────────────────────────────────────────────────────
-  let filtered = notes;
-  if(noteFilter === 'open')  filtered = notes.filter(n=>!n.done);
-  else if(noteFilter !== 'all') filtered = notes.filter(n=>n.tag===noteFilter);
+  let filtered=notes;
+  if(noteFilter==='open') filtered=notes.filter(n=>!n.done);
+  else if(noteFilter!=='all') filtered=notes.filter(n=>n.tag===noteFilter);
 
-  if(filtered.length === 0){
-    document.getElementById('notesList').innerHTML =
-      `<div class="notes-empty">// nicio notiță${noteFilter!=='all'?' pentru filtrul selectat':''}</div>`;
+  if(filtered.length===0){
+    document.getElementById('notesList').innerHTML=`<div class="notes-empty">// nicio notiță${noteFilter!=='all'?' pentru filtrul selectat':''}</div>`;
     return;
   }
 
-  document.getElementById('notesList').innerHTML = filtered.map(n=>`
+  document.getElementById('notesList').innerHTML=filtered.map(n=>`
     <div class="note-item${n.done?' done':''}" id="note_${n.id}">
       <div class="note-check${n.done?' checked':''}" onclick="toggleNote(${n.id})" title="${n.done?'Marchează ca deschis':'Marchează ca rezolvat'}"></div>
       <div style="flex:1;min-width:0;">
@@ -1175,155 +1192,143 @@ function renderNotes(){
   `).join('');
 }
 
-function escHtml(str){
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── FILTER BAR ────────────────────────────────────────────────────────────────
 function populateFilterProd(){
-  const sel = document.getElementById('ffProd');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">Toate</option>' +
-    Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
-  if(cur) sel.value = cur;
+  const sel=document.getElementById('ffProd');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Toate</option>'+Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  if(cur) sel.value=cur;
 }
-
 function applyFilter(){
-  activeFilter = {
-    prod:     document.getElementById('ffProd').value,
-    dir:      document.getElementById('ffDir').value,
-    ptype:    document.getElementById('ffPtype').value,
-    cpty:     document.getElementById('ffCpty').value.trim().toLowerCase(),
-    dateFrom: document.getElementById('ffDateFrom').value,
-    dateTo:   document.getElementById('ffDateTo').value,
+  activeFilter={
+    prod:document.getElementById('ffProd').value,
+    dir:document.getElementById('ffDir').value,
+    ptype:document.getElementById('ffPtype').value,
+    cpty:document.getElementById('ffCpty').value.trim().toLowerCase(),
+    dateFrom:document.getElementById('ffDateFrom').value,
+    dateTo:document.getElementById('ffDateTo').value,
   };
-  const isActive = Object.values(activeFilter).some(v=>v!=='');
-  document.getElementById('btnResetFilter').style.display = isActive ? '' : 'none';
+  const isActive=Object.values(activeFilter).some(v=>v!=='');
+  document.getElementById('btnResetFilter').style.display=isActive?'':'none';
   renderTable();
 }
-
 function resetFilter(){
-  activeFilter = { prod:'', dir:'', ptype:'', cpty:'', dateFrom:'', dateTo:'' };
-  document.getElementById('ffProd').value = '';
-  document.getElementById('ffDir').value = '';
-  document.getElementById('ffPtype').value = '';
-  document.getElementById('ffCpty').value = '';
-  document.getElementById('ffDateFrom').value = '';
-  document.getElementById('ffDateTo').value = '';
-  document.getElementById('btnResetFilter').style.display = 'none';
-  document.getElementById('filterMatch').innerHTML = '';
+  activeFilter={prod:'',dir:'',ptype:'',cpty:'',dateFrom:'',dateTo:''};
+  document.getElementById('ffProd').value='';
+  document.getElementById('ffDir').value='';
+  document.getElementById('ffPtype').value='';
+  document.getElementById('ffCpty').value='';
+  document.getElementById('ffDateFrom').value='';
+  document.getElementById('ffDateTo').value='';
+  document.getElementById('btnResetFilter').style.display='none';
+  document.getElementById('filterMatch').innerHTML='';
   renderTable();
 }
-
 function getFilteredTrades(){
-  let ft = trades.filter(t=>t.crop===crop);
-  const f = activeFilter;
-  if(f.prod)     ft = ft.filter(t=>t.product===f.prod);
-  if(f.dir)      ft = ft.filter(t=>t.dir===f.dir);
-  if(f.ptype)    ft = ft.filter(t=>t.ptype===f.ptype);
-  if(f.cpty)     ft = ft.filter(t=>(t.cpty||'').toLowerCase().includes(f.cpty));
-  if(f.dateFrom) ft = ft.filter(t=>t.date && t.date >= f.dateFrom);
-  if(f.dateTo)   ft = ft.filter(t=>t.date && t.date <= f.dateTo);
+  let ft=trades.filter(t=>t.crop===crop);
+  const f=activeFilter;
+  if(f.prod) ft=ft.filter(t=>t.product===f.prod);
+  if(f.dir) ft=ft.filter(t=>t.dir===f.dir);
+  if(f.ptype) ft=ft.filter(t=>t.ptype===f.ptype);
+  if(f.cpty) ft=ft.filter(t=>(t.cpty||'').toLowerCase().includes(f.cpty));
+  if(f.dateFrom) ft=ft.filter(t=>t.date && t.date>=f.dateFrom);
+  if(f.dateTo) ft=ft.filter(t=>t.date && t.date<=f.dateTo);
   return ft;
 }
 
-// ── CURRENCY TOGGLE ───────────────────────────────────────────────────────────
-function setCurrency(cur) {
-  formCurrency = cur;
-  document.getElementById('curBtnRon').className = 'cur-btn' + (cur==='ron'?' active':'');
-  document.getElementById('curBtnEur').className = 'cur-btn' + (cur==='eur'?' active':'');
+function setCurrency(cur){
+  formCurrency=cur;
+  document.getElementById('curBtnRon').className='cur-btn'+(cur==='ron'?' active':'');
+  document.getElementById('curBtnEur').className='cur-btn'+(cur==='eur'?' active':'');
   onFormChange();
 }
-
-function setEditCurrency(cur) {
-  editCurrency = cur;
-  document.getElementById('eCurBtnRon').className = 'cur-btn' + (cur==='ron'?' active':'');
-  document.getElementById('eCurBtnEur').className = 'cur-btn' + (cur==='eur'?' active':'');
+function setEditCurrency(cur){
+  editCurrency=cur;
+  document.getElementById('eCurBtnRon').className='cur-btn'+(cur==='ron'?' active':'');
+  document.getElementById('eCurBtnEur').className='cur-btn'+(cur==='eur'?' active':'');
   onEditChange();
 }
 
-// ── FORM ──────────────────────────────────────────────────────────────────────
 function onFormChange(){
-  const dir   = document.getElementById('fDir').value;
-  const ptype = document.getElementById('fPtype').value;
-  const pSel  = document.getElementById('fParity');
-  const rules = PARITY_RULES[dir];
-  const curVal = pSel.value;
-  pSel.innerHTML = rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
-  const match = rules.find(r=>r.val===curVal);
+  const dir=document.getElementById('fDir').value;
+  const ptype=document.getElementById('fPtype').value;
+  const pSel=document.getElementById('fParity');
+  const rules=PARITY_RULES[dir];
+  const curVal=pSel.value;
+  pSel.innerHTML=rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
+  const match=rules.find(r=>r.val===curVal);
   if(match) pSel.value=curVal;
-  const chosen = rules.find(r=>r.val===pSel.value)||rules[0];
-  const needT  = chosen.transport;
-  document.getElementById('parityInfo').textContent = needT ? '⚠ cost transport obligatoriu' : '';
+  const chosen=rules.find(r=>r.val===pSel.value)||rules[0];
+  const needT=chosen.transport;
+  document.getElementById('parityInfo').textContent=needT?'⚠ cost transport obligatoriu':'';
 
-  const showCurToggle = (dir==='short' && ptype==='fix');
-  document.getElementById('rowCurrencyToggle').style.display = showCurToggle ? '' : 'none';
-  if(!showCurToggle) formCurrency = 'ron';
+  const showCurToggle=(dir==='short' && ptype==='fix');
+  document.getElementById('rowCurrencyToggle').style.display=showCurToggle?'':'none';
+  if(!showCurToggle) formCurrency='ron';
 
-  const isEur = (showCurToggle && formCurrency==='eur');
-  document.getElementById('rowFixRon').style.display   = (ptype==='fix' && !isEur) ? '' : 'none';
-  document.getElementById('rowFixEur').style.display   = (ptype==='fix' && isEur)  ? '' : 'none';
-  document.getElementById('rowBasis').style.display    = ptype==='basis' ? '' : 'none';
+  const isEur=(showCurToggle && formCurrency==='eur');
+  document.getElementById('rowFixRon').style.display=(ptype==='fix' && !isEur)?'':'none';
+  document.getElementById('rowFixEur').style.display=(ptype==='fix' && isEur)?'':'none';
+  document.getElementById('rowBasis').style.display=ptype==='basis'?'':'none';
 
-  document.getElementById('grpTransport').style.display    = (ptype==='fix' && !isEur && needT) ? '' : 'none';
-  document.getElementById('grpTransportEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
-  document.getElementById('grpTransportB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
-  const prod = document.getElementById('fProd').value;
-  const showBonif = dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
-  document.getElementById('grpBonif').style.display = showBonif ? '' : 'none';
+  document.getElementById('grpTransport').style.display=(ptype==='fix' && !isEur && needT)?'':'none';
+  document.getElementById('grpTransportEur').style.display=(ptype==='fix' && isEur && needT)?'':'none';
+  document.getElementById('grpTransportB').style.display=(ptype==='basis' && needT)?'':'none';
+
+  const prod=document.getElementById('fProd').value;
+  const showBonif=dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
+  document.getElementById('grpBonif').style.display=showBonif?'':'none';
   if(!showBonif) document.getElementById('fBonif').value='';
 
-  if(isEur && fxRates.eurRon) {
-    const cf = document.getElementById('fCursEur');
-    if(!cf.value) cf.value = fxRates.eurRon.toFixed(4);
+  if(isEur && fxRates.eurRon){
+    const cf=document.getElementById('fCursEur');
+    if(!cf.value) cf.value=fxRates.eurRon.toFixed(4);
   }
 }
 
-// ── ADD TRADE ─────────────────────────────────────────────────────────────────
 async function addTrade(){
-  const product= document.getElementById('fProd').value;
-  const cr     = document.getElementById('fCrop').value;
-  const dir    = document.getElementById('fDir').value;
-  const qty    = parseFloat(document.getElementById('fQty').value);
-  const parity = document.getElementById('fParity').value;
-  const loc    = document.getElementById('fLoc').value.trim();
-  const cpty   = document.getElementById('fCpty').value.trim();
-  const note   = document.getElementById('fNote').value.trim();
-  const bonif  = parseFloat(document.getElementById('fBonif').value)||0;
-  const ptype  = document.getElementById('fPtype').value;
+  const product=document.getElementById('fProd').value;
+  const cr=document.getElementById('fCrop').value;
+  const dir=document.getElementById('fDir').value;
+  const qty=parseFloat(document.getElementById('fQty').value);
+  const parity=document.getElementById('fParity').value;
+  const loc=document.getElementById('fLoc').value.trim();
+  const cpty=document.getElementById('fCpty').value.trim();
+  const note=document.getElementById('fNote').value.trim();
+  const bonif=parseFloat(document.getElementById('fBonif').value)||0;
+  const ptype=document.getElementById('fPtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
-  const rules  = PARITY_RULES[dir];
-  const chosen = rules.find(r=>r.val===parity)||rules[0];
-  const needT  = chosen.transport;
-  const showCurToggle = (dir==='short' && ptype==='fix');
-  const isEur = (showCurToggle && formCurrency==='eur');
+  const rules=PARITY_RULES[dir];
+  const chosen=rules.find(r=>r.val===parity)||rules[0];
+  const needT=chosen.transport;
+  const showCurToggle=(dir==='short' && ptype==='fix');
+  const isEur=(showCurToggle && formCurrency==='eur');
 
   let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,bonif:bonif||0};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
     if(isEur){
-      const priceEur = parseFloat(document.getElementById('fPriceEur').value);
-      cursEur = parseFloat(document.getElementById('fCursEur').value)||fxRates.eurRon||5;
+      const priceEur=parseFloat(document.getElementById('fPriceEur').value);
+      cursEur=parseFloat(document.getElementById('fCursEur').value)||fxRates.eurRon||5;
       if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
-      price = priceEur * cursEur;
-      currency = 'eur';
-      t.priceEur = priceEur;
-      t.cursEur = cursEur;
+      price=priceEur*cursEur;
+      currency='eur';
+      t.priceEur=priceEur;
+      t.cursEur=cursEur;
     } else {
-      price = parseFloat(document.getElementById('fPriceRon').value);
+      price=parseFloat(document.getElementById('fPriceRon').value);
       if(!price||price<=0){alert('Preț RON invalid.');return;}
     }
-    const date  = document.getElementById(isEur?'fDateEur':'fDate').value;
-    const trspRaw = needT ? (parseFloat(document.getElementById(isEur?'fTranspEur':'fTransp').value)||0) : 0;
-    const trsp = isEur ? trspRaw * cursEur : trspRaw;
+    const date=document.getElementById(isEur?'fDateEur':'fDate').value;
+    const trspRaw=needT?(parseFloat(document.getElementById(isEur?'fTranspEur':'fTransp').value)||0):0;
+    const trsp=isEur?trspRaw*cursEur:trspRaw;
     if(!date){alert('Selectați data.');return;}
     Object.assign(t,{price,currency,date,transport:trsp,transportEur:isEur?trspRaw:null});
   } else {
     const matif=document.getElementById('fMatif').value.trim();
     const basis=parseFloat(document.getElementById('fBasis').value);
-    const date =document.getElementById('fDateB').value;
-    const trsp =needT?(parseFloat(document.getElementById('fTranspB').value)||0):0;
+    const date=document.getElementById('fDateB').value;
+    const trsp=needT?(parseFloat(document.getElementById('fTranspB').value)||0):0;
     if(!matif){alert('Introduceți contractul MATIF.');return;}
     if(isNaN(basis)){alert('Basis invalid.');return;}
     if(!date){alert('Selectați data.');return;}
@@ -1331,15 +1336,13 @@ async function addTrade(){
   }
 
   document.getElementById('btnAdd').disabled=true;
-  const newId = await apiAddTrade(t);
-  t.id = newId;
+  const newId=await apiAddTrade(t);
+  t.id=newId;
   trades.unshift(t);
   document.getElementById('btnAdd').disabled=false;
   render();
   checkCfoAlert(t);
-  ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
+  ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
 }
 
 async function deleteTrade(id){
@@ -1348,7 +1351,6 @@ async function deleteTrade(id){
   render();
 }
 
-// ── PRODUCT MODAL ─────────────────────────────────────────────────────────────
 function openAddProd(){
   selColor=SWATCHES[0];
   ['mName','mSym','mEmoji'].forEach(id=>document.getElementById(id).value='');
@@ -1356,14 +1358,12 @@ function openAddProd(){
   document.getElementById('modProd').classList.add('open');
 }
 function buildSwatches(){
-  document.getElementById('swatches').innerHTML=SWATCHES.map(c=>
-    `<div class="sw${c===selColor?' sel':''}" style="background:${c}" onclick="selSwatch('${c}')"></div>`
-  ).join('');
+  document.getElementById('swatches').innerHTML=SWATCHES.map(c=>`<div class="sw${c===selColor?' sel':''}" style="background:${c}" onclick="selSwatch('${c}')"></div>`).join('');
 }
 function selSwatch(c){selColor=c;buildSwatches();}
 async function saveProd(){
-  const name =document.getElementById('mName').value.trim();
-  const sym  =document.getElementById('mSym').value.trim().toUpperCase();
+  const name=document.getElementById('mName').value.trim();
+  const sym=document.getElementById('mSym').value.trim().toUpperCase();
   const emoji=document.getElementById('mEmoji').value.trim()||'📦';
   if(!name){alert('Introduceți denumirea.');return;}
   const key=sym.toLowerCase()||name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
@@ -1375,7 +1375,6 @@ async function saveProd(){
   render();
 }
 
-// ── IMPORT ────────────────────────────────────────────────────────────────────
 function openImport(){
   importBuffer=[];
   document.getElementById('importStatus').style.display='none';
@@ -1390,8 +1389,10 @@ function onDrop(e){
   const file=e.dataTransfer.files[0];
   if(file) parseFile(file);
 }
-function onFileSelect(e){const file=e.target.files[0]; if(file) parseFile(file);}
-
+function onFileSelect(e){
+  const file=e.target.files[0];
+  if(file) parseFile(file);
+}
 function parseFile(file){
   const reader=new FileReader();
   reader.onload=function(e){
@@ -1403,9 +1404,7 @@ function parseFile(file){
       let rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
       let headerIdx=rows.findIndex(r=>r.some(c=>String(c||'').toLowerCase().includes('produs')));
       if(headerIdx<0) headerIdx=0;
-      const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim()
-        .replace(/\s+/g,'_')
-        .replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a').replace(/ț/g,'t').replace(/ș/g,'s'));
+      const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim().replace(/\s+/g,'_').replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a').replace(/ț/g,'t').replace(/ș/g,'s'));
       const dataRows=rows.slice(headerIdx+1).filter(r=>r.some(c=>c!==null&&c!==undefined&&c!==''));
 
       importBuffer=[];
@@ -1424,39 +1423,39 @@ function parseFile(file){
         const qty=parseFloat(qtyRaw);
         if(!qtyRaw||isNaN(qty)||qty<=0){skipped++;return;}
 
-        const productRaw = get(['produs','product']);
-        const product = productRaw.toLowerCase()
+        const productRaw=get(['produs','product']);
+        const product=productRaw.toLowerCase()
           .replace(/\s+/g,'_')
           .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ț/g,'t').replace(/ș/g,'s')
           .replace(/grau/,'wheat').replace(/porumb/,'corn').replace(/rapita/,'rapeseed')
           .replace(/floarea.soarelui/,'sunflower').replace(/soia/,'soy')
           .replace(/orz/,'barley').replace(/triticale/,'triticale') || 'wheat';
 
-        const cr        = get(['recolta','crop','an','harvest'])||'2025';
-        const dirRaw    = get(['directie','dir','direction']).toLowerCase();
-        const dir       = (dirRaw.includes('short')||dirRaw.includes('vanz')||dirRaw.includes('sell'))?'short':'long';
-        const ptypeRaw  = get(['tip_pret','tip','price_type','type']).toLowerCase();
-        const ptype     = ptypeRaw.includes('basis')?'basis':'fix';
-        const monedaRaw = get(['moneda','currency','valuta']).toUpperCase();
-        const currency  = (monedaRaw==='EUR')?'eur':'ron';
-        const parityRaw = get(['paritate','parity']).toUpperCase();
-        const pretRaw   = get(['pret_basis','pret','basis','price','valoare','pret_ron','pret_eur']);
-        const matif     = get(['contract_matif','matif','contract']);
-        const cursEurRaw= get(['curs_eur','curs','eur_ron','rate']);
-        const transpRaw = get(['cost_transport','transport','transp']);
-        const loc       = get(['locatie','locatia','baza','location','loc']);
-        const cpty      = get(['contraparte','counterparty','partener','cpty']);
-        const dateRaw   = get(['data','date','zi']);
-        const noteRaw   = get(['nota','note','obs']);
-        const bonifRaw  = get(['bonif','bonificatie','bonus','quality_bonus']);
+        const cr=get(['recolta','crop','an','harvest'])||'2025';
+        const dirRaw=get(['directie','dir','direction']).toLowerCase();
+        const dir=(dirRaw.includes('short')||dirRaw.includes('vanz')||dirRaw.includes('sell'))?'short':'long';
+        const ptypeRaw=get(['tip_pret','tip','price_type','type']).toLowerCase();
+        const ptype=ptypeRaw.includes('basis')?'basis':'fix';
+        const monedaRaw=get(['moneda','currency','valuta']).toUpperCase();
+        const currency=(monedaRaw==='EUR')?'eur':'ron';
+        const parityRaw=get(['paritate','parity']).toUpperCase();
+        const pretRaw=get(['pret_basis','pret','basis','price','valoare','pret_ron','pret_eur']);
+        const matif=get(['contract_matif','matif','contract']);
+        const cursEurRaw=get(['curs_eur','curs','eur_ron','rate']);
+        const transpRaw=get(['cost_transport','transport','transp']);
+        const loc=get(['locatie','locatia','baza','location','loc']);
+        const cpty=get(['contraparte','counterparty','partener','cpty']);
+        const dateRaw=get(['data','date','zi']);
+        const noteRaw=get(['nota','note','obs']);
+        const bonifRaw=get(['bonif','bonificatie','bonus','quality_bonus']);
 
         let parity=parityRaw;
         if(parity==='DAP'&&dir==='short') parity='DAP-V';
         if(parity==='FCA'&&dir==='short') parity='FCA-V';
         if(!parity) parity=PARITY_RULES[dir][0].val;
 
-        const pretVal = parseFloat(pretRaw);
-        const cursEur = parseFloat(cursEurRaw)||null;
+        const pretVal=parseFloat(pretRaw);
+        const cursEur=parseFloat(cursEurRaw)||null;
 
         const incomplete=[];
         if(ptype==='fix' && (isNaN(pretVal)||pretVal<=0)) incomplete.push('pret');
@@ -1466,29 +1465,29 @@ function parseFile(file){
         let t={product,crop:cr,dir,qty,parity,loc,cpty,note:noteRaw||'',ptype,currency,bonif:parseFloat(bonifRaw)||0,incomplete:incomplete.length>0};
 
         if(ptype==='fix'){
-          let price = isNaN(pretVal) ? 0 : pretVal;
+          let price=isNaN(pretVal)?0:pretVal;
           if(currency==='eur' && price>0){
-            const rate = cursEur || fxRates.eurRon || 5;
-            t.priceEur = price;
-            t.cursEur  = rate;
-            price = price * rate;
+            const rate=cursEur || fxRates.eurRon || 5;
+            t.priceEur=price;
+            t.cursEur=rate;
+            price=price*rate;
           }
-          t.price     = price;
-          t.date      = dateRaw||today();
-          const transpVal = parseFloat(transpRaw)||0;
-          t.transport = currency==='eur' ? transpVal*(cursEur||fxRates.eurRon||5) : transpVal;
-          if(currency==='eur' && transpVal>0) t.transportEur = transpVal;
+          t.price=price;
+          t.date=dateRaw||today();
+          const transpVal=parseFloat(transpRaw)||0;
+          t.transport=currency==='eur' ? transpVal*(cursEur||fxRates.eurRon||5) : transpVal;
+          if(currency==='eur'&&transpVal>0) t.transportEur=transpVal;
         } else {
-          t.basis     = isNaN(pretVal)?0:pretVal;
-          t.matif     = matif||'';
-          t.date      = dateRaw||today();
-          t.transport = parseFloat(transpRaw)||0;
+          t.basis=isNaN(pretVal)?0:pretVal;
+          t.matif=matif||'';
+          t.date=dateRaw||today();
+          t.transport=parseFloat(transpRaw)||0;
         }
         importBuffer.push(t);
       });
 
       showImportPreview(importBuffer, skipped);
-    } catch(err){
+    }catch(err){
       const st=document.getElementById('importStatus');
       st.style.display='';
       st.className='import-status err';
@@ -1498,7 +1497,6 @@ function parseFile(file){
   };
   reader.readAsArrayBuffer(file);
 }
-
 function showImportPreview(rows, skipped){
   const st=document.getElementById('importStatus');
   st.style.display='';
@@ -1526,7 +1524,6 @@ function showImportPreview(rows, skipped){
     ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...și încă ${rows.length-8} rânduri</div>`:''}`;
   document.getElementById('btnConfirmImport').style.display='';
 }
-
 async function confirmImport(){
   document.getElementById('btnConfirmImport').disabled=true;
   document.getElementById('btnConfirmImport').textContent='Se importă...';
@@ -1536,134 +1533,128 @@ async function confirmImport(){
   importBuffer=[];
 }
 
-// ── EDIT TRADE ────────────────────────────────────────────────────────────────
-let editingId = null;
-
+let editingId=null;
 function openEdit(id){
-  const t = trades.find(x=>x.id===id);
+  const t=trades.find(x=>x.id===id);
   if(!t) return;
-  editingId = id;
-  editCurrency = t.currency==='eur' ? 'eur' : 'ron';
-  document.getElementById('editId').textContent = `#${id}`;
+  editingId=id;
+  editCurrency=t.currency==='eur'?'eur':'ron';
+  document.getElementById('editId').textContent=`#${id}`;
 
-  const eProd = document.getElementById('eProd');
-  eProd.innerHTML = Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
-  eProd.value = t.product||Object.keys(products)[0];
+  const eProd=document.getElementById('eProd');
+  eProd.innerHTML=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  eProd.value=t.product||Object.keys(products)[0];
 
-  document.getElementById('eCrop').value   = t.crop||'2025';
-  document.getElementById('eDir').value    = t.dir||'long';
-  document.getElementById('eQty').value    = t.qty||'';
-  document.getElementById('ePtype').value  = t.ptype||'fix';
-  document.getElementById('eLoc').value    = t.loc||'';
-  document.getElementById('eBonif').value  = t.bonif||'';
-  document.getElementById('eCpty').value   = t.cpty||'';
-  document.getElementById('eNote').value   = t.note||'';
+  document.getElementById('eCrop').value=t.crop||'2025';
+  document.getElementById('eDir').value=t.dir||'long';
+  document.getElementById('eQty').value=t.qty||'';
+  document.getElementById('ePtype').value=t.ptype||'fix';
+  document.getElementById('eLoc').value=t.loc||'';
+  document.getElementById('eBonif').value=t.bonif||'';
+  document.getElementById('eCpty').value=t.cpty||'';
+  document.getElementById('eNote').value=t.note||'';
 
-  document.getElementById('ePrice').value   = (t.currency==='eur' ? '' : t.price)||'';
-  document.getElementById('eDate').value    = t.date||today();
-  document.getElementById('eTransp').value  = t.transport||'';
+  document.getElementById('ePrice').value=(t.currency==='eur'?'':t.price)||'';
+  document.getElementById('eDate').value=t.date||today();
+  document.getElementById('eTransp').value=t.transport||'';
 
-  document.getElementById('ePriceEur').value = t.priceEur||t.price||'';
-  document.getElementById('eCursEur').value  = t.cursEur||(fxRates.eurRon?fxRates.eurRon.toFixed(4):'');
-  document.getElementById('eDateEur').value  = t.date||today();
-  document.getElementById('eTranspEur').value= t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? (t.transport/t.cursEur).toFixed(2) : t.transport||'');
+  document.getElementById('ePriceEur').value=t.priceEur||t.price||'';
+  document.getElementById('eCursEur').value=t.cursEur||(fxRates.eurRon?fxRates.eurRon.toFixed(4):'');
+  document.getElementById('eDateEur').value=t.date||today();
+  document.getElementById('eTranspEur').value=t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? (t.transport/t.cursEur).toFixed(2) : t.transport||'');
 
-  document.getElementById('eMatif').value   = t.matif||'';
-  document.getElementById('eBasis').value   = t.basis!==undefined?t.basis:'';
-  document.getElementById('eDateB').value   = t.date||today();
-  document.getElementById('eTranspB').value = t.transport||'';
+  document.getElementById('eMatif').value=t.matif||'';
+  document.getElementById('eBasis').value=t.basis!==undefined?t.basis:'';
+  document.getElementById('eDateB').value=t.date||today();
+  document.getElementById('eTranspB').value=t.transport||'';
 
-  document.getElementById('eCurBtnRon').className = 'cur-btn' + (editCurrency==='ron'?' active':'');
-  document.getElementById('eCurBtnEur').className = 'cur-btn' + (editCurrency==='eur'?' active':'');
-
+  document.getElementById('eCurBtnRon').className='cur-btn'+(editCurrency==='ron'?' active':'');
+  document.getElementById('eCurBtnEur').className='cur-btn'+(editCurrency==='eur'?' active':'');
   onEditChange();
-  setTimeout(()=>{ document.getElementById('eParity').value = t.parity||PARITY_RULES[t.dir||'long'][0].val; onEditChange(); },10);
-
+  setTimeout(()=>{document.getElementById('eParity').value=t.parity||PARITY_RULES[t.dir||'long'][0].val; onEditChange();},10);
   document.getElementById('modEdit').classList.add('open');
 }
-
 function onEditChange(){
-  const dir   = document.getElementById('eDir').value;
-  const ptype = document.getElementById('ePtype').value;
-  const pSel  = document.getElementById('eParity');
-  const rules = PARITY_RULES[dir];
-  const curVal= pSel.value;
-  pSel.innerHTML = rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
-  const match = rules.find(r=>r.val===curVal);
+  const dir=document.getElementById('eDir').value;
+  const ptype=document.getElementById('ePtype').value;
+  const pSel=document.getElementById('eParity');
+  const rules=PARITY_RULES[dir];
+  const curVal=pSel.value;
+  pSel.innerHTML=rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
+  const match=rules.find(r=>r.val===curVal);
   if(match) pSel.value=curVal;
-  const chosen = rules.find(r=>r.val===pSel.value)||rules[0];
-  const needT  = chosen.transport;
+  const chosen=rules.find(r=>r.val===pSel.value)||rules[0];
+  const needT=chosen.transport;
 
-  const showCurToggle = (dir==='short' && ptype==='fix');
-  document.getElementById('eRowCurrencyToggle').style.display = showCurToggle ? '' : 'none';
-  if(!showCurToggle) editCurrency = 'ron';
+  const showCurToggle=(dir==='short' && ptype==='fix');
+  document.getElementById('eRowCurrencyToggle').style.display=showCurToggle?'':'none';
+  if(!showCurToggle) editCurrency='ron';
 
-  const isEur = (showCurToggle && editCurrency==='eur');
+  const isEur=(showCurToggle && editCurrency==='eur');
+  document.getElementById('eRowFixRon').style.display=(ptype==='fix' && !isEur)?'':'none';
+  document.getElementById('eRowFixEur').style.display=(ptype==='fix' && isEur)?'':'none';
+  document.getElementById('eRowBasis').style.display=ptype==='basis'?'':'none';
 
-  document.getElementById('eRowFixRon').style.display   = (ptype==='fix' && !isEur) ? '' : 'none';
-  document.getElementById('eRowFixEur').style.display   = (ptype==='fix' && isEur)  ? '' : 'none';
-  document.getElementById('eRowBasis').style.display    = ptype==='basis' ? '' : 'none';
+  document.getElementById('eGrpT').style.display=(ptype==='fix' && !isEur && needT)?'':'none';
+  document.getElementById('eGrpTEur').style.display=(ptype==='fix' && isEur && needT)?'':'none';
+  document.getElementById('eGrpTB').style.display=(ptype==='basis' && needT)?'':'none';
 
-  document.getElementById('eGrpT').style.display    = (ptype==='fix' && !isEur && needT) ? '' : 'none';
-  document.getElementById('eGrpTEur').style.display = (ptype==='fix' && isEur && needT)  ? '' : 'none';
-  document.getElementById('eGrpTB').style.display   = (ptype==='basis' && needT) ? '' : 'none';
-  const eProd = document.getElementById('eProd').value;
-  const showBonifE = dir==='short' && ptype==='fix' && (eProd==='rapeseed'||eProd==='sunflower');
-  document.getElementById('eGrpBonif').style.display = showBonifE ? '' : 'none';
+  const eProd=document.getElementById('eProd').value;
+  const showBonifE=dir==='short' && ptype==='fix' && (eProd==='rapeseed'||eProd==='sunflower');
+  document.getElementById('eGrpBonif').style.display=showBonifE?'':'none';
   if(!showBonifE) document.getElementById('eBonif').value='';
 
   if(isEur && fxRates.eurRon){
-    const cf = document.getElementById('eCursEur');
-    if(!cf.value) cf.value = fxRates.eurRon.toFixed(4);
+    const cf=document.getElementById('eCursEur');
+    if(!cf.value) cf.value=fxRates.eurRon.toFixed(4);
   }
 }
-
 async function saveEdit(){
-  const id     = editingId;
-  const product= document.getElementById('eProd').value;
-  const cr     = document.getElementById('eCrop').value;
-  const dir    = document.getElementById('eDir').value;
-  const qty    = parseFloat(document.getElementById('eQty').value);
-  const parity = document.getElementById('eParity').value;
-  const loc    = document.getElementById('eLoc').value.trim();
-  const bonif  = parseFloat(document.getElementById('eBonif').value)||0;
-  const cpty   = document.getElementById('eCpty').value.trim();
-  const note   = document.getElementById('eNote').value.trim();
-  const ptype  = document.getElementById('ePtype').value;
+  const id=editingId;
+  const product=document.getElementById('eProd').value;
+  const cr=document.getElementById('eCrop').value;
+  const dir=document.getElementById('eDir').value;
+  const qty=parseFloat(document.getElementById('eQty').value);
+  const parity=document.getElementById('eParity').value;
+  const loc=document.getElementById('eLoc').value.trim();
+  const bonif=parseFloat(document.getElementById('eBonif').value)||0;
+  const cpty=document.getElementById('eCpty').value.trim();
+  const note=document.getElementById('eNote').value.trim();
+  const ptype=document.getElementById('ePtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
 
-  const showCurToggle = (dir==='short' && ptype==='fix');
-  const isEur = (showCurToggle && editCurrency==='eur');
-  const rules  = PARITY_RULES[dir];
-  const chosen = rules.find(r=>r.val===parity)||rules[0];
-  const needT  = chosen.transport;
+  const showCurToggle=(dir==='short' && ptype==='fix');
+  const isEur=(showCurToggle && editCurrency==='eur');
+  const rules=PARITY_RULES[dir];
+  const chosen=rules.find(r=>r.val===parity)||rules[0];
+  const needT=chosen.transport;
 
   let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:false,bonif:bonif||0};
 
   if(ptype==='fix'){
     let price, currency='ron', priceEur=null, cursEur=null;
     if(isEur){
-      priceEur = parseFloat(document.getElementById('ePriceEur').value);
-      cursEur  = parseFloat(document.getElementById('eCursEur').value)||fxRates.eurRon||5;
+      priceEur=parseFloat(document.getElementById('ePriceEur').value);
+      cursEur=parseFloat(document.getElementById('eCursEur').value)||fxRates.eurRon||5;
       if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
-      price = priceEur * cursEur;
+      price=priceEur*cursEur;
       currency='eur';
-      t.priceEur = priceEur;
-      t.cursEur  = cursEur;
+      t.priceEur=priceEur;
+      t.cursEur=cursEur;
     } else {
-      price = parseFloat(document.getElementById('ePrice').value);
-      currency = 'ron';
+      price=parseFloat(document.getElementById('ePrice').value);
+      currency='ron';
     }
-    const date  = document.getElementById(isEur?'eDateEur':'eDate').value;
-    const trspRaw = needT?(parseFloat(document.getElementById(isEur?'eTranspEur':'eTransp').value)||0):0;
-    const trsp = isEur ? trspRaw * cursEur : trspRaw;
+    const date=document.getElementById(isEur?'eDateEur':'eDate').value;
+    const trspRaw=needT?(parseFloat(document.getElementById(isEur?'eTranspEur':'eTransp').value)||0):0;
+    const trsp=isEur?trspRaw*cursEur:trspRaw;
     t.price=price||0; t.currency=currency; t.date=date||today(); t.transport=trsp; t.transportEur=isEur?trspRaw:null;
     if(!price||!date) t.incomplete=true;
   } else {
     const basis=parseFloat(document.getElementById('eBasis').value);
     const matif=document.getElementById('eMatif').value.trim();
-    const date =document.getElementById('eDateB').value;
-    const trsp =needT?(parseFloat(document.getElementById('eTranspB').value)||0):0;
+    const date=document.getElementById('eDateB').value;
+    const trsp=needT?(parseFloat(document.getElementById('eTranspB').value)||0):0;
     t.basis=isNaN(basis)?0:basis; t.matif=matif; t.date=date||today(); t.transport=trsp;
     t.currency='eur';
     if(isNaN(basis)||!date) t.incomplete=true;
@@ -1672,45 +1663,35 @@ async function saveEdit(){
   setSyncStatus('saving','● saving...');
   await fetch(`/api/trades/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
   setSyncStatus('saved','● saved');
-  const idx = trades.findIndex(x=>x.id===id);
+  const idx=trades.findIndex(x=>x.id===id);
   if(idx>=0) trades[idx]={...t,id};
   closeModal('modEdit');
   render();
-  checkCfoAlert({...t, id});
+  checkCfoAlert({...t,id});
 }
 
-// ── CFO ALERT (tranzacții peste 1.000.000 RON) ───────────────────────────────
-function checkCfoAlert(t) {
-  // Calculează valoarea în RON
-  let priceRon = 0;
-  if (t.ptype === 'fix') {
-    priceRon = t.currency === 'eur'
-      ? (t.priceEur || 0) * (t.cursEur || fxRates.eurRon || 5)
-      : (t.price || 0);
+function checkCfoAlert(t){
+  let priceRon=0;
+  if(t.ptype==='fix'){
+    priceRon = t.currency==='eur' ? (t.priceEur || 0) * (t.cursEur || fxRates.eurRon || 5) : (t.price || 0);
   } else {
-    // Basis — folosim prețul MATIF curent ca estimare
-    const matifPrices = { wheat: 207, corn: 208, rapeseed: 498 };
-    const mp = matifPrices[t.product] || 250;
-    const eurRon = fxRates.eurRon || 5.09;
-    priceRon = (mp + (t.basis || 0)) * eurRon;
+    const matifPrices={wheat:207,corn:208,rapeseed:498};
+    const mp=matifPrices[t.product] || 250;
+    const eurRon=fxRates.eurRon || 5.09;
+    priceRon=(mp + (t.basis || 0)) * eurRon;
   }
-  const valoareTotala = priceRon * (t.qty || 0);
-  if (valoareTotala < 1000000) return;
+  const valoareTotala=priceRon * (t.qty || 0);
+  if(valoareTotala < 1000000) return;
 
-  // Pregătește detalii
-  const prod = products[t.product] || { name: t.product, emoji: '' };
-  const dirText = t.dir === 'long' ? 'CUMPĂRARE' : 'VÂNZARE';
-  const dirVerb = t.dir === 'long' ? 'am cumpărat' : 'am vândut';
-  const dirPrep = t.dir === 'long' ? 'de la' : 'către';
-  const cpty = t.cpty || '—';
-  const priceText = t.ptype === 'fix'
-    ? (t.currency === 'eur' ? `${(t.priceEur||0).toFixed(2)} EUR/t (≈ ${priceRon.toFixed(0)} RON/t)` : `${priceRon.toFixed(0)} RON/t`)
+  const prod=products[t.product] || {name:t.product,emoji:''};
+  const dirText=t.dir==='long'?'CUMPĂRARE':'VÂNZARE';
+  const cpty=t.cpty || '—';
+  const priceText=t.ptype==='fix'
+    ? (t.currency==='eur' ? `${(t.priceEur||0).toFixed(2)} EUR/t (≈ ${priceRon.toFixed(0)} RON/t)` : `${priceRon.toFixed(0)} RON/t`)
     : `MATIF ${t.matif} + ${t.basis} EUR/t basis`;
-  const valStr = new Intl.NumberFormat('ro-RO', {minimumFractionDigits:0}).format(Math.round(valoareTotala));
-  const dateStr = t.date || new Date().toISOString().substring(0,10);
+  const valStr=new Intl.NumberFormat('ro-RO',{minimumFractionDigits:0}).format(Math.round(valoareTotala));
 
-  // Populează detalii în modal
-  document.getElementById('cfoDetails').innerHTML = `
+  document.getElementById('cfoDetails').innerHTML=`
     <div><span style="color:var(--dim);width:120px;display:inline-block">Produs:</span> <strong>${prod.emoji} ${prod.name} — Recoltă ${t.crop}</strong></div>
     <div><span style="color:var(--dim);width:120px;display:inline-block">Direcție:</span> <strong style="color:${t.dir==='long'?'var(--long)':'var(--short)'}">${dirText}</strong></div>
     <div><span style="color:var(--dim);width:120px;display:inline-block">Cantitate:</span> <strong>${(t.qty||0).toLocaleString('ro-RO')} t</strong></div>
@@ -1720,62 +1701,63 @@ function checkCfoAlert(t) {
     <div><span style="color:var(--dim);width:120px;display:inline-block">Valoare totală:</span> <strong style="color:#f59e0b">${valStr} RON</strong></div>
   `;
 
-  // Draft mesaj CFO
   const draft = `${t.dir === 'long' ? 'Am cumpărat' : 'Am vândut'} ${(t.qty||0).toLocaleString('ro-RO')} tone de ${prod.name} (${t.crop}) ${t.dir === 'long' ? 'de la' : 'către'} ${cpty}, la ${priceText}, paritate ${t.parity||'—'}.${t.loc ? ' Baza ' + t.loc + '.' : ''}
 
 Valoare totală estimată: ${valStr} RON.${t.note ? '\n\n' + t.note : ''}`;
 
-  document.getElementById('cfoDraft').value = draft;
-  document.getElementById('modCfo').style.display = 'flex';
+  document.getElementById('cfoDraft').value=draft;
+  document.getElementById('modCfo').style.display='flex';
 }
-
-function copyCfoDraft() {
-  const ta = document.getElementById('cfoDraft');
-  navigator.clipboard.writeText(ta.value).then(() => {
-    const btn = document.querySelector('#modCfo .btn-save');
-    btn.textContent = '✅ Copiat!';
-    setTimeout(() => { btn.innerHTML = '📋 Copiază Mesaj'; }, 2000);
-  }).catch(() => {
+function copyCfoDraft(){
+  const ta=document.getElementById('cfoDraft');
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn=document.querySelector('#modCfo .btn-save');
+    btn.textContent='✅ Copiat!';
+    setTimeout(()=>{btn.innerHTML='📋 Copiază Mesaj';},2000);
+  }).catch(()=>{
     ta.select(); document.execCommand('copy');
   });
 }
 
-// ── EXPORT ────────────────────────────────────────────────────────────────────
 function exportDB(){
   if(!Array.isArray(trades)||trades.length===0){alert('Nu există tranzacții de exportat.');return;}
-  try {
+  try{
     const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','bonif','incomplet']];
     trades.forEach(t=>{
-      const pretExport = t.ptype==='fix'
-        ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||''))
-        : (t.basis!==undefined ? t.basis : '');
+      const pretExport=t.ptype==='fix' ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||'')) : (t.basis!==undefined ? t.basis : '');
       rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,t.cursEur||'',t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),t.loc||'',t.cpty||'',t.date||'',t.note||'',t.bonif||0,t.incomplete?'DA':'']);
     });
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
+
     const pos25=getPos('2025'); const pos26=getPos('2026');
     const sumRows=[['Produs','Recolta','Long (t)','Short (t)','Net (t)']];
     ['2025','2026'].forEach(yr=>{
       const p=yr==='2025'?pos25:pos26;
-      Object.entries(products).forEach(([k,prod])=>{const pp=p[k]||{long:0,short:0,net:0};sumRows.push([prod.name,yr,pp.long,pp.short,pp.net]);});
+      Object.entries(products).forEach(([k,prod])=>{
+        const pp=p[k]||{long:0,short:0,net:0};
+        sumRows.push([prod.name,yr,pp.long,pp.short,pp.net]);
+      });
     });
     const ws2=XLSX.utils.aoa_to_sheet(sumRows);
     ws2['!cols']=[{wch:20},{wch:10},{wch:12},{wch:12},{wch:12}];
     XLSX.utils.book_append_sheet(wb,ws2,'Pozitii');
+
     const dateStr=new Date().toISOString().slice(0,10);
     const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
     const blob=new Blob([wbout],{type:'application/octet-stream'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=`agrotex_export_${dateStr}.xlsx`;
+    const a=document.createElement('a');
+    a.href=url; a.download=`agrotex_export_${dateStr}.xlsx`;
     document.body.appendChild(a); a.click();
-    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  } catch(err){alert('Eroare export: '+err.message);}
+    setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
+  }catch(err){alert('Eroare export: '+err.message);}
 }
 
 function downloadTemplate(){
-  try {
+  try{
     const headers=['produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','contract_matif','curs_eur','cost_transport','locatie','contraparte','data','nota'];
     const ex1=['wheat','2025','long','1000','fix','ron','DAP','1050','','','','Carei','Fermier X','2025-09-15',''];
     const ex2=['corn','2025','short','500','fix','eur','FOR','195','','4.97','','Valea lui Mihai','Trader Y','2025-10-01','vanzare EUR'];
@@ -1796,27 +1778,13 @@ function downloadTemplate(){
     const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
     const blob=new Blob([wbout],{type:'application/octet-stream'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download='agrotex_import_template.xlsx';
+    const a=document.createElement('a');
+    a.href=url; a.download='agrotex_import_template.xlsx';
     document.body.appendChild(a); a.click();
-    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  } catch(err){alert('Eroare template: '+err.message);}
+    setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
+  }catch(err){alert('Eroare template: '+err.message);}
 }
 
-// ── UTILS ─────────────────────────────────────────────────────────────────────
-function closeModal(id){
-  const el = document.getElementById(id);
-  el.classList.remove('open');
-  // modCfo folosește style.display, celelalte folosesc clasa .open
-  if(id === 'modCfo') el.style.display = 'none';
-  if(id==='modImport'){
-    document.getElementById('btnConfirmImport').disabled=false;
-    document.getElementById('btnConfirmImport').textContent='Importă';
-  }
-}
-function today(){return new Date().toISOString().split('T')[0];}
-function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
-function fmtP(n){return n>0?fmtN(n):'—';}
-function fmtNet(n){return(n>0?'+':'')+fmtN(n);}
 function populateProd(){
   const opts=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
   const sel=document.getElementById('fProd');
@@ -1825,33 +1793,20 @@ function populateProd(){
   if(cur&&products[cur]) sel.value=cur;
   document.getElementById('eProd').innerHTML=opts;
 }
+
 function setCrop(y){
   crop=y;
   document.getElementById('fCrop').value=y;
   document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
   document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
-  // deactivate news/target tab if active
-  if(newsTabActive) {
-    newsTabActive = false;
-    const tn = document.getElementById('tabNews');
-    if(tn) { tn.style.color = 'var(--dim)'; tn.style.borderColor = 'var(--border2)'; }
-    document.querySelector('.main').style.display = 'flex';
-    document.getElementById('newsSection').style.display = 'none';
-  }
-  if(targetTabActive) {
-    targetTabActive = false;
-    document.getElementById('tabTarget').className = 'tab';
-    document.getElementById('targetSection').style.display = 'none';
-    document.querySelector('.main').style.display = 'flex';
-  }
+  closeAllSideTabs();
   render();
 }
 
-// ── POSITIONS ─────────────────────────────────────────────────────────────────
 function getPos(cropFilter){
   const pos={};
   Object.keys(products).forEach(k=>{pos[k]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};});
-  trades.filter(t=>!cropFilter||t.crop===cropFilter).forEach(t=>{
+  trades.filter(t=>!cropFilter || t.crop===cropFilter).forEach(t=>{
     if(!pos[t.product]) pos[t.product]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};
     if(t.dir==='long'){
       pos[t.product].long+=t.qty; pos[t.product].buyQ+=t.qty;
@@ -1895,28 +1850,25 @@ function getPos(cropFilter){
   return pos;
 }
 
-// ── RENDER TABLE (separate, used by filter) ───────────────────────────────────
 function renderTable(){
-  const ft = getFilteredTrades();
-  const totalCrop = trades.filter(t=>t.crop===crop).length;
-  const isFiltered = Object.values(activeFilter).some(v=>v!=='');
+  const ft=getFilteredTrades();
+  const totalCrop=trades.filter(t=>t.crop===crop).length;
+  const isFiltered=Object.values(activeFilter).some(v=>v!=='');
 
   if(isFiltered){
-    document.getElementById('filterMatch').innerHTML =
-      `<span class="filter-active-dot"></span><span>${ft.length}</span> / ${totalCrop} afișate`;
+    document.getElementById('filterMatch').innerHTML=`<span class="filter-active-dot"></span><span>${ft.length}</span> / ${totalCrop} afișate`;
   } else {
-    document.getElementById('filterMatch').innerHTML = '';
+    document.getElementById('filterMatch').innerHTML='';
   }
 
-  document.getElementById('tcount').textContent = isFiltered
-    ? `${ft.length} / ${totalCrop} tranzacții (${crop})`
-    : `${totalCrop} tranzacții (${crop})`;
+  document.getElementById('tcount').textContent=isFiltered ? `${ft.length} / ${totalCrop} tranzacții (${crop})` : `${totalCrop} tranzacții (${crop})`;
 
-  const tbody = document.getElementById('tbody');
+  const tbody=document.getElementById('tbody');
   if(ft.length===0){
     tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
     return;
   }
+
   tbody.innerHTML=ft.map(t=>{
     const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
     const isEurTrade=t.currency==='eur'&&t.ptype==='fix';
@@ -1935,7 +1887,7 @@ function renderTable(){
     const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
-    return`<tr class="tr-click" onclick="openEdit(${t.id})">
+    return `<tr class="tr-click" onclick="openEdit(${t.id})">
       <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
@@ -1952,7 +1904,6 @@ function renderTable(){
   }).join('');
 }
 
-// ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
   document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
@@ -1963,6 +1914,7 @@ function render(){
 
   const activeProds=Object.keys(products).filter(k=>pos[k]&&(pos[k].long>0||pos[k].short>0));
   const showProds=activeProds.length>0?activeProds:Object.keys(products).slice(0,4);
+
   document.getElementById('cards').innerHTML=showProds.map(k=>{
     const prod=products[k]; const p=pos[k];
     const nc=p.net>0?'long':p.net<0?'short':'flat';
@@ -1974,12 +1926,9 @@ function render(){
     const margin=(avgBuyFinal>0&&avgSellFinal>0)?avgSellFinal-avgBuyFinal:null;
     const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
     const marginSign=margin===null?'':margin>=0?'+':'';
-    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08">
-      <span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span>
-      <span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span>
-    </div>`:'';
+    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
     const sellLabel=p.avgSellFca>0&&p.avgSellFca!==p.avgSell?'≈ FCA':'DAP';
-    return`<div class="card">
+    return `<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
       <div class="cnet ${nc}">${fmtN(Math.abs(p.net))}<span>t</span></div>
@@ -1997,16 +1946,14 @@ function render(){
   renderTable();
 
   let aggHTML='';
-  let totalLong = 0, totalShort = 0, totalNet = 0;
+  let totalLong=0, totalShort=0, totalNet=0;
   ['2025','2026'].forEach(yr=>{
     const cp=getPos(yr);
     aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'Recoltă Veche 2025':'Recoltă Nouă 2026'}</div>`;
     Object.entries(products).forEach(([k,prod])=>{
       const p=cp[k]||{long:0,short:0,net:0};
       const nc=p.net>0?'an-l':p.net<0?'an-s':'an-f';
-      totalLong  += p.long;
-      totalShort += p.short;
-      totalNet   += p.net;
+      totalLong+=p.long; totalShort+=p.short; totalNet+=p.net;
       aggHTML+=`<div class="agg-row">
         <div class="adot" style="background:${prod.color}"></div>
         <div class="aname">${prod.emoji} ${prod.name}</div>
@@ -2016,9 +1963,8 @@ function render(){
       </div>`;
     });
   });
-  // Total general
-  const tnc = totalNet>0?'an-l':totalNet<0?'an-s':'an-f';
-  aggHTML += `<div class="agg-row" style="border-top:1px solid var(--border2);margin-top:6px;padding-top:6px;font-weight:600;">
+  const tnc=totalNet>0?'an-l':totalNet<0?'an-s':'an-f';
+  aggHTML+=`<div class="agg-row" style="border-top:1px solid var(--border2);margin-top:6px;padding-top:6px;font-weight:600;">
     <div class="adot" style="background:var(--dim)"></div>
     <div class="aname" style="color:var(--fg)">TOTAL</div>
     <div class="albl">L</div><div class="anum al">${fmtN(totalLong)}</div>
@@ -2032,444 +1978,313 @@ function render(){
   document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
 }
 
-// ── NEWS FEED ─────────────────────────────────────────────────────────────────
-let newsData = [];
-let newsFilter = 'all';
-let newsTabActive = false;
-
-// Keywords for agri/macro categorization
-const AGRI_KEYWORDS = ['grâu','porumb','rapiță','rapita','cereale','oleaginoase','recoltă','recolta','fermi','agricol','apia','madr','export','import','grain','wheat','corn','rapeseed','barley','orz','soia','matif','cbot','harvest','crop','usda','wasde','agri'];
-const MACRO_KEYWORDS = ['bursă','bursa','financiar','macroeconomic','bnr','curs','inflatie','inflație','dobândă','dobanda','energie','petrol','gaze','piață','piata','market','futures','price','euro','dollar','fed','ecb','tariff','taxa','economic'];
-
-function newsItemCategory(item) {
-  const text = (item.title + ' ' + item.desc).toLowerCase();
-  const isAgri  = AGRI_KEYWORDS.some(k => text.includes(k));
-  const isMacro = MACRO_KEYWORDS.some(k => text.includes(k));
-  return { isAgri, isMacro };
+function newsItemCategory(item){
+  const text=(item.title+' '+(item.desc||'')).toLowerCase();
+  const isAgri=AGRI_KEYWORDS.some(k=>text.includes(k));
+  const isMacro=MACRO_KEYWORDS.some(k=>text.includes(k));
+  return {isAgri,isMacro};
 }
-
-function setNewsTab() {
-  newsTabActive = true;
-  document.getElementById('tab25').className = 'tab';
-  document.getElementById('tab26').className = 'tab';
-  document.getElementById('tabNews').style.color = 'var(--acc)';
-  document.getElementById('tabNews').style.borderColor = 'var(--acc)';
-  document.querySelector('.main').style.display = 'none';
-  document.getElementById('newsSection').style.display = 'flex';
-  if (newsData.length === 0) loadNews();
+function setNewsTab(){
+  closeAllSideTabs();
+  newsTabActive=true;
+  const tn=document.getElementById('tabNews');
+  tn.style.color='var(--acc)';
+  tn.style.borderColor='var(--acc)';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('newsSection').style.display='flex';
+  if(newsData.length===0) loadNews();
   else renderNews();
 }
-
-function setCropFromNews() {
-  newsTabActive = false;
-  document.getElementById('tabNews').style.color = 'var(--dim)';
-  document.getElementById('tabNews').style.borderColor = 'var(--border2)';
-  document.querySelector('.main').style.display = 'flex';
-  document.getElementById('newsSection').style.display = 'none';
+function setCropFromNews(){
+  newsTabActive=false;
+  const tn=document.getElementById('tabNews');
+  tn.style.color='var(--dim)';
+  tn.style.borderColor='var(--border2)';
+  document.getElementById('newsSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
 }
-
-function setNewsFilter(f) {
-  newsFilter = f;
-  ['nfAll2','nfRo','nfEn','nfAgri','nfMacro'].forEach(id => {
-    document.getElementById(id)?.classList.remove('active');
-  });
-  const map = {all:'nfAll2', ro:'nfRo', en:'nfEn', agri:'nfAgri', macro:'nfMacro'};
-  if (map[f]) document.getElementById(map[f])?.classList.add('active');
+function setNewsFilter(f){
+  newsFilter=f;
+  ['nfAll2','nfRo','nfEn','nfAgri','nfMacro'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  const map={all:'nfAll2',ro:'nfRo',en:'nfEn',agri:'nfAgri',macro:'nfMacro'};
+  if(map[f]) document.getElementById(map[f])?.classList.add('active');
   renderNews();
 }
-
-function fmtNewsDate(ts) {
-  if (!ts) return '';
-  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
-  if (isNaN(d.getTime())) return '';
-  const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  if (diff < 60) return 'acum';
-  if (diff < 3600) return Math.floor(diff/60) + 'm';
-  if (diff < 86400) return Math.floor(diff/3600) + 'h';
-  return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit'});
+function fmtNewsDate(ts){
+  if(!ts) return '';
+  const d=typeof ts==='number'?new Date(ts):new Date(ts);
+  if(isNaN(d.getTime())) return '';
+  const now=new Date();
+  const diff=Math.floor((now-d)/1000);
+  if(diff<60) return 'acum';
+  if(diff<3600) return Math.floor(diff/60)+'m';
+  if(diff<86400) return Math.floor(diff/3600)+'h';
+  return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});
 }
+function renderNews(){
+  const grid=document.getElementById('newsGrid');
+  if(!newsData.length){
+    grid.innerHTML='<div class="news-empty">// nicio știre disponibilă momentan</div>';
+    return;
+  }
+  let items=newsData;
+  if(newsFilter==='ro') items=items.filter(i=>i.lang==='ro');
+  else if(newsFilter==='en') items=items.filter(i=>i.lang==='en');
+  else if(newsFilter==='agri') items=items.filter(i=>newsItemCategory(i).isAgri);
+  else if(newsFilter==='macro') items=items.filter(i=>newsItemCategory(i).isMacro);
 
-function renderNews() {
-  const grid = document.getElementById('newsGrid');
-  if (!newsData.length) {
-    grid.innerHTML = '<div class="news-empty">// nicio știre disponibilă momentan</div>';
+  if(!items.length){
+    grid.innerHTML='<div class="news-empty">// nicio știre pentru filtrul selectat</div>';
     return;
   }
 
-  let items = newsData;
-  if (newsFilter === 'ro') items = items.filter(i => i.lang === 'ro');
-  else if (newsFilter === 'en') items = items.filter(i => i.lang === 'en');
-  else if (newsFilter === 'agri') items = items.filter(i => newsItemCategory(i).isAgri);
-  else if (newsFilter === 'macro') items = items.filter(i => newsItemCategory(i).isMacro);
-
-  if (!items.length) {
-    grid.innerHTML = '<div class="news-empty">// nicio știre pentru filtrul selectat</div>';
-    return;
-  }
-
-  grid.innerHTML = items.slice(0, 60).map(item => {
-    const langClass = item.lang === 'ro' ? 'ro' : 'en';
-    const dateStr = fmtNewsDate(item.ts || new Date(item.date).getTime());
-    const cat = newsItemCategory(item);
-    const catTags = [cat.isAgri ? '🌾' : '', cat.isMacro ? '📈' : ''].filter(Boolean).join(' ');
-    const flag = item.lang === 'ro' ? '🇷🇴' : '🌍';
+  grid.innerHTML=items.slice(0,60).map(item=>{
+    const langClass=item.lang==='ro'?'ro':'en';
+    const dateStr=fmtNewsDate(item.ts||new Date(item.date).getTime());
+    const cat=newsItemCategory(item);
+    const catTags=[cat.isAgri?'🌾':'',cat.isMacro?'📈':''].filter(Boolean).join(' ');
+    const flag=item.lang==='ro'?'🇷🇴':'🌍';
     return `<a class="news-card" href="${item.link}" target="_blank" rel="noopener noreferrer">
       <div class="news-card-top">
         <span class="news-source-badge ${langClass}">${flag} ${item.source}</span>
-        ${catTags ? `<span style="font-size:10px">${catTags}</span>` : ''}
+        ${catTags?`<span style="font-size:10px">${catTags}</span>`:''}
         <span class="news-date">${dateStr}</span>
       </div>
       <div class="news-title">${item.title}</div>
-      ${item.desc ? `<div class="news-desc">${item.desc}</div>` : ''}
+      ${item.desc?`<div class="news-desc">${item.desc}</div>`:''}
     </a>`;
   }).join('');
 }
-
-async function loadNews(forceRefresh = false) {
-  const grid = document.getElementById('newsGrid');
-  if (grid && !newsData.length) {
-    grid.innerHTML = '<div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>';
-  }
-  const panelList = document.getElementById('newsPanelList');
-  if (panelList && !newsData.length) {
-    panelList.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:10px 0">// se încarcă...</div>';
-  }
-  try {
-    const url = forceRefresh ? '/api/news?refresh=1' : '/api/news';
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    newsData = data.items || [];
-
-    // Update badge
-    const badge = document.getElementById('bNews');
-    if (badge && newsData.length) { badge.textContent = newsData.length; badge.style.display = ''; }
-
-    // Update timestamp
-    const upd = document.getElementById('newsUpdated');
-    if (upd) {
-      const t = new Date(data.fetchedAt);
-      const timeStr = t.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
-      upd.textContent = (data.cached ? `cache ` : ``) + timeStr + ` · ${newsData.length} știri`;
+async function loadNews(forceRefresh=false){
+  const grid=document.getElementById('newsGrid');
+  if(grid && !newsData.length) grid.innerHTML='<div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>';
+  try{
+    const url=forceRefresh?'/api/news?refresh=1':'/api/news';
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    newsData=data.items||[];
+    const badge=document.getElementById('bNews');
+    if(badge && newsData.length){ badge.textContent=newsData.length; badge.style.display=''; }
+    const upd=document.getElementById('newsUpdated');
+    if(upd){
+      const t=new Date(data.fetchedAt);
+      const timeStr=t.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+      upd.textContent=(data.cached?'cache ':'')+timeStr+` · ${newsData.length} știri`;
     }
     renderNews();
-    renderPanelNews();
-
-    // Auto-refresh every 30 min
-    setTimeout(() => loadNews(), 30 * 60 * 1000);
-  } catch(e) {
-    console.error('News load error:', e);
-    if (grid && !newsData.length) {
-      grid.innerHTML = '<div class="news-empty">// eroare la încărcarea știrilor</div>';
-    }
-    if (panelList && !newsData.length) {
-      panelList.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:10px 0">// eroare la încărcare</div>';
-    }
+  }catch(e){
+    console.error('News load error:',e);
+    if(grid && !newsData.length) grid.innerHTML='<div class="news-empty">// eroare la încărcarea știrilor</div>';
   }
 }
 
-// ── MATIF QUOTES ──────────────────────────────────────────────────────────────
-async function loadMatif(retryCount = 0){
-  // Animatie refresh buton
-  const btn = document.getElementById('matifRefreshBtn');
-  if(btn && retryCount === 0) {
-    btn.style.animation = 'spin .8s linear infinite';
-    btn.style.color = 'var(--acc)';
-  }
-  try {
-    const res = await fetch('/api/matif');
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const q = data.quotes || {};
-
-    // Check if we got actual data
-    const hasData = Object.values(q).some(v => v.front !== null);
+async function loadMatif(retryCount=0){
+  const btn=document.getElementById('matifRefreshBtn');
+  if(btn && retryCount===0){ btn.style.animation='spin .8s linear infinite'; btn.style.color='var(--acc)'; }
+  try{
+    const res=await fetch('/api/matif');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const q=data.quotes || {};
+    const hasData=Object.values(q).some(v=>v.front!==null);
 
     function fmtMatifPrice(v){ return v!=null ? Number(v).toFixed(2) : '—'; }
     function delivShort(s){ return s ? s.replace('September','Sep').replace('December','Dec').replace('January','Jan').replace('February','Feb').replace('March','Mar').replace('April','Apr').replace('August','Aug').replace('October','Oct').replace('November','Nov').replace('June','Jun').replace('July','Jul') : ''; }
 
     function updatePair(key, priceId, changeId, delId, rowsId){
-      const item = q[key];
+      const item=q[key];
       if(!item || !item.front) return;
-      const f = item.front;
-      // Logică preț:
-      // - last != null → s-a tranzacționat → afișează last (cotație live)
-      // - last == null → nicio tranzacție încă → afișează settl (settlement ieri)
-      // - settl == null → fallback bid
-      const marketTraded = f.last !== null;
-      const price = marketTraded ? f.last : (f.settl !== null ? f.settl : f.bid);
-      const priceLabel = !marketTraded ? 'settl' : '';
-      const priceEl = document.getElementById(priceId);
-      if(priceEl){ priceEl.textContent = fmtMatifPrice(price); priceEl.className='matif-price'; }
-      // Label 'settl' sub preț când piața e închisă
-      const chEl = document.getElementById(changeId);
-      if(!marketTraded && priceLabel) {
-        if(chEl){ chEl.textContent = 'settlement'; chEl.className = 'matif-change flat'; }
+      const f=item.front;
+      const marketTraded=f.last!==null;
+      const price=marketTraded ? f.last : (f.settl!==null ? f.settl : f.bid);
+      const priceEl=document.getElementById(priceId);
+      if(priceEl){ priceEl.textContent=fmtMatifPrice(price); priceEl.className='matif-price'; }
+      const chEl=document.getElementById(changeId);
+      if(!marketTraded){
+        if(chEl){ chEl.textContent='settlement'; chEl.className='matif-change flat'; }
       } else if(chEl && f.change != null){
-        const sign = f.change > 0 ? '+' : '';
-        chEl.textContent = sign + f.change.toFixed(2);
-        chEl.className = 'matif-change ' + (f.change > 0 ? 'up' : f.change < 0 ? 'down' : 'flat');
+        const sign=f.change>0?'+':'';
+        chEl.textContent=sign+f.change.toFixed(2);
+        chEl.className='matif-change '+(f.change>0?'up':f.change<0?'down':'flat');
       }
-      // Delivery month
-      const delEl = document.getElementById(delId);
-      if(delEl) delEl.textContent = delivShort(f.delivery);
-      // Tooltip rows — același fix: settl când piața e închisă
-      const rowsEl = document.getElementById(rowsId);
+      const delEl=document.getElementById(delId);
+      if(delEl) delEl.textContent=delivShort(f.delivery);
+      const rowsEl=document.getElementById(rowsId);
       if(rowsEl && item.allRows && item.allRows.length){
-        rowsEl.innerHTML = item.allRows.map(r => {
-          const rOpen = r.isOpen || r.bid !== null;
-          const p = r.last !== null
-            ? r.last
-            : (r.settl !== null ? r.settl : r.bid);
-          const rTraded = r.last !== null;
-          const chSign = (r.change||0) >= 0 ? '+' : '';
-          const chColor = (r.change||0) > 0 ? 'var(--long)' : (r.change||0) < 0 ? 'var(--short)' : 'var(--dim)';
-          const settlLabel = !rTraded ? '<span style="font-size:8px;color:var(--dim);opacity:.7"> S</span>' : '';
-          return `<div class="tt-row">
-            <span>${delivShort(r.delivery)}</span>
-            <span>${fmtMatifPrice(p)} EUR/t${settlLabel}</span>
-            <span style="color:${chColor};font-size:9px">${rTraded ? chSign+(r.change||0).toFixed(2) : ''}</span>
-          </div>`;
+        rowsEl.innerHTML=item.allRows.map(r=>{
+          const p=r.last!==null ? r.last : (r.settl!==null ? r.settl : r.bid);
+          const rTraded=r.last!==null;
+          const chSign=(r.change||0)>=0?'+':'';
+          const chColor=(r.change||0)>0?'var(--long)':(r.change||0)<0?'var(--short)':'var(--dim)';
+          const settlLabel=!rTraded ? '<span style="font-size:8px;color:var(--dim);opacity:.7"> S</span>' : '';
+          return `<div class="tt-row"><span>${delivShort(r.delivery)}</span><span>${fmtMatifPrice(p)} EUR/t${settlLabel}</span><span style="color:${chColor};font-size:9px">${rTraded ? chSign+(r.change||0).toFixed(2) : ''}</span></div>`;
         }).join('');
       }
     }
 
-    updatePair('wheat',    'mWheatPrice', 'mWheatChange', 'mWheatDel', 'mWheatRows');
-    updatePair('corn',     'mCornPrice',  'mCornChange',  'mCornDel',  'mCornRows');
-    updatePair('rapeseed', 'mRapePrice',  'mRapeChange',  'mRapeDel',  'mRapeRows');
+    updatePair('wheat','mWheatPrice','mWheatChange','mWheatDel','mWheatRows');
+    updatePair('corn','mCornPrice','mCornChange','mCornDel','mCornRows');
+    updatePair('rapeseed','mRapePrice','mRapeChange','mRapeDel','mRapeRows');
 
-    // Timestamp
-    const updEl = document.getElementById('matifUpdated');
+    const updEl=document.getElementById('matifUpdated');
     if(updEl){
-      const fetchTime = new Date(data.fetchedAt);
-      const timeStr = fetchTime.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
-      // Detectează dacă piața e deschisă
-      const anyOpen = Object.values(data.quotes||{}).some(q => q.front && q.front.isOpen);
-      if(anyOpen) {
-        updEl.textContent = data.cached ? `cache ${timeStr}` : `live ${timeStr}`;
-        updEl.title = `Cotații live Euronext (delay ~15 min). Actualizat: ${timeStr}`;
+      const fetchTime=new Date(data.fetchedAt);
+      const timeStr=fetchTime.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+      const anyOpen=Object.values(data.quotes||{}).some(q=>q.front && q.front.isOpen);
+      if(anyOpen){
+        updEl.textContent=data.cached ? `cache ${timeStr}` : `live ${timeStr}`;
+        updEl.title=`Cotații live Euronext (delay ~15 min). Actualizat: ${timeStr}`;
       } else {
-        updEl.textContent = `settl ${timeStr}`;
-        updEl.title = `Piața închisă — settlement sesiune anterioară. Actualizat: ${timeStr}`;
+        updEl.textContent=`settl ${timeStr}`;
+        updEl.title=`Piața închisă — settlement sesiune anterioară. Actualizat: ${timeStr}`;
       }
     }
 
-    // Oprește animația
-    if(btn) { btn.style.animation = ''; btn.style.color = 'var(--dim)'; }
-
-    // Dacă nu am date și mai avem retry-uri, reîncearcă după 4s
-    if(!hasData && retryCount < 3) {
-      setTimeout(() => loadMatif(retryCount + 1), 4000);
-    }
-
-  } catch(e) {
-    console.error('MATIF load error:', e);
-    const updEl = document.getElementById('matifUpdated');
-    if(updEl) updEl.textContent = 'eroare';
-    if(btn) { btn.style.animation = ''; btn.style.color = 'var(--short)'; }
-    // Retry la eroare
-    if(retryCount < 3) setTimeout(() => loadMatif(retryCount + 1), 5000);
+    if(btn){ btn.style.animation=''; btn.style.color='var(--dim)'; }
+    if(!hasData && retryCount<3) setTimeout(()=>loadMatif(retryCount+1),4000);
+  }catch(e){
+    console.error('MATIF load error:',e);
+    const updEl=document.getElementById('matifUpdated');
+    if(updEl) updEl.textContent='eroare';
+    const btn=document.getElementById('matifRefreshBtn');
+    if(btn){ btn.style.animation=''; btn.style.color='var(--short)'; }
+    if(retryCount<3) setTimeout(()=>loadMatif(retryCount+1),5000);
   }
 }
 
-
-// ── TARGET / BUDGET ───────────────────────────────────────────────────────────
-const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
-const TARGET_ROWS = [
-  { key: 'plan',     label: 'Plan (tone)',      cls: '',                     editable: true,  fmt: 'num' },
-  { key: 'realizat', label: 'Realizat (tone)',  cls: 'tgt-section-realizat', editable: true,  fmt: 'num' },
-  { key: 'adaos',    label: 'Adaos (RON)',       cls: 'tgt-section-adaos',   editable: true,  fmt: 'ron' },
-  { key: 'marja',    label: 'Marjă / tonă',      cls: 'tgt-section-marja',   editable: true,  fmt: 'ron' },
-  { key: 'diff',     label: 'Diferență (tone)',  cls: 'tgt-section-diff',    editable: false, fmt: 'diff' },
-];
-
-// targetData[year] = { plan:[12], realizat:[12], adaos:[12], marja:[12] }
-let targetData = {};
-let targetTabActive = false;
-
-function setTargetTab() {
-  targetTabActive = true;
-  document.getElementById('tab25').className = 'tab';
-  document.getElementById('tab26').className = 'tab';
-  document.getElementById('tabTarget').className = 'tab news-tab-active';
-  document.querySelector('.main').style.display = 'none';
-  document.getElementById('newsSection').style.display = 'none';
-  document.getElementById('targetSection').style.display = 'flex';
+function setTargetTab(){
+  closeAllSideTabs();
+  targetTabActive=true;
+  document.getElementById('tabTarget').className='tab news-tab-active';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('targetSection').style.display='flex';
   loadTarget();
 }
-
-function closeTargetTab() {
-  targetTabActive = false;
-  document.getElementById('tabTarget').className = 'tab';
-  document.getElementById('targetSection').style.display = 'none';
-  document.querySelector('.main').style.display = 'flex';
+function closeTargetTab(){
+  targetTabActive=false;
+  document.getElementById('tabTarget').className='tab';
+  document.getElementById('targetSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
 }
-
-async function loadTarget() {
-  const year = document.getElementById('targetYear').value;
-  if(!targetData[year]) {
-    try {
-      const res = await fetch(`/api/target/${year}`);
-      const data = await res.json();
-      if(data) {
-        targetData[year] = data;
-      } else {
-        // Default vuide
-        targetData[year] = { plan: Array(12).fill(''), realizat: Array(12).fill(''), adaos: Array(12).fill(''), marja: Array(12).fill('') };
-      }
-    } catch(e) {
-      targetData[year] = { plan: Array(12).fill(''), realizat: Array(12).fill(''), adaos: Array(12).fill(''), marja: Array(12).fill('') };
+async function loadTarget(){
+  const year=document.getElementById('targetYear').value;
+  if(!targetData[year]){
+    try{
+      const res=await fetch(`/api/target/${year}`);
+      const data=await res.json();
+      targetData[year]=data || { plan:Array(12).fill(''), realizat:Array(12).fill(''), adaos:Array(12).fill(''), marja:Array(12).fill('') };
+    }catch(e){
+      targetData[year]={ plan:Array(12).fill(''), realizat:Array(12).fill(''), adaos:Array(12).fill(''), marja:Array(12).fill('') };
     }
   }
   renderTarget();
 }
-
-async function saveTarget() {
-  const year = document.getElementById('targetYear').value;
-  // Citește valorile curente din inputs
-  TARGET_ROWS.filter(r=>r.editable).forEach(row => {
-    targetData[year][row.key] = TARGET_MONTHS.map((_, mi) => {
-      const el = document.getElementById(`tgt_${row.key}_${mi}`);
+async function saveTarget(){
+  const year=document.getElementById('targetYear').value;
+  TARGET_ROWS.filter(r=>r.editable).forEach(row=>{
+    targetData[year][row.key]=TARGET_MONTHS.map((_,mi)=>{
+      const el=document.getElementById(`tgt_${row.key}_${mi}`);
       return el ? el.value : '';
     });
   });
-  try {
-    await fetch(`/api/target/${year}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(targetData[year])
-    });
-    const s = document.getElementById('targetSaveStatus');
-    s.textContent = '✓ Salvat';
-    s.style.color = 'var(--long)';
-    setTimeout(() => { s.textContent = ''; }, 2000);
-  } catch(e) {
-    const s = document.getElementById('targetSaveStatus');
-    s.textContent = '✗ Eroare';
-    s.style.color = 'var(--short)';
+  try{
+    await fetch(`/api/target/${year}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(targetData[year])});
+    const s=document.getElementById('targetSaveStatus');
+    s.textContent='✓ Salvat';
+    s.style.color='var(--long)';
+    setTimeout(()=>{s.textContent='';},2000);
+  }catch(e){
+    const s=document.getElementById('targetSaveStatus');
+    s.textContent='✗ Eroare';
+    s.style.color='var(--short)';
   }
 }
+function renderTarget(){
+  const year=document.getElementById('targetYear').value;
+  const d=targetData[year] || {};
 
-function renderTarget() {
-  const year = document.getElementById('targetYear').value;
-  const d = targetData[year] || {};
-
-  // Header
   document.getElementById('targetHeaderRow').innerHTML =
     `<th class="tgt-th" style="text-align:left;min-width:130px;"></th>` +
-    TARGET_MONTHS.map(m => `<th class="tgt-th">${m}</th>`).join('') +
+    TARGET_MONTHS.map(m=>`<th class="tgt-th">${m}</th>`).join('') +
     `<th class="tgt-th total">Total</th>`;
 
-  // Body
-  const tbody = document.getElementById('targetBody');
-  tbody.innerHTML = TARGET_ROWS.map(row => {
-    const vals = d[row.key] || Array(12).fill('');
-
-    // Calculează diff = realizat - plan
+  const tbody=document.getElementById('targetBody');
+  tbody.innerHTML=TARGET_ROWS.map(row=>{
+    const vals=d[row.key] || Array(12).fill('');
     let cells, total;
-    if(row.key === 'diff') {
-      const plan     = d.plan     || Array(12).fill('');
-      const realizat = d.realizat || Array(12).fill('');
-      const diffs = TARGET_MONTHS.map((_, mi) => {
-        const p = parseFloat(plan[mi]) || 0;
-        const r = parseFloat(realizat[mi]) || 0;
-        return p || r ? r - p : null;
+
+    if(row.key==='diff'){
+      const plan=d.plan || Array(12).fill('');
+      const realizat=d.realizat || Array(12).fill('');
+      const diffs=TARGET_MONTHS.map((_,mi)=>{
+        const p=parseFloat(plan[mi])||0;
+        const r=parseFloat(realizat[mi])||0;
+        return p||r ? r-p : null;
       });
-      const totalPlan = (d.plan||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const totalReal = (d.realizat||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const totalDiff = totalReal - totalPlan;
-      cells = diffs.map(v => {
-        if(v === null) return `<td class="tgt-cell ${row.cls}"></td>`;
-        const cls = v >= 0 ? 'tgt-diff-pos' : 'tgt-diff-neg';
-        const sign = v > 0 ? '+' : '';
+      const totalPlan=(d.plan||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const totalReal=(d.realizat||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const totalDiff=totalReal-totalPlan;
+      cells=diffs.map(v=>{
+        if(v===null) return `<td class="tgt-cell ${row.cls}"></td>`;
+        const cls=v>=0?'tgt-diff-pos':'tgt-diff-neg';
+        const sign=v>0?'+':'';
         return `<td class="tgt-cell ${row.cls}"><span class="${cls}">${sign}${fmtN(v)}</span></td>`;
       }).join('');
-      const tcls = totalDiff >= 0 ? 'tgt-diff-pos' : 'tgt-diff-neg';
-      const tsign = totalDiff > 0 ? '+' : '';
-      total = `<td class="tgt-total"><span class="${tcls}">${totalPlan||totalReal ? tsign+fmtN(totalDiff) : ''}</span></td>`;
+      const tcls=totalDiff>=0?'tgt-diff-pos':'tgt-diff-neg';
+      const tsign=totalDiff>0?'+':'';
+      total=`<td class="tgt-total"><span class="${tcls}">${totalPlan||totalReal ? tsign+fmtN(totalDiff) : ''}</span></td>`;
     } else {
-      cells = TARGET_MONTHS.map((_, mi) => {
-        const v = vals[mi] || '';
+      cells=TARGET_MONTHS.map((_,mi)=>{
+        const v=vals[mi] || '';
         return `<td class="tgt-cell ${row.cls}">
           <input class="tgt-input" id="tgt_${row.key}_${mi}" value="${v}"
             onchange="onTargetChange('${year}','${row.key}',${mi},this.value)"
             onkeydown="if(event.key==='Tab'){event.preventDefault();focusNextTarget('${row.key}',${mi});}">
         </td>`;
       }).join('');
-      const sum = vals.reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const sumFmt = sum ? (row.fmt==='ron' ? fmtN(sum)+' RON' : fmtN(sum)) : '';
-      total = `<td class="tgt-total">${sumFmt}</td>`;
+      const sum=vals.reduce((s,v)=>s+(parseFloat(v)||0),0);
+      const sumFmt=sum ? (row.fmt==='ron' ? fmtN(sum)+' RON' : fmtN(sum)) : '';
+      total=`<td class="tgt-total">${sumFmt}</td>`;
     }
 
-    return `<tr>
-      <td class="tgt-label">${row.label}</td>
-      ${cells}
-      ${total}
-    </tr>`;
+    return `<tr><td class="tgt-label">${row.label}</td>${cells}${total}</tr>`;
   }).join('');
 }
-
-function onTargetChange(year, key, mi, val) {
+function onTargetChange(year,key,mi,val){
   if(!targetData[year]) return;
-  if(!targetData[year][key]) targetData[year][key] = Array(12).fill('');
-  targetData[year][key][mi] = val;
-  // Re-renderează doar rândul diff
+  if(!targetData[year][key]) targetData[year][key]=Array(12).fill('');
+  targetData[year][key][mi]=val;
   renderTargetDiffRow(year);
-  // Auto-save după 2s inactivitate
   clearTimeout(window._targetSaveTimer);
-  window._targetSaveTimer = setTimeout(() => saveTarget(), 2000);
+  window._targetSaveTimer=setTimeout(()=>saveTarget(),2000);
 }
-
-function renderTargetDiffRow(year) {
-  const d = targetData[year] || {};
-  const plan     = d.plan     || Array(12).fill('');
-  const realizat = d.realizat || Array(12).fill('');
-  TARGET_MONTHS.forEach((_, mi) => {
-    const p = parseFloat(plan[mi]) || 0;
-    const r = parseFloat(realizat[mi]) || 0;
-    // Update total col too
-  });
-  // Re-render tot (simplu)
-  renderTarget();
-}
-
-function importTarget(event) {
-  const file = event.target.files[0];
+function renderTargetDiffRow(year){ renderTarget(); }
+function importTarget(event){
+  const file=event.target.files[0];
   if(!file) return;
-  const year = document.getElementById('targetYear').value;
-  const s = document.getElementById('targetSaveStatus');
+  const year=document.getElementById('targetYear').value;
+  const s=document.getElementById('targetSaveStatus');
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const wb   = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-      // Caută sheet-ul potrivit (ex: "Target 2026" sau primul sheet)
-      const sheetName = wb.SheetNames.find(n => n.includes(year)) || wb.SheetNames[0];
-      const ws   = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sheetName=wb.SheetNames.find(n=>n.includes(year)) || wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false});
+      const KEY_MAP={plan:['plan','plan (tone)'], realizat:['realizat','realizat (tone)'], adaos:['adaos','adaos (ron)'], marja:['marj','marja','marjă']};
+      const imported={ plan:Array(12).fill(''), realizat:Array(12).fill(''), adaos:Array(12).fill(''), marja:Array(12).fill('') };
+      let found=0;
 
-      // rows[0] = header (gol, Ian, Feb, ... Total)
-      // rows[1..5] = Plan, Realizat, Adaos, Marjă, Diferență
-      const KEY_MAP = {
-        'plan':     ['plan','plan (tone)'],
-        'realizat': ['realizat','realizat (tone)'],
-        'adaos':    ['adaos','adaos (ron)'],
-        'marja':    ['marj','marja','marjă'],
-      };
-
-      const imported = { plan: Array(12).fill(''), realizat: Array(12).fill(''), adaos: Array(12).fill(''), marja: Array(12).fill('') };
-      let found = 0;
-
-      rows.slice(1).forEach(row => {
+      rows.slice(1).forEach(row=>{
         if(!row || !row[0]) return;
-        const rowLabel = String(row[0]).toLowerCase().trim();
-        for(const [key, aliases] of Object.entries(KEY_MAP)) {
-          if(aliases.some(a => rowLabel.includes(a))) {
-            // Coloanele 1-12 = lunile Ian-Dec (coloana 13 = Total, ignorată)
-            for(let mi = 0; mi < 12; mi++) {
-              const val = row[mi + 1];
-              imported[key][mi] = (val !== undefined && val !== null && val !== '') ? String(val) : '';
+        const rowLabel=String(row[0]).toLowerCase().trim();
+        for(const [key,aliases] of Object.entries(KEY_MAP)){
+          if(aliases.some(a=>rowLabel.includes(a))){
+            for(let mi=0; mi<12; mi++){
+              const val=row[mi+1];
+              imported[key][mi]=(val!==undefined && val!==null && val!=='') ? String(val) : '';
             }
             found++;
             break;
@@ -2477,158 +2292,337 @@ function importTarget(event) {
         }
       });
 
-      if(found === 0) {
-        s.textContent = '✗ Format nerecunoscut';
-        s.style.color = 'var(--short)';
-        setTimeout(() => { s.textContent = ''; }, 3000);
+      if(found===0){
+        s.textContent='✗ Format nerecunoscut';
+        s.style.color='var(--short)';
+        setTimeout(()=>{s.textContent='';},3000);
         return;
       }
 
-      targetData[year] = imported;
+      targetData[year]=imported;
       renderTarget();
-      // Salvează automat pe server
       saveTarget();
-      s.textContent = `✓ Importat ${found} rânduri`;
-      s.style.color = 'var(--long)';
-      setTimeout(() => { s.textContent = ''; }, 2500);
-    } catch(err) {
-      s.textContent = '✗ Eroare: ' + err.message;
-      s.style.color = 'var(--short)';
-      setTimeout(() => { s.textContent = ''; }, 3000);
+      s.textContent=`✓ Importat ${found} rânduri`;
+      s.style.color='var(--long)';
+      setTimeout(()=>{s.textContent='';},2500);
+    }catch(err){
+      s.textContent='✗ Eroare: '+err.message;
+      s.style.color='var(--short)';
+      setTimeout(()=>{s.textContent='';},3000);
     }
-    // Reset input ca să poată reimporta același fișier
-    event.target.value = '';
+    event.target.value='';
   };
   reader.readAsArrayBuffer(file);
 }
-
-function focusNextTarget(key, mi) {
-  const nextMi = mi + 1;
-  if(nextMi < 12) {
-    const el = document.getElementById(`tgt_${key}_${nextMi}`);
+function focusNextTarget(key,mi){
+  const nextMi=mi+1;
+  if(nextMi<12){
+    const el=document.getElementById(`tgt_${key}_${nextMi}`);
     if(el) el.focus();
   }
 }
+function exportTarget(){
+  const year=document.getElementById('targetYear').value;
+  const d=targetData[year] || {};
+  const plan=d.plan || Array(12).fill('');
+  const realizat=d.realizat || Array(12).fill('');
+  const adaos=d.adaos || Array(12).fill('');
+  const marja=d.marja || Array(12).fill('');
 
-function exportTarget() {
-  const year = document.getElementById('targetYear').value;
-  const d = targetData[year] || {};
+  const header=['', ...TARGET_MONTHS, 'Total'];
+  const rowPlan=['Plan (tone)', ...plan.map(v=>parseFloat(v)||''), plan.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
+  const rowReal=['Realizat (tone)', ...realizat.map(v=>parseFloat(v)||''), realizat.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
+  const rowAdaos=['Adaos (RON)', ...adaos.map(v=>parseFloat(v)||''), adaos.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
+  const rowMarja=['Marjă / tonă', ...marja.map(v=>parseFloat(v)||''), ''];
+  const rowDiff=['Diferență (tone)', ...TARGET_MONTHS.map((_,mi)=>{const p=parseFloat(plan[mi])||0; const r=parseFloat(realizat[mi])||0; return (p||r)?r-p:'';}), (()=>{const tp=plan.reduce((s,v)=>s+(parseFloat(v)||0),0); const tr=realizat.reduce((s,v)=>s+(parseFloat(v)||0),0); return (tp||tr)?tr-tp:'';})()];
 
-  const plan     = d.plan     || Array(12).fill('');
-  const realizat = d.realizat || Array(12).fill('');
-  const adaos    = d.adaos    || Array(12).fill('');
-  const marja    = d.marja    || Array(12).fill('');
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([header,rowPlan,rowReal,rowAdaos,rowMarja,rowDiff]);
+  ws['!cols']=[{wch:18}, ...Array(12).fill({wch:12}), {wch:14}];
+  ws['!freeze']={xSplit:1,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,ws,`Target ${year}`);
 
-  // Header row
-  const header = ['', ...TARGET_MONTHS, 'Total'];
-
-  // Rows
-  const rowPlan = ['Plan (tone)',
-    ...plan.map(v => parseFloat(v)||''),
-    plan.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''
-  ];
-  const rowReal = ['Realizat (tone)',
-    ...realizat.map(v => parseFloat(v)||''),
-    realizat.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''
-  ];
-  const rowAdaos = ['Adaos (RON)',
-    ...adaos.map(v => parseFloat(v)||''),
-    adaos.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''
-  ];
-  const rowMarja = ['Marjă / tonă',
-    ...marja.map(v => parseFloat(v)||''),
-    ''
-  ];
-  const rowDiff = ['Diferență (tone)',
-    ...TARGET_MONTHS.map((_, mi) => {
-      const p = parseFloat(plan[mi])||0;
-      const r = parseFloat(realizat[mi])||0;
-      return (p||r) ? r - p : '';
-    }),
-    (() => {
-      const tp = plan.reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const tr = realizat.reduce((s,v)=>s+(parseFloat(v)||0),0);
-      return (tp||tr) ? tr - tp : '';
-    })()
-  ];
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([header, rowPlan, rowReal, rowAdaos, rowMarja, rowDiff]);
-
-  // Stiluri coloane
-  ws['!cols'] = [{ wch: 18 }, ...Array(12).fill({ wch: 12 }), { wch: 14 }];
-
-  // Freeze prima coloană și primul rând
-  ws['!freeze'] = { xSplit: 1, ySplit: 1 };
-
-  XLSX.utils.book_append_sheet(wb, ws, `Target ${year}`);
-
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob  = new Blob([wbout], { type: 'application/octet-stream' });
-  const url   = URL.createObjectURL(blob);
-  const a     = document.createElement('a');
-  a.href = url;
-  a.download = `agrotex_target_${year}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`agrotex_target_${year}.xlsx`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ── METEO ─────────────────────────────────────────────────────────────────────
+function setMeteoTab(){
+  closeAllSideTabs();
+  meteoTabActive=true;
+  document.getElementById('tabMeteo').className='tab meteo-tab-active';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('meteoSection').style.display='flex';
+  if(!weatherPresets.length) loadWeatherPresets();
+  else renderWeatherPresets();
+}
+function closeMeteoTab(){
+  meteoTabActive=false;
+  document.getElementById('tabMeteo').className='tab';
+  document.getElementById('meteoSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
+}
+function formatMeteoDate(d){
+  const x=new Date(d+'T12:00:00');
+  return x.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});
+}
+function formatMeteoShortDay(d){
+  const x=new Date(d+'T12:00:00');
+  return x.toLocaleDateString('ro-RO',{weekday:'short'});
+}
+function renderWeatherPresets(){
+  const grid=document.getElementById('meteoPresetGrid');
+  if(!weatherPresets.length){
+    grid.innerHTML='<div class="meteo-empty">// nu există date meteo disponibile</div>';
+    return;
+  }
+  grid.innerHTML=weatherPresets.map((item,idx)=>{
+    if(item.error){
+      return `<div class="meteo-card"><div class="meteo-name">${escHtml(item.location.name)}</div><div class="meteo-country">${escHtml(item.location.country||'')}</div><div class="meteo-empty" style="padding:18px 0 6px;">eroare la încărcare</div></div>`;
+    }
+    const s=item.summary||{};
+    const risks=(s.risks||[]).map(r=>`<span class="meteo-risk">${escHtml(r)}</span>`).join('');
+    const days=(item.dailyForecast||[]).slice(0,7).map(d=>`
+      <div class="meteo-day">
+        <div class="meteo-day-date">${formatMeteoShortDay(d.date)}</div>
+        <div class="meteo-day-temp">${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</div>
+        <div class="meteo-day-rain">${fmtDec(d.precip||0,1)} mm</div>
+      </div>
+    `).join('');
+    return `<div class="meteo-card" onclick="selectWeatherPreset(${idx})" style="cursor:pointer;">
+      <div class="meteo-top">
+        <div>
+          <div class="meteo-name">${escHtml(item.location.name)}</div>
+          <div class="meteo-country">${escHtml(item.location.country||'')}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="meteo-temp">${fmtDec(s.currentTemp||0,0)}°</div>
+          <div class="meteo-cond">${escHtml(s.currentWeatherLabel||'—')}</div>
+        </div>
+      </div>
+      <div class="meteo-kpis">
+        <div class="meteo-kpi"><div class="meteo-kpi-l">Ploaie 7z prognoză</div><div class="meteo-kpi-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
+        <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 7 zile</div><div class="meteo-kpi-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
+        <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 30 zile</div><div class="meteo-kpi-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
+        <div class="meteo-kpi"><div class="meteo-kpi-l">De la ultima ploaie</div><div class="meteo-kpi-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
+      </div>
+      <div class="meteo-risks">${risks}</div>
+      <div class="meteo-days">${days}</div>
+    </div>`;
+  }).join('');
+}
+function renderWeatherDetail(item){
+  const box=document.getElementById('meteoDetail');
+  if(!item || item.error){
+    box.innerHTML='<div class="meteo-empty">// nu există detalii pentru această locație</div>';
+    return;
+  }
+  const s=item.summary||{};
+  const rows=(item.dailyForecast||[]).slice(0,7).map(d=>`
+    <tr>
+      <td>${formatMeteoDate(d.date)}</td>
+      <td>${formatMeteoShortDay(d.date)}</td>
+      <td>${escHtml(d.weatherLabel||'—')}</td>
+      <td>${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</td>
+      <td>${fmtDec(d.precip||0,1)} mm</td>
+      <td>${fmtDec(d.windMax||0,0)} km/h</td>
+      <td>${fmtDec(d.humidityMean||0,0)}%</td>
+    </tr>
+  `).join('');
+  box.innerHTML=`
+    <div class="meteo-detail-top">
+      <div>
+        <div class="meteo-detail-title">${escHtml(item.location.name)}</div>
+        <div class="meteo-detail-sub">${escHtml(item.location.country||'')} · ${item.location.latitude.toFixed(4)}, ${item.location.longitude.toFixed(4)} · ${escHtml(item.location.timezone||'')}</div>
+      </div>
+      <div class="meteo-badge">Actualizat: ${new Date(item.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+
+    <div class="meteo-summary-grid">
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Acum</div><div class="meteo-summary-v">${fmtDec(s.currentTemp||0,0)}°</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Umiditate</div><div class="meteo-summary-v">${fmtDec(s.currentHumidity||0,0)}%</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Vânt</div><div class="meteo-summary-v">${fmtDec(s.currentWind||0,0)} km/h</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Ploaie acum</div><div class="meteo-summary-v">${fmtDec(s.currentPrecip||0,1)} mm</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Prognoză 7 zile</div><div class="meteo-summary-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 7 zile</div><div class="meteo-summary-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 30 zile</div><div class="meteo-summary-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">De la ultima ploaie</div><div class="meteo-summary-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Minim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.minTemp7||0,0)}°</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Maxim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.maxTemp7||0,0)}°</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Vânt maxim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.maxWind7||0,0)} km/h</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Riscuri</div><div class="meteo-summary-v" style="font-size:11px;line-height:1.4">${(s.risks||[]).map(escHtml).join(', ')}</div></div>
+    </div>
+
+    <div class="meteo-table-wrap">
+      <table class="meteo-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Zi</th>
+            <th>Condiții</th>
+            <th>Temp</th>
+            <th>Precip.</th>
+            <th>Vânt max</th>
+            <th>Umid. medie</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+function selectWeatherPreset(idx){
+  weatherSelected=weatherPresets[idx];
+  renderWeatherDetail(weatherSelected);
+}
+async function loadWeatherPresets(force=false){
+  const grid=document.getElementById('meteoPresetGrid');
+  grid.innerHTML='<div class="meteo-empty">// se încarcă preseturile meteo...</div>';
+  try{
+    const res=await fetch('/api/weather/presets'+(force?'?refresh=1':''));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    weatherPresets=data.items||[];
+    renderWeatherPresets();
+    if(weatherPresets.length && !weatherSelected){
+      weatherSelected=weatherPresets[0];
+      renderWeatherDetail(weatherSelected);
+    }
+    const badge=document.getElementById('meteoUpdatedBadge');
+    badge.textContent='METEO ' + new Date(data.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    console.error('Weather presets error:',e);
+    grid.innerHTML='<div class="meteo-empty">// eroare la încărcarea meteo</div>';
+  }
+}
+function onWeatherSearchInput(){
+  clearTimeout(weatherSearchTimer);
+  const q=document.getElementById('meteoSearchInput').value.trim();
+  if(q.length<2){
+    hideWeatherSearchResults();
+    return;
+  }
+  weatherSearchTimer=setTimeout(()=>doWeatherSearch(), 350);
+}
+async function doWeatherSearch(){
+  const q=document.getElementById('meteoSearchInput').value.trim();
+  if(q.length<2){
+    hideWeatherSearchResults();
+    return;
+  }
+  try{
+    const res=await fetch('/api/weather/search?q='+encodeURIComponent(q));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    renderWeatherSearchResults(data.results||[]);
+  }catch(e){
+    console.error('Weather search error:',e);
+    renderWeatherSearchResults([]);
+  }
+}
+function renderWeatherSearchResults(results){
+  const box=document.getElementById('meteoSearchResults');
+  if(!results.length){
+    box.innerHTML='<div class="meteo-search-item"><div class="meteo-search-name">Nicio locație găsită</div></div>';
+    box.style.display='block';
+    weatherSearchOpen=true;
+    return;
+  }
+  box.innerHTML=results.map(r=>`
+    <div class="meteo-search-item" onclick='selectWeatherSearchResult(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+      <div class="meteo-search-name">${escHtml(r.name)}</div>
+      <div class="meteo-search-meta">${escHtml([r.admin1,r.admin2,r.country].filter(Boolean).join(', '))} · ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</div>
+    </div>
+  `).join('');
+  box.style.display='block';
+  weatherSearchOpen=true;
+}
+function hideWeatherSearchResults(){
+  const box=document.getElementById('meteoSearchResults');
+  box.style.display='none';
+  box.innerHTML='';
+  weatherSearchOpen=false;
+}
+async function selectWeatherSearchResult(r){
+  hideWeatherSearchResults();
+  document.getElementById('meteoSearchInput').value=[r.name,r.country].filter(Boolean).join(', ');
+  try{
+    const url='/api/weather/location?lat='+encodeURIComponent(r.latitude)+'&lon='+encodeURIComponent(r.longitude)+'&name='+encodeURIComponent(r.name)+'&country='+encodeURIComponent(r.country||'');
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    weatherSelected=data;
+    renderWeatherDetail(data);
+  }catch(e){
+    console.error('Weather location error:',e);
+  }
+}
+
+document.addEventListener('click', (e)=>{
+  const wrap=document.querySelector('.meteo-search-wrap');
+  if(wrap && !wrap.contains(e.target) && weatherSearchOpen) hideWeatherSearchResults();
+});
+
+async function syncTrades(){
+  const anyModalOpen=['modEdit','modProd','modImport','modCfo'].some(id=>{
+    const el=document.getElementById(id);
+    return el && (el.classList.contains('open') || el.style.display==='flex');
+  });
+  if(anyModalOpen) return;
+
+  try{
+    const [tRes,pRes]=await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
+    if(!tRes.ok || !pRes.ok) return;
+    const newTrades=await tRes.json();
+    const newProducts=await pRes.json();
+
+    const tradesChanged=JSON.stringify(newTrades)!==JSON.stringify(trades);
+    const productsChanged=JSON.stringify(newProducts)!==JSON.stringify(products);
+
+    if(tradesChanged || productsChanged){
+      trades=Array.isArray(newTrades)?newTrades:trades;
+      products=newProducts || products;
+      if(productsChanged){ populateProd(); populateFilterProd(); }
+      render();
+      const s=document.getElementById('syncStatus');
+      if(s){
+        s.textContent='● sync';
+        s.className='sync saved';
+        setTimeout(()=>{s.textContent='● synced';},1500);
+      }
+    }
+  }catch(e){}
+}
+
+async function bootApp(){
+  await loadAll();
+  loadFxRates();
+  loadMatif();
+  loadNews();
+  loadWeatherPresets();
+  setInterval(loadFxRates, 3*60*60*1000);
+  setInterval(loadMatif, 5*60*1000);
+  setInterval(loadNews, 15*60*1000);
+  setInterval(loadWeatherPresets, 30*60*1000);
+  setInterval(syncTrades, 60*1000);
+}
+
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
 document.getElementById('fDateEur').value=today();
 
-fetch('/api/me').then(r=>r.json()).then(d=>{
+fetch('/api/me').then(r=>r.json()).then(async d=>{
   if(d.authenticated){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='block';
-    loadAll();
-    loadFxRates();
-    loadMatif();
-    loadNews();
-    setInterval(loadFxRates, 3*60*60*1000);
-    setInterval(loadMatif,   5*60*1000);
-    setInterval(loadNews,   15*60*1000); // refresh news every 15 min
-    setInterval(syncTrades,  60*1000);   // sync trades every 60s (multi-user)
+    await bootApp();
   }
 });
-
-// ── SYNC TRADES (multi-user, 60s) ─────────────────────────────────────────────
-async function syncTrades() {
-  // Nu sincroniza dacă un modal e deschis — evită să deranjeze editarea activă
-  const anyModalOpen = ['modEdit','modProd','modImport','modCfo'].some(id => {
-    const el = document.getElementById(id);
-    return el && (el.classList.contains('open') || el.style.display === 'flex');
-  });
-  if(anyModalOpen) return;
-
-  try {
-    const [tRes, pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
-    if(!tRes.ok || !pRes.ok) return;
-
-    const newTrades   = await tRes.json();
-    const newProducts = await pRes.json();
-
-    // Compară dacă s-a schimbat ceva
-    const tradesChanged   = JSON.stringify(newTrades)   !== JSON.stringify(trades);
-    const productsChanged = JSON.stringify(newProducts) !== JSON.stringify(products);
-
-    if(tradesChanged || productsChanged) {
-      trades   = Array.isArray(newTrades) ? newTrades : trades;
-      products = newProducts || products;
-      if(productsChanged) { populateProd(); populateFilterProd(); }
-      render();
-      // Indicator vizual discret
-      const s = document.getElementById('syncStatus');
-      if(s) {
-        s.textContent = '● sync';
-        s.className = 'sync saved';
-        setTimeout(() => { s.textContent = '● synced'; }, 1500);
-      }
-    }
-  } catch(e) { /* silențios — nu deranja userul */ }
-}
 
 setInterval(()=>{
   if(document.getElementById('app').style.display!=='none'){
@@ -2636,21 +2630,21 @@ setInterval(()=>{
   }
 },30000);
 
-// ── PWA: refresh date când app revine în prim-plan ────────────────────────────
-document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible' && document.getElementById('app').style.display !== 'none') {
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && document.getElementById('app').style.display!=='none'){
     loadMatif();
-    // Refresh FX dacă au trecut mai mult de 30 min
-    if(!window._lastFxLoad || Date.now() - window._lastFxLoad > 30*60*1000) {
+    if(!window._lastFxLoad || Date.now()-window._lastFxLoad>30*60*1000){
       loadFxRates();
-      window._lastFxLoad = Date.now();
+      window._lastFxLoad=Date.now();
     }
+    if(meteoTabActive) loadWeatherPresets();
   }
 });
-window.addEventListener('pageshow', (e) => {
-  if(e.persisted && document.getElementById('app').style.display !== 'none') {
+window.addEventListener('pageshow',(e)=>{
+  if(e.persisted && document.getElementById('app').style.display!=='none'){
     loadMatif();
     loadFxRates();
+    if(meteoTabActive) loadWeatherPresets();
   }
 });
 </script>
