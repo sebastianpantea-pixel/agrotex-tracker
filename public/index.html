@@ -125,6 +125,12 @@
   .meteo-day-temp{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--bright);}
   .meteo-day-rain{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--meteo);margin-top:2px;}
 
+  .meteo-soil-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;}
+  .meteo-soil-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:7px 8px;}
+  .meteo-soil-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .meteo-soil-v{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--bright);margin-top:2px;}
+  .meteo-soil-s{font-family:'IBM Plex Mono',monospace;font-size:8px;margin-top:2px;}
+
   .meteo-detail{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;}
   .meteo-detail-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
   .meteo-detail-title{font-size:14px;font-weight:700;color:var(--bright);}
@@ -133,6 +139,7 @@
   .meteo-summary-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:9px;}
   .meteo-summary-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
   .meteo-summary-v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--bright);margin-top:4px;}
+  .meteo-summary-s{font-family:'IBM Plex Mono',monospace;font-size:8px;margin-top:3px;}
 
   .meteo-table-wrap{overflow:auto;}
   .meteo-table{width:100%;border-collapse:collapse;}
@@ -340,6 +347,7 @@
   @media(max-width:900px){
     .hdr{flex-direction:column;gap:10px;align-items:flex-start;}
     .meteo-days{grid-template-columns:repeat(4,1fr);}
+    .meteo-soil-grid{grid-template-columns:1fr;}
   }
 
   .tgt-th{padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border:1px solid var(--border);background:var(--surface2);text-align:center;white-space:nowrap;}
@@ -398,6 +406,7 @@
       <div class="fx-sep"></div>
       <div class="fx-updated" id="fxUpdated">BNR</div>
     </div>
+
     <div class="sep"></div>
 
     <div class="matif-widget" id="matifWidget">
@@ -528,6 +537,25 @@
 
   <div class="meteo-detail" id="meteoDetail">
     <div class="meteo-empty">// selectează o locație presetată sau caută una nouă</div>
+  </div>
+
+  <div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+      Legendă Meteo
+    </div>
+
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.7;color:var(--text);">
+      <div><span style="color:var(--short);font-weight:700;">&lt; 0.15</span> = scăzut</div>
+      <div><span style="color:var(--acc);font-weight:700;">0.15 – 0.25</span> = moderat</div>
+      <div><span style="color:var(--long);font-weight:700;">0.25 – 0.35</span> = bun</div>
+      <div><span style="color:var(--meteo);font-weight:700;">&gt; 0.35</span> = ridicat</div>
+
+      <div style="margin-top:8px;color:var(--dim);">superficial = reacție rapidă la ploaie și evaporare</div>
+      <div style="color:var(--dim);">mediu = rezervă activă pe termen scurt</div>
+      <div style="color:var(--dim);">adânc = rezervă mai stabilă în profil</div>
+
+      <div style="margin-top:8px;color:var(--dim);">1 mm precipitații = 1 L/mp</div>
+    </div>
   </div>
 </div>
 
@@ -898,6 +926,16 @@ function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:
 function fmtNet(n){return (n>0?'+':'') + fmtN(n);}
 function fmtP(n){return n>0?fmtN(n):'—';}
 function fmtDec(n,d=1){const x=Number(n);return Number.isFinite(x)?x.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';}
+
+function soilStatus(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return {label:'n/a', color:'var(--dim)'};
+  if(n<0.15) return {label:'scăzut', color:'var(--short)'};
+  if(n<0.25) return {label:'moderat', color:'var(--acc)'};
+  if(n<0.35) return {label:'bun', color:'var(--long)'};
+  return {label:'ridicat', color:'var(--meteo)'};
+}
+
 function closeModal(id){
   const el=document.getElementById(id);
   el.classList.remove('open');
@@ -2394,6 +2432,11 @@ function renderWeatherPresets(){
         <div class="meteo-day-rain">${fmtDec(d.precip||0,1)} mm</div>
       </div>
     `).join('');
+
+    const ss=soilStatus(s.soilSurface);
+    const sm=soilStatus(s.soilMid);
+    const sd=soilStatus(s.soilDeep);
+
     return `<div class="meteo-card" onclick="selectWeatherPreset(${idx})" style="cursor:pointer;">
       <div class="meteo-top">
         <div>
@@ -2405,12 +2448,32 @@ function renderWeatherPresets(){
           <div class="meteo-cond">${escHtml(s.currentWeatherLabel||'—')}</div>
         </div>
       </div>
+
       <div class="meteo-kpis">
         <div class="meteo-kpi"><div class="meteo-kpi-l">Ploaie 7z prognoză</div><div class="meteo-kpi-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
         <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 7 zile</div><div class="meteo-kpi-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
         <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 30 zile</div><div class="meteo-kpi-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
         <div class="meteo-kpi"><div class="meteo-kpi-l">De la ultima ploaie</div><div class="meteo-kpi-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
       </div>
+
+      <div class="meteo-soil-grid">
+        <div class="meteo-soil-box">
+          <div class="meteo-soil-l">Sol superficial</div>
+          <div class="meteo-soil-v">${fmtDec(s.soilSurface,3)}</div>
+          <div class="meteo-soil-s" style="color:${ss.color}">${ss.label}</div>
+        </div>
+        <div class="meteo-soil-box">
+          <div class="meteo-soil-l">Sol mediu</div>
+          <div class="meteo-soil-v">${fmtDec(s.soilMid,3)}</div>
+          <div class="meteo-soil-s" style="color:${sm.color}">${sm.label}</div>
+        </div>
+        <div class="meteo-soil-box">
+          <div class="meteo-soil-l">Sol adânc</div>
+          <div class="meteo-soil-v">${fmtDec(s.soilDeep,3)}</div>
+          <div class="meteo-soil-s" style="color:${sd.color}">${sd.label}</div>
+        </div>
+      </div>
+
       <div class="meteo-risks">${risks}</div>
       <div class="meteo-days">${days}</div>
     </div>`;
@@ -2423,17 +2486,30 @@ function renderWeatherDetail(item){
     return;
   }
   const s=item.summary||{};
-  const rows=(item.dailyForecast||[]).slice(0,7).map(d=>`
-    <tr>
-      <td>${formatMeteoDate(d.date)}</td>
-      <td>${formatMeteoShortDay(d.date)}</td>
-      <td>${escHtml(d.weatherLabel||'—')}</td>
-      <td>${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</td>
-      <td>${fmtDec(d.precip||0,1)} mm</td>
-      <td>${fmtDec(d.windMax||0,0)} km/h</td>
-      <td>${fmtDec(d.humidityMean||0,0)}%</td>
-    </tr>
-  `).join('');
+  const ss=soilStatus(s.soilSurface);
+  const sm=soilStatus(s.soilMid);
+  const sd=soilStatus(s.soilDeep);
+
+  const rows=(item.dailyForecast||[]).slice(0,7).map(d=>{
+    const ds=soilStatus(d.soilSurface);
+    const dm=soilStatus(d.soilMid);
+    const dd=soilStatus(d.soilDeep);
+    return `
+      <tr>
+        <td>${formatMeteoDate(d.date)}</td>
+        <td>${formatMeteoShortDay(d.date)}</td>
+        <td>${escHtml(d.weatherLabel||'—')}</td>
+        <td>${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</td>
+        <td>${fmtDec(d.precip||0,1)} mm</td>
+        <td>${fmtDec(d.windMax||0,0)} km/h</td>
+        <td>${fmtDec(d.humidityMean||0,0)}%</td>
+        <td>${fmtDec(d.soilSurface,3)} <span style="color:${ds.color};font-size:9px">(${ds.label})</span></td>
+        <td>${fmtDec(d.soilMid,3)} <span style="color:${dm.color};font-size:9px">(${dm.label})</span></td>
+        <td>${fmtDec(d.soilDeep,3)} <span style="color:${dd.color};font-size:9px">(${dd.label})</span></td>
+      </tr>
+    `;
+  }).join('');
+
   box.innerHTML=`
     <div class="meteo-detail-top">
       <div>
@@ -2452,6 +2528,23 @@ function renderWeatherDetail(item){
       <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 7 zile</div><div class="meteo-summary-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
       <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 30 zile</div><div class="meteo-summary-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
       <div class="meteo-summary-box"><div class="meteo-summary-l">De la ultima ploaie</div><div class="meteo-summary-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
+
+      <div class="meteo-summary-box">
+        <div class="meteo-summary-l">Sol superficial</div>
+        <div class="meteo-summary-v">${fmtDec(s.soilSurface,3)}</div>
+        <div class="meteo-summary-s" style="color:${ss.color}">${ss.label}</div>
+      </div>
+      <div class="meteo-summary-box">
+        <div class="meteo-summary-l">Sol mediu</div>
+        <div class="meteo-summary-v">${fmtDec(s.soilMid,3)}</div>
+        <div class="meteo-summary-s" style="color:${sm.color}">${sm.label}</div>
+      </div>
+      <div class="meteo-summary-box">
+        <div class="meteo-summary-l">Sol adânc</div>
+        <div class="meteo-summary-v">${fmtDec(s.soilDeep,3)}</div>
+        <div class="meteo-summary-s" style="color:${sd.color}">${sd.label}</div>
+      </div>
+
       <div class="meteo-summary-box"><div class="meteo-summary-l">Minim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.minTemp7||0,0)}°</div></div>
       <div class="meteo-summary-box"><div class="meteo-summary-l">Maxim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.maxTemp7||0,0)}°</div></div>
       <div class="meteo-summary-box"><div class="meteo-summary-l">Vânt maxim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.maxWind7||0,0)} km/h</div></div>
@@ -2469,6 +2562,9 @@ function renderWeatherDetail(item){
             <th>Precip.</th>
             <th>Vânt max</th>
             <th>Umid. medie</th>
+            <th>Sol sup.</th>
+            <th>Sol mediu</th>
+            <th>Sol adânc</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -2507,7 +2603,7 @@ function onWeatherSearchInput(){
     hideWeatherSearchResults();
     return;
   }
-  weatherSearchTimer=setTimeout(()=>doWeatherSearch(), 350);
+  weatherSearchTimer=setTimeout(()=>doWeatherSearch(),350);
 }
 async function doWeatherSearch(){
   const q=document.getElementById('meteoSearchInput').value.trim();
