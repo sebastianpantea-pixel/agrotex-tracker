@@ -177,11 +177,6 @@
   .basis-note{font-size:9px;color:var(--dim);opacity:.7;}
   .cmargin{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:5px 8px;border:1px solid;border-radius:3px;}
   .cmarg-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;}
-  .cbonif{display:flex;align-items:center;justify-content:space-between;margin:6px 0 4px;padding:4px 7px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:3px;}
-  .cbonif-input-wrap{display:flex;align-items:center;gap:3px;}
-  .cbonif-input{width:52px;background:rgba(255,255,255,.06);border:1px solid rgba(251,191,36,.3);border-radius:3px;color:#fbbf24;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:2px 5px;text-align:right;outline:none;}
-  .cbonif-input:focus{border-color:#fbbf24;}
-  .cbonif-pct{font-size:11px;color:#fbbf24;opacity:.7;}
   .cmets{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
   .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
   .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
@@ -197,7 +192,6 @@
   .fr2{grid-template-columns:1fr 1fr;}
   .fr3{grid-template-columns:1fr 1fr 1fr;}
   .fr4{grid-template-columns:1fr 1fr 1fr 1fr;}
-  .fr5{grid-template-columns:1fr 1fr 1fr 1fr 1fr;}
   .fg{display:flex;flex-direction:column;gap:3px;}
   .fl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
   input,select{background:var(--bg);border:1px solid var(--border2);border-radius:3px;padding:6px 8px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;width:100%;transition:border-color .2s;}
@@ -342,7 +336,6 @@
   .import-status.err{color:var(--short);border-color:var(--short-dim);background:var(--short-bg);}
 
   .footer{padding:7px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:.5px;}
-
   @media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
   @media(max-width:900px){
     .hdr{flex-direction:column;gap:10px;align-items:flex-start;}
@@ -417,7 +410,7 @@
           <div class="matif-change flat" id="mWheatChange"></div>
           <div class="matif-delivery" id="mWheatDel"></div>
         </div>
-        <div class="matif-tooltip" id="mWheatTooltip">
+        <div class="matif-tooltip">
           <div class="tt-title">🌾 Grâu MATIF (EBM)</div>
           <div id="mWheatRows"></div>
         </div>
@@ -430,7 +423,7 @@
           <div class="matif-change flat" id="mCornChange"></div>
           <div class="matif-delivery" id="mCornDel"></div>
         </div>
-        <div class="matif-tooltip" id="mCornTooltip">
+        <div class="matif-tooltip">
           <div class="tt-title">🌽 Porumb MATIF (EMA)</div>
           <div id="mCornRows"></div>
         </div>
@@ -443,7 +436,7 @@
           <div class="matif-change flat" id="mRapeChange"></div>
           <div class="matif-delivery" id="mRapeDel"></div>
         </div>
-        <div class="matif-tooltip" id="mRapeTooltip">
+        <div class="matif-tooltip">
           <div class="tt-title">🌿 Rapiță MATIF (ECO)</div>
           <div id="mRapeRows"></div>
         </div>
@@ -543,11 +536,10 @@
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
       Legendă Meteo
     </div>
-
     <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.7;color:var(--text);">
       <div><span style="color:var(--short);font-weight:700;">&lt; 0.15</span> = scăzut</div>
-      <div><span style="color:var(--acc);font-weight:700;">0.15 – 0.25</span> = moderat</div>
-      <div><span style="color:var(--long);font-weight:700;">0.25 – 0.35</span> = bun</div>
+      <div><span style="color:var(--acc);font-weight:700;">0.15 - 0.25</span> = moderat</div>
+      <div><span style="color:var(--long);font-weight:700;">0.25 - 0.35</span> = bun</div>
       <div><span style="color:var(--meteo);font-weight:700;">&gt; 0.35</span> = ridicat</div>
 
       <div style="margin-top:8px;color:var(--dim);">superficial = reacție rapidă la ploaie și evaporare</div>
@@ -925,8 +917,10 @@ function today(){return new Date().toISOString().split('T')[0];}
 function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function fmtNet(n){return (n>0?'+':'') + fmtN(n);}
 function fmtP(n){return n>0?fmtN(n):'—';}
-function fmtDec(n,d=1){const x=Number(n);return Number.isFinite(x)?x.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';}
-
+function fmtDec(n,d=1){
+  const x=Number(n);
+  return Number.isFinite(x)?x.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+}
 function soilStatus(v){
   const n=Number(v);
   if(!Number.isFinite(n)) return {label:'n/a', color:'var(--dim)'};
@@ -935,7 +929,6 @@ function soilStatus(v){
   if(n<0.35) return {label:'bun', color:'var(--long)'};
   return {label:'ridicat', color:'var(--meteo)'};
 }
-
 function closeModal(id){
   const el=document.getElementById(id);
   el.classList.remove('open');
@@ -982,7 +975,6 @@ async function doLogin(){
     document.getElementById('loginErr').style.display='block';
   }
 }
-
 async function doLogout(){
   await fetch('/api/logout',{method:'POST'});
   location.reload();
@@ -1016,7 +1008,6 @@ async function loadFxRates(){
       if(cursField && !cursField.value) cursField.value=eurRon.toFixed(4);
       return;
     }
-    throw new Error('no EUR/USD in XML');
   }catch(e){}
 
   try{
@@ -1046,7 +1037,6 @@ async function loadFxRates(){
       if(cursField && !cursField.value) cursField.value=eurRon.toFixed(4);
       return;
     }
-    throw new Error('no rates in XML');
   }catch(e){}
 
   try{
@@ -1066,7 +1056,6 @@ async function loadFxRates(){
 
   document.getElementById('fxUpdated').textContent='eroare';
 }
-
 function updateFxWidget(){
   if(!fxRates.eurRon) return;
   document.getElementById('fxEurRon').textContent=fxRates.eurRon.toFixed(4);
@@ -1793,7 +1782,6 @@ function exportDB(){
     setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
   }catch(err){alert('Eroare export: '+err.message);}
 }
-
 function downloadTemplate(){
   try{
     const headers=['produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','contract_matif','curs_eur','cost_transport','locatie','contraparte','data','nota'];
@@ -2293,11 +2281,10 @@ function onTargetChange(year,key,mi,val){
   if(!targetData[year]) return;
   if(!targetData[year][key]) targetData[year][key]=Array(12).fill('');
   targetData[year][key][mi]=val;
-  renderTargetDiffRow(year);
+  renderTarget();
   clearTimeout(window._targetSaveTimer);
   window._targetSaveTimer=setTimeout(()=>saveTarget(),2000);
 }
-function renderTargetDiffRow(year){ renderTarget(); }
 function importTarget(event){
   const file=event.target.files[0];
   if(!file) return;
@@ -2389,7 +2376,6 @@ function exportTarget(){
   setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 
-// ── METEO ─────────────────────────────────────────────────────────────────────
 function setMeteoTab(){
   closeAllSideTabs();
   meteoTabActive=true;
@@ -2413,12 +2399,14 @@ function formatMeteoShortDay(d){
   const x=new Date(d+'T12:00:00');
   return x.toLocaleDateString('ro-RO',{weekday:'short'});
 }
+
 function renderWeatherPresets(){
   const grid=document.getElementById('meteoPresetGrid');
   if(!weatherPresets.length){
     grid.innerHTML='<div class="meteo-empty">// nu există date meteo disponibile</div>';
     return;
   }
+
   grid.innerHTML=weatherPresets.map((item,idx)=>{
     if(item.error){
       return `<div class="meteo-card"><div class="meteo-name">${escHtml(item.location.name)}</div><div class="meteo-country">${escHtml(item.location.country||'')}</div><div class="meteo-empty" style="padding:18px 0 6px;">eroare la încărcare</div></div>`;
@@ -2479,6 +2467,7 @@ function renderWeatherPresets(){
     </div>`;
   }).join('');
 }
+
 function renderWeatherDetail(item){
   const box=document.getElementById('meteoDetail');
   if(!item || item.error){
@@ -2514,7 +2503,7 @@ function renderWeatherDetail(item){
     <div class="meteo-detail-top">
       <div>
         <div class="meteo-detail-title">${escHtml(item.location.name)}</div>
-        <div class="meteo-detail-sub">${escHtml(item.location.country||'')} · ${item.location.latitude.toFixed(4)}, ${item.location.longitude.toFixed(4)} · ${escHtml(item.location.timezone||'')}</div>
+        <div class="meteo-detail-sub">${escHtml(item.location.country||'')} · ${Number(item.location.latitude).toFixed(4)}, ${Number(item.location.longitude).toFixed(4)} · ${escHtml(item.location.timezone||'')}</div>
       </div>
       <div class="meteo-badge">Actualizat: ${new Date(item.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</div>
     </div>
@@ -2572,6 +2561,7 @@ function renderWeatherDetail(item){
     </div>
   `;
 }
+
 function selectWeatherPreset(idx){
   weatherSelected=weatherPresets[idx];
   renderWeatherDetail(weatherSelected);
@@ -2581,12 +2571,13 @@ async function loadWeatherPresets(force=false){
   grid.innerHTML='<div class="meteo-empty">// se încarcă preseturile meteo...</div>';
   try{
     const res=await fetch('/api/weather/presets'+(force?'?refresh=1':''));
-    if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
+    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
     weatherPresets=data.items||[];
     renderWeatherPresets();
     if(weatherPresets.length && !weatherSelected){
-      weatherSelected=weatherPresets[0];
+      const firstOk = weatherPresets.find(x => !x.error) || weatherPresets[0];
+      weatherSelected=firstOk;
       renderWeatherDetail(weatherSelected);
     }
     const badge=document.getElementById('meteoUpdatedBadge');
@@ -2613,8 +2604,8 @@ async function doWeatherSearch(){
   }
   try{
     const res=await fetch('/api/weather/search?q='+encodeURIComponent(q));
-    if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
+    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
     renderWeatherSearchResults(data.results||[]);
   }catch(e){
     console.error('Weather search error:',e);
@@ -2629,12 +2620,15 @@ function renderWeatherSearchResults(results){
     weatherSearchOpen=true;
     return;
   }
-  box.innerHTML=results.map(r=>`
-    <div class="meteo-search-item" onclick='selectWeatherSearchResult(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
-      <div class="meteo-search-name">${escHtml(r.name)}</div>
-      <div class="meteo-search-meta">${escHtml([r.admin1,r.admin2,r.country].filter(Boolean).join(', '))} · ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</div>
-    </div>
-  `).join('');
+  box.innerHTML=results.map((r, idx)=>{
+    const serialized = encodeURIComponent(JSON.stringify(r));
+    return `
+      <div class="meteo-search-item" onclick="selectWeatherSearchResult('${serialized}')">
+        <div class="meteo-search-name">${escHtml(r.name)}</div>
+        <div class="meteo-search-meta">${escHtml([r.admin1,r.admin2,r.country].filter(Boolean).join(', '))} · ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</div>
+      </div>
+    `;
+  }).join('');
   box.style.display='block';
   weatherSearchOpen=true;
 }
@@ -2644,21 +2638,22 @@ function hideWeatherSearchResults(){
   box.innerHTML='';
   weatherSearchOpen=false;
 }
-async function selectWeatherSearchResult(r){
+async function selectWeatherSearchResult(serialized){
   hideWeatherSearchResults();
+  const r = JSON.parse(decodeURIComponent(serialized));
   document.getElementById('meteoSearchInput').value=[r.name,r.country].filter(Boolean).join(', ');
   try{
-    const url='/api/weather/location?lat='+encodeURIComponent(r.latitude)+'&lon='+encodeURIComponent(r.longitude)+'&name='+encodeURIComponent(r.name)+'&country='+encodeURIComponent(r.country||'');
+    const url='/api/weather/location?lat='+encodeURIComponent(r.latitude)+'&lon='+encodeURIComponent(r.longitude)+'&name='+encodeURIComponent(r.name)+'&country='+encodeURIComponent(r.country||'')+'&timezone='+encodeURIComponent(r.timezone||'auto');
     const res=await fetch(url);
-    if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
+    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
     weatherSelected=data;
     renderWeatherDetail(data);
   }catch(e){
     console.error('Weather location error:',e);
+    document.getElementById('meteoDetail').innerHTML='<div class="meteo-empty">// eroare la încărcarea locației</div>';
   }
 }
-
 document.addEventListener('click', (e)=>{
   const wrap=document.querySelector('.meteo-search-wrap');
   if(wrap && !wrap.contains(e.target) && weatherSearchOpen) hideWeatherSearchResults();
