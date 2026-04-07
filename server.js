@@ -602,6 +602,34 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
 });
 
 // ── STATIC ────────────────────────────────────────────────────────────────────
+app.get('/api/weather/test', requireAuth, async (req, res) => {
+  const results = {};
+  // Test 1: Open-Meteo basic
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.07&longitude=21.92&timezone=Europe/Bucharest&current=temperature_2m&forecast_days=1', { signal: AbortSignal.timeout(10000) });
+    const d = await r.json();
+    results.openMeteo = { status: r.status, ok: r.ok, temp: d?.current?.temperature_2m, error: d?.error };
+  } catch(e) {
+    results.openMeteo = { error: e.message };
+  }
+  // Test 2: Geocoding
+  try {
+    const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=Oradea&count=1&format=json', { signal: AbortSignal.timeout(10000) });
+    const d = await r.json();
+    results.geocoding = { status: r.status, ok: r.ok, first: d?.results?.[0]?.name };
+  } catch(e) {
+    results.geocoding = { error: e.message };
+  }
+  // Test 3: Full preset call for Oradea
+  try {
+    const payload = await fetchWeatherForLocation({ name:'Oradea', country:'Romania', latitude:47.0722, longitude:21.9211, timezone:'Europe/Bucharest' });
+    results.fullPreset = { ok: true, currentTemp: payload?.summary?.currentTemp };
+  } catch(e) {
+    results.fullPreset = { error: e.message };
+  }
+  res.json(results);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
