@@ -151,6 +151,23 @@
   .meteo-empty{padding:36px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;}
   .meteo-badge{display:inline-block;padding:2px 6px;border-radius:10px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.08);color:var(--meteo);font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.5px;}
 
+  /* ── Water Need Table ─────────────────────────────────────────────────────── */
+  .water-need-section{margin-top:18px;}
+  .water-need-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .water-need-title span{color:var(--meteo);}
+  .water-need-table{width:100%;border-collapse:collapse;}
+  .water-need-table th{padding:6px 10px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+  .water-need-table td{padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
+  .water-need-table tbody tr:hover td{background:rgba(255,255,255,.015);}
+  .wn-crop{font-weight:700;color:var(--bright);}
+  .wn-target{color:var(--dim);font-size:10px;}
+  .wn-need{font-weight:700;}
+  .wn-prognoza{color:var(--meteo);}
+  .wn-status-ok{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(34,197,94,.12);color:var(--long);border:1px solid rgba(34,197,94,.25);}
+  .wn-status-partial{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
+  .wn-status-deficit{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(239,68,68,.12);color:var(--short);border:1px solid rgba(239,68,68,.25);}
+  .wn-note{font-size:10px;color:var(--dim);margin-top:8px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
+
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
   .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
   @media(max-width:1200px){.top-row{grid-template-columns:1fr;}}
@@ -541,11 +558,9 @@
       <div><span style="color:var(--acc);font-weight:700;">0.15 - 0.25</span> = moderat</div>
       <div><span style="color:var(--long);font-weight:700;">0.25 - 0.35</span> = bun</div>
       <div><span style="color:var(--meteo);font-weight:700;">&gt; 0.35</span> = ridicat</div>
-
       <div style="margin-top:8px;color:var(--dim);">superficial = reacție rapidă la ploaie și evaporare</div>
       <div style="color:var(--dim);">mediu = rezervă activă pe termen scurt</div>
       <div style="color:var(--dim);">adânc = rezervă mai stabilă în profil</div>
-
       <div style="margin-top:8px;color:var(--dim);">1 mm precipitații = 1 L/mp</div>
     </div>
   </div>
@@ -869,6 +884,88 @@ const PARITY_RULES={
   long:[{val:'DAP',label:'DAP',transport:false},{val:'FCA',label:'FCA',transport:true}],
   short:[{val:'FOR',label:'FOR',transport:false},{val:'FCA-V',label:'FCA',transport:false},{val:'DAP-V',label:'DAP',transport:true}],
 };
+
+// ── Water need config per crop ─────────────────────────────────────────────
+// targetSoil = soil moisture optim (m3/m3)
+// rootDepth  = adâncime rădăcini în cm
+// formula: necesar_mm = MAX(0, (targetSoil - soilCurrent) * rootDepth_cm * 10)
+// unde soilCurrent = media ponderată a celor 3 straturi (superficial 10%, mediu 60%, adânc 30%)
+const WATER_NEED_CROPS = [
+  { key:'wheat',     emoji:'🌾', name:'Grâu',             targetSoil:0.25, rootDepth:60,  note:'Faza vegetativă / înflorire' },
+  { key:'rapeseed',  emoji:'🌿', name:'Rapiță',            targetSoil:0.27, rootDepth:80,  note:'Înainte de înflorire' },
+  { key:'corn',      emoji:'🌽', name:'Porumb',            targetSoil:0.28, rootDepth:100, note:'Răsărire / vegetativ timpuriu' },
+  { key:'sunflower', emoji:'🌻', name:'Floarea-soarelui', targetSoil:0.26, rootDepth:120, note:'Răsărire / vegetativ timpuriu' },
+];
+
+function calcWaterNeed(summary) {
+  // Estimăm soil "efectiv" ca medie ponderată (superficial 10%, mediu 60%, adânc 30%)
+  const s = summary || {};
+  const surf = Number(s.soilSurface) || 0;
+  const mid  = Number(s.soilMid)     || 0;
+  const deep = Number(s.soilDeep)    || 0;
+  const hasData = (s.soilSurface !== null && s.soilMid !== null && s.soilDeep !== null);
+  const soilEff = hasData ? (surf * 0.10 + mid * 0.60 + deep * 0.30) : null;
+  const prognoza7 = Number(s.next7Precip) || 0;
+
+  return WATER_NEED_CROPS.map(crop => {
+    if (soilEff === null) return { ...crop, needMm: null, prognoza7, deficit: null, status: 'no-data' };
+    const needMm = Math.max(0, (crop.targetSoil - soilEff) * crop.rootDepth * 10);
+    const deficit = needMm - prognoza7;
+    let status;
+    if (needMm <= 0)                   status = 'ok';       // sol deja optim
+    else if (prognoza7 >= needMm)      status = 'ok';       // prognoza acoperă
+    else if (prognoza7 >= needMm * 0.5) status = 'partial'; // acoperit 50%+
+    else                               status = 'deficit';
+    return { ...crop, soilEff: Math.round(soilEff * 1000) / 1000, needMm: Math.round(needMm * 10) / 10, prognoza7: Math.round(prognoza7 * 10) / 10, deficit: Math.round(deficit * 10) / 10, status };
+  });
+}
+
+function renderWaterNeedTable(summary) {
+  const crops = calcWaterNeed(summary);
+  const statusLabel = { ok: '<span class="wn-status-ok">✓ acoperit</span>', partial: '<span class="wn-status-partial">⚠ parțial</span>', deficit: '<span class="wn-status-deficit">✗ deficit</span>', 'no-data': '<span style="color:var(--dim);font-size:9px">—</span>' };
+  const rows = crops.map(c => {
+    const needStr = c.needMm === null ? '—' : (c.needMm === 0 ? '<span style="color:var(--long)">0 mm</span>' : `<span class="wn-need" style="color:${c.status==='deficit'?'var(--short)':c.status==='partial'?'var(--acc)':'var(--long)'}">${c.needMm} mm</span>`);
+    const defStr  = c.deficit === null ? '—' : (c.deficit <= 0 ? '<span style="color:var(--long)">surplus ' + Math.abs(c.deficit) + ' mm</span>' : `<span style="color:var(--short)">-${c.deficit} mm</span>`);
+    return `<tr>
+      <td class="wn-crop">${c.emoji} ${c.name}</td>
+      <td class="wn-target">${c.targetSoil.toFixed(2)} m³/m³</td>
+      <td style="color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px">${c.rootDepth} cm</td>
+      <td>${needStr}</td>
+      <td class="wn-prognoza">${c.prognoza7} mm</td>
+      <td>${defStr}</td>
+      <td>${statusLabel[c.status]}</td>
+      <td style="color:var(--dim);font-size:10px">${c.note}</td>
+    </tr>`;
+  }).join('');
+
+  const soilNote = crops[0] && crops[0].soilEff !== undefined && crops[0].soilEff !== null
+    ? `Sol efectiv (medie ponderată 10/60/30%): <span style="color:var(--bright)">${crops[0].soilEff.toFixed(3)} m³/m³</span> &nbsp;·&nbsp; Prognoză 7 zile: <span style="color:var(--meteo)">${crops[0].prognoza7} mm</span>`
+    : 'Date sol indisponibile';
+
+  return `
+    <div class="water-need-section">
+      <div class="water-need-title">💧 Necesar Precipitații — <span>Sol Optim per Cultură</span></div>
+      <div class="meteo-table-wrap">
+        <table class="water-need-table">
+          <thead>
+            <tr>
+              <th>Cultură</th>
+              <th>Target sol</th>
+              <th>Rădăcini</th>
+              <th>Necesar (mm)</th>
+              <th>Prognoză 7z</th>
+              <th>Diferență</th>
+              <th>Status</th>
+              <th>Faza</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="wn-note">${soilNote}</div>
+    </div>
+  `;
+}
 
 let products = {};
 let trades = [];
@@ -2425,11 +2522,17 @@ function renderWeatherPresets(){
     const sm=soilStatus(s.soilMid);
     const sd=soilStatus(s.soilDeep);
 
+    // Source badge for cached DB data
+    const cacheBadge = item._source === 'cached_db'
+      ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);margin-top:3px;">⚡ date salvate · ${item._cacheNote||''}</div>`
+      : '';
+
     return `<div class="meteo-card" onclick="selectWeatherPreset(${idx})" style="cursor:pointer;">
       <div class="meteo-top">
         <div>
           <div class="meteo-name">${escHtml(item.location.name)}</div>
           <div class="meteo-country">${escHtml(item.location.country||'')}</div>
+          ${cacheBadge}
         </div>
         <div style="text-align:right;">
           <div class="meteo-temp">${fmtDec(s.currentTemp||0,0)}°</div>
@@ -2499,6 +2602,9 @@ function renderWeatherDetail(item){
     `;
   }).join('');
 
+  // ── Water need table ──────────────────────────────────────────────────────
+  const waterNeedHtml = renderWaterNeedTable(s);
+
   box.innerHTML=`
     <div class="meteo-detail-top">
       <div>
@@ -2540,24 +2646,28 @@ function renderWeatherDetail(item){
       <div class="meteo-summary-box"><div class="meteo-summary-l">Riscuri</div><div class="meteo-summary-v" style="font-size:11px;line-height:1.4">${(s.risks||[]).map(escHtml).join(', ')}</div></div>
     </div>
 
-    <div class="meteo-table-wrap">
-      <table class="meteo-table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Zi</th>
-            <th>Condiții</th>
-            <th>Temp</th>
-            <th>Precip.</th>
-            <th>Vânt max</th>
-            <th>Umid. medie</th>
-            <th>Sol sup.</th>
-            <th>Sol mediu</th>
-            <th>Sol adânc</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+    ${waterNeedHtml}
+
+    <div style="margin-top:16px;">
+      <div class="meteo-table-wrap">
+        <table class="meteo-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Zi</th>
+              <th>Condiții</th>
+              <th>Temp</th>
+              <th>Precip.</th>
+              <th>Vânt max</th>
+              <th>Umid. medie</th>
+              <th>Sol sup.</th>
+              <th>Sol mediu</th>
+              <th>Sol adânc</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>
   `;
 }
@@ -2576,7 +2686,7 @@ async function loadWeatherPresets(force=false){
     weatherPresets=data.items||[];
     renderWeatherPresets();
     if(weatherPresets.length && !weatherSelected){
-      const firstOk = weatherPresets.find(x => !x.error) || weatherPresets[0];
+      const firstOk = weatherPresets.find(x => !x.error && x.summary) || weatherPresets[0];
       weatherSelected=firstOk;
       renderWeatherDetail(weatherSelected);
     }
