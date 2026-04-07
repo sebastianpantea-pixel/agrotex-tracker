@@ -31,6 +31,11 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(year)
   );
+  CREATE TABLE IF NOT EXISTS weather_cache (
+    location_name TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
@@ -424,8 +429,28 @@ const WEATHER_PRESET_LOCATIONS = [
   { name: 'Săcueni', country: 'Romania', latitude: 47.3500, longitude: 22.1000, timezone: 'Europe/Bucharest' },
 ];
 
-let weatherPresetCache = { data: null, ts: 0 };
-const WEATHER_PRESET_TTL = 30 * 60 * 1000;
+// In-memory cache pentru presets — TTL 6 ore (fetch rar, nu la fiecare request)
+// Datele persistente sunt în DB — fallback dacă fetch eșuează
+const WEATHER_PRESET_TTL = 6 * 60 * 60 * 1000; // 6 ore
+let weatherPresetMemCache = { ts: 0, items: null };
+
+// ── DB helpers pentru weather cache ──────────────────────────────────────────
+function dbGetWeatherCache(locationName) {
+  const row = db.prepare('SELECT data, updated_at FROM weather_cache WHERE location_name = ?').get(locationName);
+  if (!row) return null;
+  try {
+    return { ...JSON.parse(row.data), _dbUpdatedAt: row.updated_at };
+  } catch {
+    return null;
+  }
+}
+
+function dbSetWeatherCache(locationName, payload) {
+  db.prepare(`
+    INSERT INTO weather_cache (location_name, data, updated_at) VALUES (?, ?, datetime('now'))
+    ON CONFLICT(location_name) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+  `).run(locationName, JSON.stringify(payload));
+}
 
 function round2(n) {
   const x = Number(n);
@@ -690,51 +715,99 @@ async function fetchWeatherForLocation(location) {
   });
 }
 
+// ── /api/weather/presets — cu cache persistent în DB ─────────────────────────
+// Logică:
+//   1. Dacă memory cache e valid (< TTL 6h) și nu e forțat refresh → returnează din memorie
+//   2. Altfel: încearcă să fetch-uiască fiecare locație individual
+//      - Dacă fetch reușit → salvează în DB, actualizează memory cache
+//      - Dacă fetch eșuat  → ia datele din DB (ultima valoare bună)
+//   3. Răspunsul indică per-item dacă e "fresh" sau "cached_db"
+
 app.get('/api/weather/presets', requireAuth, async (req, res) => {
   try {
     const forceRefresh = req.query.refresh === '1';
     const now = Date.now();
 
-    if (!forceRefresh && weatherPresetCache.data && (now - weatherPresetCache.ts) < WEATHER_PRESET_TTL) {
+    // Servim din memory cache dacă e valid și nu e forced refresh
+    if (!forceRefresh && weatherPresetMemCache.items && (now - weatherPresetMemCache.ts) < WEATHER_PRESET_TTL) {
       return res.json({
-        ...weatherPresetCache.data,
+        items: weatherPresetMemCache.items,
+        fetchedAt: new Date(weatherPresetMemCache.ts).toISOString(),
         cached: true,
-        age: Math.round((now - weatherPresetCache.ts) / 1000),
+        age: Math.round((now - weatherPresetMemCache.ts) / 1000),
       });
     }
 
+    // Fetch fiecare locație individual — eșecul uneia nu afectează celelalte
     const results = await Promise.allSettled(
       WEATHER_PRESET_LOCATIONS.map(async (location) => {
         try {
-          return await fetchWeatherForLocation(location);
-        } catch (e) {
+          const fresh = await fetchWeatherForLocation(location);
+          // Salvează în DB pentru fallback viitor
+          dbSetWeatherCache(location.name, fresh);
+          return { ...fresh, _source: 'fresh' };
+        } catch (err) {
+          console.warn(`Weather fetch failed for ${location.name}: ${err.message}`);
+          // Încearcă fallback din DB
+          const cached = dbGetWeatherCache(location.name);
+          if (cached) {
+            return { ...cached, _source: 'cached_db', _cacheNote: `Date din ${cached._dbUpdatedAt || 'DB'}` };
+          }
+          // Nimic în DB — returnează structură minimă cu eroare
           return {
             location,
-            error: e.message,
+            summary: null,
+            dailyForecast: [],
             fetchedAt: new Date().toISOString(),
+            _source: 'error',
+            _error: err.message,
           };
         }
       })
     );
 
-    const items = results.map(r => r.status === 'fulfilled' ? r.value : ({
-      location: { name: 'Necunoscut', country: '' },
-      error: r.reason?.message || 'Unknown error',
-      fetchedAt: new Date().toISOString(),
-    }));
+    const items = results.map(r =>
+      r.status === 'fulfilled' ? r.value : {
+        location: { name: 'Necunoscut', country: '' },
+        summary: null,
+        dailyForecast: [],
+        fetchedAt: new Date().toISOString(),
+        _source: 'error',
+        _error: r.reason?.message || 'Unknown error',
+      }
+    );
 
-    const payload = {
+    // Actualizează memory cache doar dacă cel puțin o locație a primit date fresh
+    const hasFresh = items.some(i => i._source === 'fresh');
+    if (hasFresh || !weatherPresetMemCache.items) {
+      weatherPresetMemCache = { ts: now, items };
+    }
+
+    res.json({
       items,
       fetchedAt: new Date().toISOString(),
       cached: false,
       age: 0,
-    };
-
-    weatherPresetCache = { data: payload, ts: now };
-    res.json(payload);
+    });
   } catch (err) {
     console.error('Weather presets error:', err);
-    res.status(500).json({ error: err.message });
+    // Ultimă șansă: returnează tot din DB
+    try {
+      const items = WEATHER_PRESET_LOCATIONS.map(loc => {
+        const cached = dbGetWeatherCache(loc.name);
+        return cached || {
+          location: loc,
+          summary: null,
+          dailyForecast: [],
+          fetchedAt: new Date().toISOString(),
+          _source: 'error',
+          _error: 'Server error + no DB cache',
+        };
+      });
+      res.json({ items, fetchedAt: new Date().toISOString(), cached: true, age: -1 });
+    } catch (dbErr) {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
