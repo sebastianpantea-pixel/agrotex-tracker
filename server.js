@@ -415,7 +415,7 @@ app.get('/api/news/test', requireAuth, async (req, res) => {
   res.json(results.map(r => r.value || r.reason));
 });
 
-// ── WEATHER / OPEN-METEO ──────────────────────────────────────────────────────
+// ── WEATHER / OPEN-METEO V3 + SOIL MOISTURE FROM HOURLY ─────────────────────
 const WEATHER_PRESET_LOCATIONS = [
   { name: 'Oradea', country: 'Romania', latitude: 47.0722, longitude: 21.9211, timezone: 'Europe/Bucharest' },
   { name: 'Apa', country: 'Romania', latitude: 47.7667, longitude: 23.1833, timezone: 'Europe/Bucharest' },
@@ -497,7 +497,6 @@ function buildRiskFlags({ daily, current }) {
   if (Number.isFinite(maxWind) && maxWind >= 45) risks.push('vânt puternic');
   if (Number.isFinite(maxRain) && maxRain >= 20) risks.push('ploaie semnificativă');
   if (Number.isFinite(currentTemp) && currentTemp >= 32) risks.push('stress termic');
-
   return risks;
 }
 
@@ -505,7 +504,9 @@ function daysSinceLastMeaningfulRain(pastDaily) {
   if (!pastDaily || !Array.isArray(pastDaily.precipitation_sum)) return null;
   for (let i = pastDaily.precipitation_sum.length - 1; i >= 0; i--) {
     const mm = Number(pastDaily.precipitation_sum[i] || 0);
-    if (mm >= 0.5) return pastDaily.precipitation_sum.length - 1 - i;
+    if (mm >= 0.5) {
+      return pastDaily.precipitation_sum.length - 1 - i;
+    }
   }
   return null;
 }
@@ -614,27 +615,6 @@ function buildWeatherPayload(location, raw) {
   };
 }
 
-async function fetchJsonWithDebug(url, label) {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'AgrotexTracker/1.0' },
-    signal: AbortSignal.timeout(15000),
-  });
-
-  const text = await res.text();
-  let json = null;
-  try {
-    json = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`${label} invalid JSON, status=${res.status}, body=${text.slice(0, 400)}`);
-  }
-
-  if (!res.ok) {
-    throw new Error(`${label} HTTP ${res.status}, body=${text.slice(0, 400)}`);
-  }
-
-  return json;
-}
-
 async function fetchWeatherForLocation(location) {
   const params = new URLSearchParams({
     latitude: String(location.latitude),
@@ -667,7 +647,12 @@ async function fetchWeatherForLocation(location) {
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
-  const raw = await fetchJsonWithDebug(url, `Open-Meteo forecast ${location.name}`);
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'AgrotexTracker/1.0' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
+  const raw = await res.json();
 
   const allDates = raw.daily?.time || [];
   const today = new Date();
@@ -721,10 +706,8 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
     const results = await Promise.allSettled(
       WEATHER_PRESET_LOCATIONS.map(async (location) => {
         try {
-          const data = await fetchWeatherForLocation(location);
-          return data;
+          return await fetchWeatherForLocation(location);
         } catch (e) {
-          console.error(`Weather location failed: ${location.name}`, e);
           return {
             location,
             error: e.message,
@@ -761,7 +744,12 @@ app.get('/api/weather/search', requireAuth, async (req, res) => {
     if (!q || q.length < 2) return res.json({ results: [] });
 
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=ro&format=json`;
-    const data = await fetchJsonWithDebug(url, 'Open-Meteo geocoding');
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'AgrotexTracker/1.0' },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) throw new Error(`Geocoding HTTP ${r.status}`);
+    const data = await r.json();
 
     const results = (data.results || []).map(item => ({
       name: item.name,
@@ -804,50 +792,6 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Weather location error:', err);
     res.status(500).json({ error: err.message });
-  }
-});
-
-// ── DEBUG WEATHER ─────────────────────────────────────────────────────────────
-app.get('/api/weather/debug', requireAuth, async (req, res) => {
-  try {
-    const testUrl = 'https://api.open-meteo.com/v1/forecast?latitude=47.0722&longitude=21.9211&timezone=Europe%2FBucharest&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&hourly=soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm&past_days=30&forecast_days=7';
-
-    const r = await fetch(testUrl, {
-      headers: { 'User-Agent': 'AgrotexTracker/1.0' },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    const text = await r.text();
-
-    res.json({
-      ok: r.ok,
-      status: r.status,
-      preview: text.slice(0, 1200)
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: err.message,
-      stack: err.stack
-    });
-  }
-});
-
-app.get('/api/weather/debug/preset', requireAuth, async (req, res) => {
-  try {
-    const name = String(req.query.name || 'Oradea').toLowerCase();
-    const location = WEATHER_PRESET_LOCATIONS.find(x => x.name.toLowerCase() === name) || WEATHER_PRESET_LOCATIONS[0];
-    const payload = await fetchWeatherForLocation(location);
-    res.json({
-      location,
-      summary: payload.summary,
-      forecastCount: payload.dailyForecast?.length || 0,
-      firstForecast: payload.dailyForecast?.[0] || null
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: err.message,
-      stack: err.stack
-    });
   }
 });
 
