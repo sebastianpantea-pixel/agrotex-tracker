@@ -1231,7 +1231,7 @@ async function loadAll(){
   populateFilterProd();
   onFormChange();
   loadNotes();
-  loadLogistics();
+  await loadLogistics();
   render();
 }
 
@@ -1792,13 +1792,29 @@ function normalizeText(str){
     .toLowerCase()
     .trim();
 }
-function loadLogistics(){
+async function loadLogistics(){
   try{
-    logisticsContracts = JSON.parse(localStorage.getItem('agrotex_logistics_v2') || '[]');
+    const res = await fetch('/api/logistics/contracts');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    logisticsContracts = Array.isArray(data) ? data : [];
+
+    if(logisticsContracts.length===0){
+      const localRaw = localStorage.getItem('agrotex_logistics_v2');
+      const localData = localRaw ? JSON.parse(localRaw) : [];
+      if(Array.isArray(localData) && localData.length){
+        await fetch('/api/logistics/contracts/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contracts:localData, replace:true})});
+        const res2 = await fetch('/api/logistics/contracts');
+        logisticsContracts = res2.ok ? await res2.json() : localData;
+      }
+    }
   }catch(e){
+    console.error('Logistics load error:', e);
     logisticsContracts = [];
   }
   migrateLogisticsData();
+  const badge=document.getElementById('bLogistics');
+  if(badge) badge.textContent=logisticsContracts.length;
 }
 function migrateLogisticsData(){
   logisticsContracts.forEach(c=>{
@@ -1833,10 +1849,35 @@ function migrateLogisticsData(){
     if(c.problem === undefined) c.problem = c.status==='problem';
   });
 }
-function saveLogistics(){
-  localStorage.setItem('agrotex_logistics_v2', JSON.stringify(logisticsContracts));
+async function saveLogistics(contract=null){
   const badge=document.getElementById('bLogistics');
   if(badge) badge.textContent=logisticsContracts.length;
+  const c = contract || getLogContract(selectedLogisticsId);
+  if(!c) return;
+  try{
+    const payload = {...c, source_trade_id:c.source_trade_id || c.tradeId || null};
+    const res = await fetch('/api/logistics/contracts/'+c.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+  }catch(e){
+    console.error('Logistics save error:', e);
+    setSyncStatus('error','● logistics error');
+  }
+}
+async function apiCreateLogisticsContract(contract){
+  const payload = {...contract, source_trade_id:contract.tradeId || contract.source_trade_id || null};
+  delete payload.id;
+  const res = await fetch('/api/logistics/contracts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const data = await res.json();
+  return data.id;
+}
+async function apiDeleteLogisticsContract(id){
+  const res = await fetch('/api/logistics/contracts/'+id,{method:'DELETE'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+}
+async function apiReplaceLogisticsContracts(contracts){
+  const res = await fetch('/api/logistics/contracts/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contracts, replace:true})});
+  if(!res.ok) throw new Error('HTTP '+res.status);
 }
 function getNextMonthOptions(count=12){
   const out=[];
@@ -1939,7 +1980,7 @@ function populateLogisticsSourceTrades(){
     </div>`;
   }).join('');
 }
-function createLogisticsFromTrade(){
+async function createLogisticsFromTrade(){
   const tradeId=document.getElementById('logSelectedTradeId').value;
   if(!tradeId){alert('Selectează o tranzacție sursă din lista de rezultate.');return;}
   const t=trades.find(x=>String(x.id)===String(tradeId));
@@ -1975,14 +2016,21 @@ function createLogisticsFromTrade(){
     createdAt:new Date().toISOString()
   };
 
-  logisticsContracts.unshift(contract);
-  selectedLogisticsId=contract.id;
-  document.getElementById('logSelectedTradeId').value='';
-  document.getElementById('logSourceSearch').value='';
-  saveLogistics();
-  populateLogisticsSourceTrades();
-  renderLogistics();
-  render();
+  try{
+    const newId = await apiCreateLogisticsContract(contract);
+    contract.id = newId;
+    contract.source_trade_id = t.id;
+    logisticsContracts.unshift(contract);
+    selectedLogisticsId=contract.id;
+    document.getElementById('logSelectedTradeId').value='';
+    document.getElementById('logSourceSearch').value='';
+    populateLogisticsSourceTrades();
+    renderLogistics();
+    render();
+  }catch(e){
+    console.error('Create logistics error:', e);
+    alert('Eroare la salvarea contractului logistic pe server.');
+  }
 }
 function hasLogisticsForTrade(tradeId){
   return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId));
@@ -2500,15 +2548,22 @@ function deleteInvoice(i){
   saveLogistics();
   renderLogistics();
 }
-function deleteSelectedLogistics(){
+async function deleteSelectedLogistics(){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
   if(!confirm('Ștergi contractul logistic selectat?')) return;
-  logisticsContracts=logisticsContracts.filter(x=>String(x.id)!==String(selectedLogisticsId));
-  selectedLogisticsId=logisticsContracts[0]?.id || null;
-  saveLogistics();
-  renderLogistics();
-  render();
+  try{
+    await apiDeleteLogisticsContract(selectedLogisticsId);
+    logisticsContracts=logisticsContracts.filter(x=>String(x.id)!==String(selectedLogisticsId));
+    selectedLogisticsId=logisticsContracts[0]?.id || null;
+    const badge=document.getElementById('bLogistics');
+    if(badge) badge.textContent=logisticsContracts.length;
+    renderLogistics();
+    render();
+  }catch(e){
+    console.error('Delete logistics error:', e);
+    alert('Eroare la ștergerea contractului logistic de pe server.');
+  }
 }
 function exportLogistics(){
   const wb=XLSX.utils.book_new();
@@ -2557,7 +2612,7 @@ function importLogistics(event){
   const file=event.target.files[0];
   if(!file) return;
   const reader=new FileReader();
-  reader.onload=function(e){
+  reader.onload=async function(e){
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
       const sheetContracts=wb.Sheets['Contracte'];
@@ -2617,13 +2672,12 @@ function importLogistics(event){
         });
       });
 
-      logisticsContracts=imported;
-      migrateLogisticsData();
+      await apiReplaceLogisticsContracts(imported);
+      await loadLogistics();
       selectedLogisticsId=logisticsContracts[0]?.id || null;
-      saveLogistics();
       renderLogistics();
       render();
-      alert(`Import logistică reușit: ${logisticsContracts.length} contracte.`);
+      alert('Import logistică reușit: '+logisticsContracts.length+' contracte.');
     }catch(err){
       alert('Eroare import logistică: '+err.message);
     }
@@ -3403,15 +3457,19 @@ async function syncTrades(){
   });
   if(anyModalOpen) return;
   try{
-    const [tRes,pRes]=await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
-    if(!tRes.ok || !pRes.ok) return;
+    const [tRes,pRes,lRes]=await Promise.all([fetch('/api/trades'), fetch('/api/products'), fetch('/api/logistics/contracts')]);
+    if(!tRes.ok || !pRes.ok || !lRes.ok) return;
     const newTrades=await tRes.json();
     const newProducts=await pRes.json();
+    const newLogistics=await lRes.json();
     const tradesChanged=JSON.stringify(newTrades)!==JSON.stringify(trades);
     const productsChanged=JSON.stringify(newProducts)!==JSON.stringify(products);
-    if(tradesChanged || productsChanged){
+    const logisticsChanged=JSON.stringify(newLogistics)!==JSON.stringify(logisticsContracts);
+    if(tradesChanged || productsChanged || logisticsChanged){
       trades=Array.isArray(newTrades)?newTrades:trades;
       products=newProducts || products;
+      logisticsContracts=Array.isArray(newLogistics)?newLogistics:logisticsContracts;
+      migrateLogisticsData();
       if(productsChanged){ populateProd(); populateFilterProd(); }
       render();
       const s=document.getElementById('syncStatus');
