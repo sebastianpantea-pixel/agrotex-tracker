@@ -1395,35 +1395,73 @@ async function deleteTrade(id){
 
 function getPos(cropFilter){
   const pos={};
-  Object.keys(products).forEach(k=>{pos[k]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};});
+  Object.keys(products).forEach(k=>{
+    pos[k]={
+      long:0, shortFix:0, shortBasis:0, net:0,
+      buyQ:0, sellQ:0, buyV:0, sellV:0, sellVfca:0, sellQfca:0,
+      buyVbonif:0, buyQbonif:0, sellVbonif:0, sellQbonif:0
+    };
+  });
+
   trades.filter(t=>!cropFilter || t.crop===cropFilter).forEach(t=>{
-    if(!pos[t.product]) pos[t.product]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};
+    if(!pos[t.product]){
+      pos[t.product]={
+        long:0, shortFix:0, shortBasis:0, net:0,
+        buyQ:0, sellQ:0, buyV:0, sellV:0, sellVfca:0, sellQfca:0,
+        buyVbonif:0, buyQbonif:0, sellVbonif:0, sellQbonif:0
+      };
+    }
+
+    const qty=Number(t.qty)||0;
+    const price=Number(t.price)||0;
+    const bonif=Number(t.bonif)||0;
+    const mult=1+(bonif/100);
+
     if(t.dir==='long'){
-      pos[t.product].long+=Number(t.qty)||0;
-      pos[t.product].buyQ+=Number(t.qty)||0;
-      if(t.ptype==='fix') pos[t.product].buyV+=(Number(t.qty)||0)*(Number(t.price)||0);
+      pos[t.product].long+=qty;
+      pos[t.product].buyQ+=qty;
+
+      if(t.ptype==='fix'){
+        pos[t.product].buyV+=qty*price;
+
+        if(bonif>0){
+          pos[t.product].buyVbonif+=qty*(price*mult);
+          pos[t.product].buyQbonif+=qty;
+        }
+      }
     } else {
       if(t.ptype==='basis'){
-        pos[t.product].shortBasis+=Number(t.qty)||0;
+        pos[t.product].shortBasis+=qty;
       } else {
-        pos[t.product].shortFix+=Number(t.qty)||0;
-        pos[t.product].sellQ+=Number(t.qty)||0;
-        pos[t.product].sellV+=(Number(t.qty)||0)*(Number(t.price)||0);
+        pos[t.product].shortFix+=qty;
+        pos[t.product].sellQ+=qty;
+        pos[t.product].sellV+=qty*price;
+
         const isDap=t.parity==='DAP-V'||t.parity==='DAP';
         const trsp=Number(t.transport)||0;
-        const priceFca=isDap&&trsp>0?(Number(t.price)||0)-trsp:(Number(t.price)||0);
-        pos[t.product].sellVfca+=(Number(t.qty)||0)*priceFca;
-        pos[t.product].sellQfca+=Number(t.qty)||0;
+        const priceFca=isDap&&trsp>0?price-trsp:price;
+        pos[t.product].sellVfca+=qty*priceFca;
+        pos[t.product].sellQfca+=qty;
+
+        if(bonif>0){
+          const priceFcaBonif=isDap&&trsp>0?(price*mult)-trsp:price*mult;
+          pos[t.product].sellVbonif+=qty*priceFcaBonif;
+          pos[t.product].sellQbonif+=qty;
+        }
       }
     }
   });
+
   Object.keys(pos).forEach(k=>{
     pos[k].short=pos[k].shortFix;
     pos[k].net=pos[k].long-pos[k].shortFix;
     pos[k].avgBuy=pos[k].buyQ>0?pos[k].buyV/pos[k].buyQ:0;
     pos[k].avgSell=pos[k].sellQ>0?pos[k].sellV/pos[k].sellQ:0;
     pos[k].avgSellFca=pos[k].sellQfca>0?pos[k].sellVfca/pos[k].sellQfca:0;
+    pos[k].avgBuyBonif=pos[k].buyQbonif>0?pos[k].buyVbonif/pos[k].buyQbonif:0;
+    pos[k].avgSellBonif=pos[k].sellQbonif>0?pos[k].sellVbonif/pos[k].sellQbonif:0;
   });
+
   return pos;
 }
 
@@ -1532,8 +1570,8 @@ function render(){
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
     const mb=Math.max(p.long,p.shortFix||p.short,1);
     const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
-    const avgBuy=p.avgBuy||0;
-    const avgSell=p.avgSellFca>0?p.avgSellFca:(p.avgSell||0);
+    const avgBuy=p.avgBuyBonif>0?p.avgBuyBonif:(p.avgBuy||0);
+    const avgSell=p.avgSellBonif>0?p.avgSellBonif:(p.avgSellFca>0?p.avgSellFca:(p.avgSell||0));
     const margin=(avgBuy>0&&avgSell>0)?avgSell-avgBuy:null;
     const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
     const marginSign=margin===null?'':margin>=0?'+':'';
