@@ -168,14 +168,26 @@
   .wn-status-deficit{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(239,68,68,.12);color:var(--short);border:1px solid rgba(239,68,68,.25);}
   .wn-note{font-size:10px;color:var(--dim);margin-top:8px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
 
-  /* Logistics V3 */
+  /* Logistics V4 */
   #logisticsSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
-  .log-grid{display:grid;grid-template-columns:410px 1fr;gap:14px;align-items:start;}
+  .log-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
+  .log-month-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .log-month-card.current{border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.045);}
+  .log-month-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .log-month-row{display:flex;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;border-top:1px solid var(--border);padding-top:6px;}
+  .log-month-label{color:var(--dim);}
+  .log-month-value{font-weight:900;color:var(--bright);text-align:right;}
+  .log-month-value.pickup{color:var(--old);}
+  .log-month-value.deliver{color:var(--new);}
+  .log-month-value.money{color:var(--acc);}
+  .log-month-value.paid{color:var(--long);}
+  .log-month-value.rest{color:var(--short);}
+  .log-grid{display:grid;grid-template-columns:430px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
   .log-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
   .log-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
   .log-muted{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.5;}
-  .log-search-results{display:flex;flex-direction:column;gap:6px;max-height:250px;overflow:auto;padding-right:2px;}
+  .log-search-results{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;padding-right:2px;}
   .log-search-results::-webkit-scrollbar,.log-list::-webkit-scrollbar{width:3px;}
   .log-search-results::-webkit-scrollbar-track,.log-list::-webkit-scrollbar-track{background:var(--bg);}
   .log-search-results::-webkit-scrollbar-thumb,.log-list::-webkit-scrollbar-thumb{background:var(--border2);}
@@ -196,8 +208,10 @@
   .log-badge.problem{color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);}
   .log-badge.warn{color:var(--short);border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.10);}
   .log-badge.info{color:var(--meteo);border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.08);}
-  .log-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-  @media(max-width:900px){.log-kpis{grid-template-columns:repeat(2,1fr);}}
+  .log-badge.pickup{color:var(--old);border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.08);}
+  .log-badge.delivery{color:var(--new);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.08);}
+  .log-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  @media(max-width:1000px){.log-kpis{grid-template-columns:repeat(2,1fr);}}
   .log-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:9px;}
   .log-kpi-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
   .log-kpi-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:800;color:var(--bright);margin-top:3px;}
@@ -215,13 +229,10 @@
   .btn-log:hover{background:rgba(245,158,11,.16);}
   .btn-log-green{color:var(--long);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08);}
   .btn-log-red{color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);}
-  .log-plan-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;}
-  .log-plan-row{display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;align-items:center;}
-  @media(max-width:900px){.log-plan-row{grid-template-columns:1fr;}}
-  .log-plan-month{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;color:var(--bright);}
-  .log-plan-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;color:var(--acc);}
-  .log-plan-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
   .log-warning-line{padding:7px 9px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);border-radius:4px;color:var(--short);font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
+  .log-ok-line{padding:7px 9px;border:1px solid rgba(34,197,94,.30);background:rgba(34,197,94,.07);border-radius:4px;color:var(--long);font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
+  .log-progress{height:5px;background:var(--surface2);border-radius:4px;overflow:hidden;border:1px solid var(--border);margin-top:6px;}
+  .log-progress-inner{height:100%;background:var(--acc);}
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
   .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
   @media(max-width:1200px){.top-row{grid-template-columns:1fr;}}
@@ -625,16 +636,18 @@
   <div class="meteo-toolbar">
     <button class="news-back-btn" onclick="closeLogisticsTab()">← Înapoi</button>
     <span class="meteo-badge" style="color:var(--acc);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);">LOGISTICĂ</span>
-    <span class="log-muted">Separat de poziție. Citește tranzacțiile, dar nu modifică long/short.</span>
+    <span class="log-muted">Separat de poziție. Achizițiile sunt marfă de ridicat, vânzările sunt marfă de livrat.</span>
     <button class="btn-import" style="margin-left:auto;" onclick="document.getElementById('logisticsImportFile').click()">⬆ Import Logistică</button>
     <button class="btn-import" onclick="exportLogistics()">⬇ Export Logistică</button>
     <input type="file" id="logisticsImportFile" accept=".xlsx,.xls" style="display:none" onchange="importLogistics(event)">
   </div>
 
+  <div class="log-dashboard" id="logisticsDashboard"></div>
+
   <div class="log-grid">
     <div class="log-card">
       <div class="log-title">Creează contract logistic</div>
-      <div class="log-muted">Caută tranzacția sursă. Rezultatele apar direct sub câmpul de căutare, inclusiv fără diacritice.</div>
+      <div class="log-muted">Caută tranzacția sursă. Sistemul detectează automat dacă este marfă de ridicat sau de livrat.</div>
 
       <div class="fg">
         <label class="fl">Caută contract / tranzacție</label>
@@ -643,37 +656,41 @@
       <div class="log-search-results" id="logSourceResults"></div>
       <input type="hidden" id="logSelectedTradeId">
 
-      <div class="fr fr2">
+      <div class="fr fr2" id="logCreateTransportRow" style="display:none;">
         <div class="fg">
-          <label class="fl">Transport</label>
+          <label class="fl">Transport pentru vânzare</label>
           <select id="logTransportMode">
             <option value="truck">Camion</option>
             <option value="train">Tren</option>
           </select>
         </div>
         <div class="fg">
-          <label class="fl">Status</label>
-          <select id="logInitialStatus">
-            <option value="open">Deschis</option>
-            <option value="partial">Parțial</option>
-            <option value="closed">Închis</option>
-            <option value="problem">Problemă</option>
-          </select>
+          <label class="fl">Flux detectat</label>
+          <input id="logDetectedFlow" type="text" readonly>
         </div>
       </div>
 
       <div class="fr fr2">
         <div class="fg">
-          <label class="fl">Livrare de la</label>
-          <input id="logCreateStart" type="date">
+          <label class="fl">Perioadă de la</label>
+          <select id="logCreateStartMonth"></select>
         </div>
         <div class="fg">
-          <label class="fl">Livrare până la</label>
-          <input id="logCreateEnd" type="date">
+          <label class="fl">Perioadă până la</label>
+          <select id="logCreateEndMonth"></select>
         </div>
       </div>
 
       <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
+
+      <div class="log-section-title">Filtre</div>
+      <div class="note-filter-row" style="padding:0;background:transparent;border-bottom:none;flex-wrap:wrap;">
+        <button class="nf-btn active" id="logFilterAll" onclick="setLogisticsFilter('all')">Toate</button>
+        <button class="nf-btn" id="logFilterPickup" onclick="setLogisticsFilter('pickup')">De ridicat</button>
+        <button class="nf-btn" id="logFilterDelivery" onclick="setLogisticsFilter('delivery')">De livrat</button>
+        <button class="nf-btn" id="logFilterProblem" onclick="setLogisticsFilter('problem')">Probleme</button>
+        <button class="nf-btn" id="logFilterDue" onclick="setLogisticsFilter('due')">Facturi scadente</button>
+      </div>
 
       <div class="log-section-title">Contracte logistice</div>
       <div class="log-list" id="logisticsList"></div>
@@ -810,10 +827,10 @@
             <tr>
               <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
               <th>Preț / Basis</th><th>Monedă</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
-              <th>Contraparte</th><th>Data</th><th></th>
+              <th>Contraparte</th><th>Data</th><th>Log.</th><th></th>
             </tr>
             <tr class="filter-row" id="filterBar">
-              <td colspan="12">
+              <td colspan="13">
                 <div class="filter-bar-inner">
                   <select id="ffProd" onchange="applyFilter()"><option value="">Toate</option></select>
                   <div class="filter-sep"></div>
@@ -1441,7 +1458,7 @@ function renderTable(){
 
   const tbody=document.getElementById('tbody');
   if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="13"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
     return;
   }
 
@@ -1463,6 +1480,7 @@ function renderTable(){
     const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
+    const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
     return `<tr class="tr-click" onclick="openEdit(${t.id})">
       <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
@@ -1475,6 +1493,7 @@ function renderTable(){
       <td>${trsp}</td>
       <td class="tdim">${escHtml(t.cpty||'—')}</td>
       <td class="tdim">${t.date||'—'}</td>
+      <td>${logBadge}</td>
       <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
     </tr>`;
   }).join('');
@@ -1758,47 +1777,78 @@ function copyCfoDraft(){
   });
 }
 
-/* Logistics V3 */
-function normalizeText(value){
-  return String(value ?? '')
+/* Logistics V4 */
+function normalizeText(str){
+  return String(str ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'')
     .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ș/g,'s').replace(/ş/g,'s').replace(/ț/g,'t').replace(/ţ/g,'t')
-    .replace(/Ă/g,'A').replace(/Â/g,'A').replace(/Î/g,'I').replace(/Ș/g,'S').replace(/Ş/g,'S').replace(/Ț/g,'T').replace(/Ţ/g,'T')
-    .toLowerCase();
+    .toLowerCase()
+    .trim();
 }
 function loadLogistics(){
   try{
-    const v3=localStorage.getItem('agrotex_logistics_v3');
-    if(v3){
-      logisticsContracts=JSON.parse(v3)||[];
-    } else {
-      const old=JSON.parse(localStorage.getItem('agrotex_logistics_v2') || '[]');
-      logisticsContracts=(old||[]).map(c=>({
-        ...c,
-        invoices:(c.invoices&&Array.isArray(c.invoices))?c.invoices:(c.receipts||[]).map(r=>({
-          id:Date.now()+Math.floor(Math.random()*100000),
-          invoiceNo:r.invoiceNo||'',
-          invoiceDate:r.invoiceDate||'',
-          dueDate:r.dueDate || (r.month ? `${r.month}-28` : ''),
-          amount:Number(r.amount)||0,
-          currency:r.currency==='EUR'?'EUR':'RON',
-          rate:Number(r.rate)||1,
-          paid:!!r.paid,
-          paidDate:r.paidDate||'',
-          note:r.note||''
-        }))
-      }));
-      saveLogistics();
-    }
+    logisticsContracts = JSON.parse(localStorage.getItem('agrotex_logistics_v2') || '[]');
   }catch(e){
-    logisticsContracts=[];
+    logisticsContracts = [];
   }
+  migrateLogisticsData();
+}
+function migrateLogisticsData(){
+  logisticsContracts.forEach(c=>{
+    const t=trades.find(x=>String(x.id)===String(c.tradeId));
+    if(!c.flow) c.flow = t && t.dir==='long' ? 'pickup' : 'delivery';
+    if(!c.transportMode) c.transportMode = c.flow==='pickup' ? 'truck' : 'truck';
+    if(c.flow==='pickup') c.transportMode='truck';
+    if(!Array.isArray(c.allocations)) c.allocations=[];
+    if(!Array.isArray(c.movements)){
+      c.movements = Array.isArray(c.deliveries) ? c.deliveries.map(d=>({
+        date:d.date || today(),
+        qty:Number(d.qty)||0,
+        carrier:d.carrier||'',
+        status:d.status||'planned',
+        note:d.note||''
+      })) : [];
+    }
+    if(!Array.isArray(c.invoices)){
+      c.invoices = Array.isArray(c.receipts) ? c.receipts.map(r=>({
+        invoiceNo:r.invoiceNo || '',
+        invoiceDate:r.invoiceDate || '',
+        dueDate:r.dueDate || '',
+        month:r.month || ymFromDate(r.dueDate || r.invoiceDate || today()),
+        amount:Number(r.amount)||0,
+        currency:r.currency==='EUR'?'EUR':'RON',
+        rate:Number(r.rate)||1,
+        paid:!!r.paid,
+        paidDate:r.paidDate || '',
+        note:r.note || ''
+      })) : [];
+    }
+    if(c.problem === undefined) c.problem = c.status==='problem';
+  });
 }
 function saveLogistics(){
-  localStorage.setItem('agrotex_logistics_v3', JSON.stringify(logisticsContracts));
+  localStorage.setItem('agrotex_logistics_v2', JSON.stringify(logisticsContracts));
   const badge=document.getElementById('bLogistics');
   if(badge) badge.textContent=logisticsContracts.length;
+}
+function getNextMonthOptions(count=12){
+  const out=[];
+  const d=new Date();
+  d.setDate(1);
+  for(let i=0;i<count;i++){
+    const x=new Date(d);
+    x.setMonth(d.getMonth()+i);
+    const key=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`;
+    out.push({key,label:monthLabel(key)});
+  }
+  return out;
+}
+function fillLogMonthSelect(id, selected=''){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const opts=getNextMonthOptions(12);
+  el.innerHTML=opts.map(o=>`<option value="${o.key}" ${o.key===selected?'selected':''}>${o.label}</option>`).join('');
 }
 function setLogisticsTab(){
   closeAllSideTabs();
@@ -1806,6 +1856,8 @@ function setLogisticsTab(){
   document.getElementById('tabLogistics').className='tab log-tab-active';
   document.querySelector('.main').style.display='none';
   document.getElementById('logisticsSection').style.display='flex';
+  fillLogMonthSelect('logCreateStartMonth');
+  fillLogMonthSelect('logCreateEndMonth');
   populateLogisticsSourceTrades();
   renderLogistics();
 }
@@ -1815,70 +1867,101 @@ function closeLogisticsTab(){
   document.getElementById('logisticsSection').style.display='none';
   document.querySelector('.main').style.display='flex';
 }
+function setLogisticsFilter(f){
+  window.logisticsFilter=f;
+  ['logFilterAll','logFilterPickup','logFilterDelivery','logFilterProblem','logFilterDue'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  const map={all:'logFilterAll',pickup:'logFilterPickup',delivery:'logFilterDelivery',problem:'logFilterProblem',due:'logFilterDue'};
+  if(map[f]) document.getElementById(map[f])?.classList.add('active');
+  renderLogisticsList();
+}
 function tradeLabel(t){
   const p=products[t.product] || {name:t.product,emoji:'📦'};
   const dir=t.dir==='long'?'CUMPĂRARE':'VÂNZARE';
+  const flow=t.dir==='long'?'DE RIDICAT':'DE LIVRAT';
   const price=t.ptype==='fix'
     ? (t.currency==='eur' && t.priceEur ? `${fmtN(t.priceEur)} EUR/t` : `${fmtN(t.price)} RON/t`)
-    : `MATIF ${t.matif || ''} ${Number(t.basis)>=0?'+':''}${t.basis || 0} EUR/t`;
-  return `#${t.id} · ${p.emoji} ${p.name} ${t.crop} · ${dir} · ${fmtN(t.qty)} t · ${t.cpty||'—'} · ${price}`;
+    : `MATIF ${t.matif || ''} ${t.basis>=0?'+':''}${t.basis || 0} EUR/t`;
+  return `#${t.id} · ${flow} · ${p.emoji} ${p.name} ${t.crop} · ${dir} · ${fmtN(t.qty)} t · ${t.cpty||'—'} · ${price}`;
 }
-function tradeSearchHaystack(t){
-  const p=products[t.product] || {name:t.product,emoji:''};
-  return normalizeText([t.id,t.product,p.name,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note].join(' '));
+function selectLogSourceTrade(id){
+  document.getElementById('logSelectedTradeId').value=id;
+  const t=trades.find(x=>String(x.id)===String(id));
+  document.querySelectorAll('.log-source-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('log_source_'+id)?.classList.add('selected');
+
+  const flowInput=document.getElementById('logDetectedFlow');
+  const transportRow=document.getElementById('logCreateTransportRow');
+  if(t && t.dir==='long'){
+    flowInput.value='DE RIDICAT · transport camion';
+    transportRow.style.display='';
+    document.getElementById('logTransportMode').value='truck';
+    document.getElementById('logTransportMode').disabled=true;
+  } else if(t) {
+    flowInput.value='DE LIVRAT · alege camion sau tren';
+    transportRow.style.display='';
+    document.getElementById('logTransportMode').disabled=false;
+  }
 }
 function populateLogisticsSourceTrades(){
   const box=document.getElementById('logSourceResults');
   if(!box) return;
-  const selected=String(document.getElementById('logSelectedTradeId')?.value || '');
-  const q=normalizeText(document.getElementById('logSourceSearch')?.value || '').trim();
-  const available=trades.filter(t=>!hasLogisticsForTrade(t.id));
-  const filtered=available.filter(t=>!q || tradeSearchHaystack(t).includes(q)).slice(0,40);
+  const q=normalizeText(document.getElementById('logSourceSearch')?.value || '');
+  const selected=document.getElementById('logSelectedTradeId')?.value || '';
+  const filtered=trades.filter(t=>{
+    if(hasLogisticsForTrade(t.id)) return false;
+    const p=products[t.product] || {name:t.product,emoji:'📦'};
+    const hay=normalizeText([t.id,t.product,p.name,p.emoji,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note].join(' '));
+    return !q || hay.includes(q);
+  }).slice(0,40);
+
   if(!filtered.length){
-    box.innerHTML='<div class="log-empty">// nicio tranzacție disponibilă pentru căutarea curentă</div>';
-    document.getElementById('logSelectedTradeId').value='';
+    box.innerHTML='<div class="log-empty">// nicio tranzacție disponibilă pentru criteriul căutat</div>';
     return;
   }
-  if(selected && !filtered.some(t=>String(t.id)===selected)) document.getElementById('logSelectedTradeId').value='';
+
   box.innerHTML=filtered.map(t=>{
     const p=products[t.product] || {name:t.product,emoji:'📦'};
-    const isSel=String(t.id)===String(document.getElementById('logSelectedTradeId').value||'');
-    return `<div class="log-source-item ${isSel?'selected':''}" onclick="selectLogSourceTrade(${t.id})">
-      <div class="log-source-title">${p.emoji} ${escHtml(p.name)} · ${t.crop} · ${fmtN(t.qty)} t · ${escHtml(t.cpty||'—')}</div>
-      <div class="log-source-meta">#${t.id} · ${t.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(t.parity||'—')} · ${escHtml(t.loc||'—')} · ${t.date||'—'}</div>
+    const flow=t.dir==='long'?'pickup':'delivery';
+    const badge=flow==='pickup'
+      ? '<span class="log-badge pickup">DE RIDICAT</span>'
+      : '<span class="log-badge delivery">DE LIVRAT</span>';
+    return `<div class="log-source-item ${String(selected)===String(t.id)?'selected':''}" id="log_source_${t.id}" onclick="selectLogSourceTrade(${t.id})">
+      <div class="log-source-title">${badge} ${p.emoji} ${escHtml(p.name)} ${t.crop} · ${fmtN(t.qty)} t</div>
+      <div class="log-source-meta">#${t.id} · ${t.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(t.cpty||'—')} · ${escHtml(t.loc||'—')} · ${t.date||'—'}</div>
     </div>`;
   }).join('');
 }
-function selectLogSourceTrade(id){
-  const el=document.getElementById('logSelectedTradeId');
-  if(el) el.value=id;
-  populateLogisticsSourceTrades();
-}
 function createLogisticsFromTrade(){
   const tradeId=document.getElementById('logSelectedTradeId').value;
-  if(!tradeId){alert('Selectează o tranzacție din rezultatele de căutare.');return;}
+  if(!tradeId){alert('Selectează o tranzacție sursă din lista de rezultate.');return;}
   const t=trades.find(x=>String(x.id)===String(tradeId));
   if(!t){alert('Tranzacția nu mai există.');return;}
   if(hasLogisticsForTrade(t.id)){alert('Există deja un contract logistic pentru această tranzacție.');return;}
 
-  const start=document.getElementById('logCreateStart').value || t.date || today();
-  const end=document.getElementById('logCreateEnd').value || start;
-  const mode=document.getElementById('logTransportMode').value;
-  if(!['truck','train'].includes(mode)){alert('Transportul poate fi doar camion sau tren.');return;}
+  const flow=t.dir==='long'?'pickup':'delivery';
+  let mode=flow==='pickup'?'truck':document.getElementById('logTransportMode').value;
+  if(flow==='pickup') mode='truck';
+  if(flow==='delivery' && !['truck','train'].includes(mode)){alert('La vânzare transportul poate fi camion sau tren.');return;}
 
-  const months=monthRange(start,end);
+  const startMonth=document.getElementById('logCreateStartMonth').value;
+  const endMonth=document.getElementById('logCreateEndMonth').value;
+  if(!startMonth || !endMonth){alert('Alege lunile pentru perioadă.');return;}
+  if(startMonth>endMonth){alert('Luna de început nu poate fi după luna de final.');return;}
+
+  const months=monthRange(startMonth+'-01', endMonth+'-01');
   const qty=Number(t.qty)||0;
   const perMonth=months.length ? Math.round((qty/months.length)*100)/100 : qty;
 
   const contract={
     id:Date.now(),
     tradeId:t.id,
+    flow,
     transportMode:mode,
-    status:document.getElementById('logInitialStatus').value || 'open',
-    deliveryStart:start,
-    deliveryEnd:end,
+    problem:false,
+    deliveryStartMonth:startMonth,
+    deliveryEndMonth:endMonth,
     allocations:months.map((m,idx)=>({month:m, qty: idx===months.length-1 ? Math.round((qty-perMonth*(months.length-1))*100)/100 : perMonth})),
-    deliveries:[],
+    movements:[],
     invoices:[],
     note:'',
     createdAt:new Date().toISOString()
@@ -1887,6 +1970,7 @@ function createLogisticsFromTrade(){
   logisticsContracts.unshift(contract);
   selectedLogisticsId=contract.id;
   document.getElementById('logSelectedTradeId').value='';
+  document.getElementById('logSourceSearch').value='';
   saveLogistics();
   populateLogisticsSourceTrades();
   renderLogistics();
@@ -1901,14 +1985,22 @@ function getLogContract(id){
 function getLogTrade(c){
   return trades.find(t=>String(t.id)===String(c.tradeId));
 }
+function logFlow(c){
+  if(c.flow) return c.flow;
+  const t=getLogTrade(c);
+  return t && t.dir==='long' ? 'pickup' : 'delivery';
+}
+function logFlowLabel(c){
+  return logFlow(c)==='pickup' ? 'DE RIDICAT' : 'DE LIVRAT';
+}
 function logContractName(c){
   const t=getLogTrade(c);
   if(!t) return 'Tranzacție lipsă';
   const p=products[t.product] || {name:t.product,emoji:'📦'};
   return `${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}`;
 }
-function deliveredQty(c){
-  return (c.deliveries||[]).reduce((s,d)=>s+(Number(d.qty)||0),0);
+function movementQty(c){
+  return (c.movements||c.deliveries||[]).reduce((s,d)=>s+(Number(d.qty)||0),0);
 }
 function allocatedQty(c){
   return (c.allocations||[]).reduce((s,a)=>s+(Number(a.qty)||0),0);
@@ -1918,215 +2010,225 @@ function invoiceValueRon(inv){
   const rate=Number(inv.rate)||fxRates.eurRon||5;
   return inv.currency==='EUR' ? amount*rate : amount;
 }
-function invoicesRon(c, onlyPaid=null){
-  return (c.invoices||[]).reduce((s,inv)=>{
-    if(onlyPaid===true && !inv.paid) return s;
-    if(onlyPaid===false && inv.paid) return s;
-    return s + invoiceValueRon(inv);
-  },0);
+function invoicesTotalRon(c){
+  return (c.invoices||[]).reduce((s,r)=>s+invoiceValueRon(r),0);
 }
-function invoiceDaysToDue(inv){
-  if(!inv.dueDate || inv.paid) return null;
-  const d1=new Date(today()+'T12:00:00');
-  const d2=new Date(inv.dueDate+'T12:00:00');
-  return Math.ceil((d2-d1)/(24*60*60*1000));
+function invoicesPaidRon(c){
+  return (c.invoices||[]).filter(r=>r.paid).reduce((s,r)=>s+invoiceValueRon(r),0);
 }
-function invoiceWarningClass(inv){
-  const days=invoiceDaysToDue(inv);
-  if(days===null) return '';
-  if(days<0) return 'warn';
-  if(days<=5) return 'warn';
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const d=new Date(dateStr+'T00:00:00');
+  const now=new Date();
+  now.setHours(0,0,0,0);
+  return Math.ceil((d-now)/(24*60*60*1000));
+}
+function invoiceAlert(inv){
+  if(inv.paid) return '';
+  const d=daysUntil(inv.dueDate);
+  if(d===null) return '';
+  if(d<0) return 'overdue';
+  if(d<=5) return 'due';
   return '';
 }
+function hasDueInvoice(c){
+  return (c.invoices||[]).some(inv=>invoiceAlert(inv));
+}
+function computedLogStatus(c){
+  if(c.problem) return {key:'problem',label:'Problemă',cls:'problem'};
+  const t=getLogTrade(c);
+  const qty=t ? Number(t.qty)||0 : 0;
+  const moved=movementQty(c);
+  if(qty>0 && moved>=qty) return {key:'closed',label:'Finalizat',cls:'done'};
+  if(moved>0) return {key:'partial',label:'În derulare',cls:'open'};
+  return {key:'open',label:'Deschis',cls:'open'};
+}
 function renderLogistics(){
+  renderLogisticsDashboard();
   renderLogisticsList();
   renderLogisticsDetail();
+}
+function renderLogisticsDashboard(){
+  const box=document.getElementById('logisticsDashboard');
+  if(!box) return;
+  const months=getNextMonthOptions(12);
+  const agg={};
+  months.forEach(m=>agg[m.key]={pickup:0,delivery:0,receivable:0,paid:0});
+
+  logisticsContracts.forEach(c=>{
+    const flow=logFlow(c);
+    (c.allocations||[]).forEach(a=>{
+      if(!agg[a.month]) return;
+      if(flow==='pickup') agg[a.month].pickup += Number(a.qty)||0;
+      else agg[a.month].delivery += Number(a.qty)||0;
+    });
+    (c.invoices||[]).forEach(inv=>{
+      const m=inv.month || ymFromDate(inv.dueDate || inv.invoiceDate);
+      if(!agg[m]) return;
+      const val=invoiceValueRon(inv);
+      agg[m].receivable += val;
+      if(inv.paid) agg[m].paid += val;
+    });
+  });
+
+  const nowYm=today().slice(0,7);
+  box.innerHTML=months.map(m=>{
+    const a=agg[m.key];
+    const rest=Math.max(0,a.receivable-a.paid);
+    return `<div class="log-month-card ${m.key===nowYm?'current':''}">
+      <div class="log-month-title">${m.label}${m.key===nowYm?'<span class="log-badge open">curentă</span>':''}</div>
+      <div class="log-month-row"><span class="log-month-label">De ridicat</span><span class="log-month-value pickup">${fmtN(a.pickup)} t</span></div>
+      <div class="log-month-row"><span class="log-month-label">De livrat</span><span class="log-month-value deliver">${fmtN(a.delivery)} t</span></div>
+      <div class="log-month-row"><span class="log-month-label">De încasat</span><span class="log-month-value money">${fmtN(a.receivable)} RON</span></div>
+      <div class="log-month-row"><span class="log-month-label">Încasat</span><span class="log-month-value paid">${fmtN(a.paid)} RON</span></div>
+      <div class="log-month-row"><span class="log-month-label">Rest</span><span class="log-month-value rest">${fmtN(rest)} RON</span></div>
+    </div>`;
+  }).join('');
 }
 function renderLogisticsList(){
   const box=document.getElementById('logisticsList');
   if(!box) return;
-  if(!logisticsContracts.length){
-    box.innerHTML='<div class="log-empty">// nu există contracte logistice</div>';
+  let items=[...logisticsContracts];
+  const f=window.logisticsFilter || 'all';
+  if(f==='pickup') items=items.filter(c=>logFlow(c)==='pickup');
+  if(f==='delivery') items=items.filter(c=>logFlow(c)==='delivery');
+  if(f==='problem') items=items.filter(c=>c.problem);
+  if(f==='due') items=items.filter(c=>hasDueInvoice(c));
+
+  if(!items.length){
+    box.innerHTML='<div class="log-empty">// nu există contracte pentru filtrul selectat</div>';
     return;
   }
-  box.innerHTML=logisticsContracts.map(c=>{
+  box.innerHTML=items.map(c=>{
     const t=getLogTrade(c);
     const qty=t ? Number(t.qty)||0 : 0;
-    const delivered=deliveredQty(c);
-    const left=Math.max(0, qty-delivered);
-    const mode=c.transportMode==='train'?'Tren':'Camion';
-    const cls=c.status==='closed'?'done':c.status==='problem'?'problem':'open';
-    const warn=(c.invoices||[]).some(inv=>invoiceWarningClass(inv)==='warn');
+    const moved=movementQty(c);
+    const left=Math.max(0, qty-moved);
+    const st=computedLogStatus(c);
+    const flow=logFlow(c);
+    const flowBadge=flow==='pickup'
+      ? '<span class="log-badge pickup">DE RIDICAT</span>'
+      : '<span class="log-badge delivery">DE LIVRAT</span>';
+    const dueBadge=hasDueInvoice(c)?'<span class="log-badge warn">factură scadentă</span>':'';
     return `<div class="log-item ${String(selectedLogisticsId)===String(c.id)?'active':''}" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail();renderLogisticsList();">
       <div class="log-item-top">
-        <div class="log-item-name">${escHtml(logContractName(c))}</div>
-        <span class="log-badge ${cls}">${escHtml(c.status||'open')}</span>
+        <div class="log-item-name">${flowBadge} ${logContractName(c)}</div>
+        <span class="log-badge ${st.cls}">${st.label}</span>
       </div>
-      <div class="log-muted" style="margin-top:5px;">${mode} · ${c.deliveryStart||'—'} → ${c.deliveryEnd||'—'} · livrat ${fmtN(delivered)} t · rămas ${fmtN(left)} t ${warn?'· ⚠ factură scadentă':''}</div>
+      <div class="log-muted" style="margin-top:5px;">${c.transportMode==='train'?'Tren':'Camion'} · ${monthLabel(c.deliveryStartMonth||'')} → ${monthLabel(c.deliveryEndMonth||'')} · executat ${fmtN(moved)} t · rămas ${fmtN(left)} t ${dueBadge}</div>
     </div>`;
   }).join('');
 }
-function renderProgramAggregate(){
-  const agg={};
-  logisticsContracts.forEach(c=>{
-    (c.allocations||[]).forEach(a=>{
-      if(!a.month) return;
-      if(!agg[a.month]) agg[a.month]={deliveries:0, scheduledReceipts:0, paidReceipts:0};
-      agg[a.month].deliveries += Number(a.qty)||0;
-    });
-    (c.invoices||[]).forEach(inv=>{
-      const m=ymFromDate(inv.dueDate || inv.invoiceDate);
-      if(!m) return;
-      if(!agg[m]) agg[m]={deliveries:0, scheduledReceipts:0, paidReceipts:0};
-      const v=invoiceValueRon(inv);
-      if(inv.paid) agg[m].paidReceipts += v;
-      else agg[m].scheduledReceipts += v;
-    });
+function renderWarnings(c){
+  const t=getLogTrade(c);
+  const qty=t ? Number(t.qty)||0 : 0;
+  const moved=movementQty(c);
+  const alloc=allocatedQty(c);
+  const warnings=[];
+  if(qty>0 && Math.abs(alloc-qty)>0.01){
+    warnings.push(`Alocarea lunară este ${fmtN(alloc)} t din ${fmtN(qty)} t. Diferență: ${fmtN(alloc-qty)} t.`);
+  }
+  if(qty>0 && moved>qty){
+    warnings.push(`Cantitatea executată depășește contractul cu ${fmtN(moved-qty)} t.`);
+  }
+  const due=(c.invoices||[]).filter(inv=>invoiceAlert(inv));
+  due.forEach(inv=>{
+    const d=daysUntil(inv.dueDate);
+    if(d<0) warnings.push(`Factura ${inv.invoiceNo||'fără număr'} este depășită cu ${Math.abs(d)} zile.`);
+    else warnings.push(`Factura ${inv.invoiceNo||'fără număr'} ajunge la scadență în ${d} zile.`);
   });
-
-  const months=Object.keys(agg).sort();
-  if(!months.length) return `<div class="log-empty">// nu există program de livrări și încasări</div>`;
-
-  const totalDel=months.reduce((s,m)=>s+agg[m].deliveries,0);
-  const totalSched=months.reduce((s,m)=>s+agg[m].scheduledReceipts,0);
-  const totalPaid=months.reduce((s,m)=>s+agg[m].paidReceipts,0);
-
-  return `
-    <div class="log-plan-grid">
-      ${months.map(m=>`
-        <div class="log-plan-row">
-          <div class="log-plan-month">${monthLabel(m)}</div>
-          <div>
-            <div class="log-plan-label">Livrări programate</div>
-            <div class="log-plan-val">${fmtN(agg[m].deliveries)} t</div>
-          </div>
-          <div>
-            <div class="log-plan-label">Încasări programate RON</div>
-            <div class="log-plan-val">${fmtN(agg[m].scheduledReceipts)} RON</div>
-          </div>
-          <div>
-            <div class="log-plan-label">Încasat RON</div>
-            <div class="log-plan-val" style="color:var(--long)">${fmtN(agg[m].paidReceipts)} RON</div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="log-muted">Total livrări programate: <span style="color:var(--bright);font-weight:800">${fmtN(totalDel)} t</span> · Încasări programate: <span style="color:var(--bright);font-weight:800">${fmtN(totalSched)} RON</span> · Încasat: <span style="color:var(--long);font-weight:800">${fmtN(totalPaid)} RON</span></div>
-  `;
-}
-function renderInvoiceWarnings(c){
-  const rows=(c.invoices||[]).filter(inv=>invoiceWarningClass(inv)==='warn').map(inv=>{
-    const days=invoiceDaysToDue(inv);
-    const label=days<0?`depășită cu ${Math.abs(days)} zile`:`scadentă în ${days} zile`;
-    return `<div class="log-warning-line">⚠ Factura ${escHtml(inv.invoiceNo||'fără număr')} este ${label}. Scadență: ${inv.dueDate||'—'} · ${fmtN(invoiceValueRon(inv))} RON</div>`;
-  });
-  return rows.length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">${rows.join('')}</div>` : '';
+  if(!warnings.length) return '<div class="log-ok-line">Nu sunt avertismente active pe contract.</div>';
+  return warnings.map(w=>`<div class="log-warning-line">${escHtml(w)}</div>`).join('');
 }
 function renderLogisticsDetail(){
   const detail=document.getElementById('logisticsDetail');
   const c=getLogContract(selectedLogisticsId);
 
   if(!c){
-    detail.innerHTML=`
-      <div class="log-title">Program livrări și încasări</div>
-      ${renderProgramAggregate()}
-      <div class="log-empty" style="margin-top:12px;">// selectează sau creează un contract logistic</div>
-    `;
+    detail.innerHTML='<div class="log-empty">// selectează sau creează un contract logistic</div>';
     return;
   }
 
   const t=getLogTrade(c);
   const qty=t ? Number(t.qty)||0 : 0;
-  const delivered=deliveredQty(c);
+  const moved=movementQty(c);
   const allocated=allocatedQty(c);
-  const left=Math.max(0, qty-delivered);
-  const invOpen=invoicesRon(c,false);
-  const invPaid=invoicesRon(c,true);
+  const left=Math.max(0, qty-moved);
+  const invTotal=invoicesTotalRon(c);
+  const invPaid=invoicesPaidRon(c);
+  const invRest=Math.max(0,invTotal-invPaid);
+  const st=computedLogStatus(c);
+  const pct=qty>0 ? Math.min(100, Math.round((moved/qty)*100)) : 0;
+  const flow=logFlow(c);
+  const movementTitle=flow==='pickup'?'Ridicări zilnice':'Livrări zilnice';
+  const movementBtn=flow==='pickup'?'Adaugă ridicare':'Adaugă livrare';
+  const flowBadge=flow==='pickup'
+      ? '<span class="log-badge pickup">DE RIDICAT</span>'
+      : '<span class="log-badge delivery">DE LIVRAT</span>';
 
   detail.innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
-        <div class="log-title">${escHtml(logContractName(c))}</div>
-        <div class="log-muted">Tranzacție sursă #${c.tradeId} · ${t ? (t.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${t ? escHtml(t.parity||'—') : '—'} · ${t ? escHtml(t.loc||'—') : '—'}</div>
+        <div class="log-title">${flowBadge} ${logContractName(c)}</div>
+        <div class="log-muted">Tranzacție sursă #${c.tradeId} · ${t ? (t.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${c.transportMode==='train'?'Tren':'Camion'} · ${t ? escHtml(t.parity||'—') : '—'} · ${t ? escHtml(t.loc||'—') : '—'}</div>
       </div>
       <div class="log-actions">
+        <span class="log-badge ${st.cls}">${st.label}</span>
+        <button class="btn-log ${c.problem?'btn-log-green':'btn-log-red'}" onclick="toggleLogProblem()">${c.problem?'Scoate problema':'Marchează problemă'}</button>
         <button class="btn-log" onclick="duplicateSelectedLogistics()">Duplică</button>
         <button class="btn-log btn-log-red" onclick="deleteSelectedLogistics()">Șterge</button>
       </div>
     </div>
 
-    ${renderInvoiceWarnings(c)}
-
     <div class="log-kpis" style="margin-top:10px;">
       <div class="log-kpi"><div class="log-kpi-l">Cantitate contract</div><div class="log-kpi-v">${fmtN(qty)} t</div></div>
       <div class="log-kpi"><div class="log-kpi-l">Alocat lunar</div><div class="log-kpi-v">${fmtN(allocated)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Livrat efectiv</div><div class="log-kpi-v">${fmtN(delivered)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Rămas</div><div class="log-kpi-v">${fmtN(left)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Încasări programate</div><div class="log-kpi-v">${fmtN(invOpen)} RON</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Încasat</div><div class="log-kpi-v" style="color:var(--long)">${fmtN(invPaid)} RON</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Executat</div><div class="log-kpi-v">${fmtN(moved)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Rămas marfă</div><div class="log-kpi-v">${fmtN(left)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Rest încasări</div><div class="log-kpi-v">${fmtN(invRest)} RON</div></div>
     </div>
+    <div class="log-progress"><div class="log-progress-inner" style="width:${pct}%"></div></div>
 
-    <div class="fr fr4" style="margin-top:10px;">
+    <div class="log-section-title">Avertismente</div>
+    ${renderWarnings(c)}
+
+    <div class="fr fr2" style="margin-top:10px;">
       <div class="fg">
-        <label class="fl">Transport</label>
-        <select id="logEditMode" onchange="updateLogContractField('transportMode',this.value)">
-          <option value="truck" ${c.transportMode==='truck'?'selected':''}>Camion</option>
-          <option value="train" ${c.transportMode==='train'?'selected':''}>Tren</option>
-        </select>
+        <label class="fl">Perioadă de la</label>
+        <select id="logEditStartMonth" onchange="updateLogContractField('deliveryStartMonth',this.value)"></select>
       </div>
       <div class="fg">
-        <label class="fl">Status</label>
-        <select id="logEditStatus" onchange="updateLogContractField('status',this.value)">
-          <option value="open" ${c.status==='open'?'selected':''}>Deschis</option>
-          <option value="partial" ${c.status==='partial'?'selected':''}>Parțial</option>
-          <option value="closed" ${c.status==='closed'?'selected':''}>Închis</option>
-          <option value="problem" ${c.status==='problem'?'selected':''}>Problemă</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label class="fl">Livrare de la</label>
-        <input type="date" value="${c.deliveryStart||''}" onchange="updateLogContractField('deliveryStart',this.value)">
-      </div>
-      <div class="fg">
-        <label class="fl">Livrare până la</label>
-        <input type="date" value="${c.deliveryEnd||''}" onchange="updateLogContractField('deliveryEnd',this.value)">
+        <label class="fl">Perioadă până la</label>
+        <select id="logEditEndMonth" onchange="updateLogContractField('deliveryEndMonth',this.value)"></select>
       </div>
     </div>
-
-    <div class="log-section-title">Program livrări și încasări, total contracte</div>
-    ${renderProgramAggregate()}
 
     <div class="log-section-title">Alocare lunară contract</div>
     ${renderAllocationsTable(c)}
 
     <div class="log-mini-form">
-      <div class="fg"><label class="fl">Luna</label><input id="logAllocMonth" type="month"></div>
+      <div class="fg"><label class="fl">Luna</label><select id="logAllocMonth"></select></div>
       <div class="fg"><label class="fl">Cantitate t</label><input id="logAllocQty" type="number" step="0.01"></div>
       <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addAllocation()">+ Adaugă alocare</button></div>
     </div>
 
-    <div class="log-section-title">Livrări zilnice</div>
-    ${renderDeliveriesTable(c)}
+    <div class="log-section-title">${movementTitle}</div>
+    ${renderMovementsTable(c)}
 
     <div class="log-mini-form">
-      <div class="fg"><label class="fl">Data livrării</label><input id="logDeliveryDate" type="date" value="${today()}"></div>
-      <div class="fg"><label class="fl">Cantitate zi/camion/tren t</label><input id="logDeliveryQty" type="number" step="0.01"></div>
-      <div class="fg"><label class="fl">Tip</label>
-        <select id="logDeliveryType">
-          <option value="truck" ${c.transportMode==='truck'?'selected':''}>Camion</option>
-          <option value="train" ${c.transportMode==='train'?'selected':''}>Tren</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Transportator / tren</label><input id="logCarrier" type="text"></div>
+      <div class="fg"><label class="fl">Data</label><input id="logMovementDate" type="date" value="${today()}"></div>
+      <div class="fg"><label class="fl">Cantitate zi ${c.transportMode==='train'?'/ tren':'/ camion'} t</label><input id="logMovementQty" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl">${c.transportMode==='train'?'Tren':'Transportator / camion'}</label><input id="logCarrier" type="text"></div>
       <div class="fg"><label class="fl">Status</label>
-        <select id="logDeliveryStatus">
+        <select id="logMovementStatus">
           <option value="planned">Programat</option>
           <option value="loaded">Încărcat</option>
-          <option value="delivered">Livrat</option>
+          <option value="delivered">Executat</option>
           <option value="problem">Problemă</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addDelivery()">+ Adaugă livrare</button></div>
+      <div class="fg"><label class="fl">Observații</label><input id="logMovementNote" type="text"></div>
+      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addMovement()">+ ${movementBtn}</button></div>
     </div>
 
     ${c.transportMode==='train' ? `
@@ -2138,26 +2240,35 @@ function renderLogisticsDetail(){
       </div>
     ` : ''}
 
-    <div class="log-section-title">Facturi și încasări</div>
-    <div class="log-muted" style="margin-bottom:7px;">Factura se introduce manual. Scadențele au avertisment cu 5 zile înainte. Sumele EUR se convertesc în RON la cursul introdus.</div>
+    <div class="log-section-title">Facturi și încasări manuale</div>
+    <div class="log-muted" style="margin-bottom:7px;">Factura se introduce manual. Poate fi diferită de perioada de livrare sau de cantitatea executată.</div>
     ${renderInvoicesTable(c)}
 
     <div class="log-mini-form">
-      <div class="fg"><label class="fl">Nr. factură</label><input id="logInvoiceNo" type="text"></div>
-      <div class="fg"><label class="fl">Data facturii</label><input id="logInvoiceDate" type="date" value="${today()}"></div>
-      <div class="fg"><label class="fl">Scadență</label><input id="logInvoiceDue" type="date"></div>
-      <div class="fg"><label class="fl">Sumă</label><input id="logInvoiceAmount" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl">Nr. factură</label><input id="logInvNo" type="text"></div>
+      <div class="fg"><label class="fl">Data facturii</label><input id="logInvDate" type="date" value="${today()}"></div>
+      <div class="fg"><label class="fl">Scadență</label><input id="logInvDue" type="date"></div>
+      <div class="fg"><label class="fl">Luna dashboard</label><select id="logInvMonth"></select></div>
+      <div class="fg"><label class="fl">Sumă</label><input id="logInvAmount" type="number" step="0.01"></div>
       <div class="fg"><label class="fl">Monedă</label>
-        <select id="logInvoiceCurrency" onchange="document.getElementById('logInvoiceRateWrap').style.display=this.value==='EUR'?'flex':'none'">
+        <select id="logInvCurrency" onchange="document.getElementById('logInvRateWrap').style.display=this.value==='EUR'?'flex':'none'">
           <option value="RON">RON</option>
           <option value="EUR">EUR</option>
         </select>
       </div>
-      <div class="fg" id="logInvoiceRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logInvoiceRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
-      <div class="fg"><label class="fl">Observații</label><input id="logInvoiceNote" type="text"></div>
+      <div class="fg" id="logInvRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logInvRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
       <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addInvoice()">+ Adaugă factură</button></div>
     </div>
   `;
+
+  fillLogMonthSelect('logEditStartMonth', c.deliveryStartMonth || '');
+  fillLogMonthSelect('logEditEndMonth', c.deliveryEndMonth || '');
+  fillLogMonthSelect('logAllocMonth');
+  fillLogMonthSelect('logInvMonth');
+}
+function renderMonthSelectHtml(value=''){
+  const opts=getNextMonthOptions(12);
+  return opts.map(o=>`<option value="${o.key}" ${o.key===value?'selected':''}>${o.label}</option>`).join('');
 }
 function renderAllocationsTable(c){
   if(!c.allocations || !c.allocations.length) return '<div class="log-empty">// nicio alocare lunară</div>';
@@ -2165,70 +2276,69 @@ function renderAllocationsTable(c){
     <thead><tr><th>Luna</th><th>Cantitate t</th><th></th></tr></thead>
     <tbody>${c.allocations.map((a,i)=>`
       <tr>
-        <td><input type="month" value="${a.month||''}" onchange="updateAllocation(${i},'month',this.value)"></td>
+        <td><select onchange="updateAllocation(${i},'month',this.value)">${renderMonthSelectHtml(a.month||'')}</select></td>
         <td><input type="number" step="0.01" value="${a.qty||0}" onchange="updateAllocation(${i},'qty',this.value)"></td>
         <td><button class="btn-del" onclick="deleteAllocation(${i})">✕</button></td>
       </tr>
     `).join('')}</tbody>
   </table></div>`;
 }
-function renderDeliveriesTable(c){
-  if(!c.deliveries || !c.deliveries.length) return '<div class="log-empty">// nicio livrare introdusă</div>';
+function renderMovementsTable(c){
+  const rows=c.movements || c.deliveries || [];
+  if(!rows.length) return '<div class="log-empty">// nicio mișcare introdusă</div>';
   return `<div class="log-table-wrap"><table class="log-table">
-    <thead><tr><th>Data</th><th>Cantitate t</th><th>Tip</th><th>Transportator / tren</th><th>Status</th><th>Observații</th><th></th></tr></thead>
-    <tbody>${c.deliveries.map((d,i)=>`
+    <thead><tr><th>Data</th><th>Cantitate t</th><th>${c.transportMode==='train'?'Tren':'Transportator / camion'}</th><th>Status</th><th>Observații</th><th></th></tr></thead>
+    <tbody>${rows.map((d,i)=>`
       <tr>
-        <td><input type="date" value="${d.date||''}" onchange="updateDelivery(${i},'date',this.value)"></td>
-        <td><input type="number" step="0.01" value="${d.qty||0}" onchange="updateDelivery(${i},'qty',this.value)"></td>
+        <td><input type="date" value="${d.date||''}" onchange="updateMovement(${i},'date',this.value)"></td>
+        <td><input type="number" step="0.01" value="${d.qty||0}" onchange="updateMovement(${i},'qty',this.value)"></td>
+        <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateMovement(${i},'carrier',this.value)"></td>
         <td>
-          <select onchange="updateDelivery(${i},'type',this.value)">
-            <option value="truck" ${d.type==='truck'?'selected':''}>Camion</option>
-            <option value="train" ${d.type==='train'?'selected':''}>Tren</option>
-          </select>
-        </td>
-        <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateDelivery(${i},'carrier',this.value)"></td>
-        <td>
-          <select onchange="updateDelivery(${i},'status',this.value)">
+          <select onchange="updateMovement(${i},'status',this.value)">
             <option value="planned" ${d.status==='planned'?'selected':''}>Programat</option>
             <option value="loaded" ${d.status==='loaded'?'selected':''}>Încărcat</option>
-            <option value="delivered" ${d.status==='delivered'?'selected':''}>Livrat</option>
+            <option value="delivered" ${d.status==='delivered'?'selected':''}>Executat</option>
             <option value="problem" ${d.status==='problem'?'selected':''}>Problemă</option>
           </select>
         </td>
-        <td><input type="text" value="${escHtml(d.note||'')}" onchange="updateDelivery(${i},'note',this.value)"></td>
-        <td><button class="btn-del" onclick="deleteDelivery(${i})">✕</button></td>
+        <td><input type="text" value="${escHtml(d.note||'')}" onchange="updateMovement(${i},'note',this.value)"></td>
+        <td><button class="btn-del" onclick="deleteMovement(${i})">✕</button></td>
       </tr>
     `).join('')}</tbody>
   </table></div>`;
 }
 function renderInvoicesTable(c){
-  if(!c.invoices || !c.invoices.length) return '<div class="log-empty">// nicio factură introdusă</div>';
+  const rows=c.invoices || [];
+  if(!rows.length) return '<div class="log-empty">// nicio factură introdusă</div>';
   return `<div class="log-table-wrap"><table class="log-table">
-    <thead><tr><th>Nr.</th><th>Data</th><th>Scadență</th><th>Sumă</th><th>Monedă</th><th>Curs</th><th>Valoare RON</th><th>Status</th><th>Observații</th><th></th></tr></thead>
-    <tbody>${c.invoices.map((inv,i)=>{
-      const rate=Number(inv.rate)||fxRates.eurRon||5;
-      const valueRon=invoiceValueRon(inv);
-      const days=invoiceDaysToDue(inv);
-      const warn=invoiceWarningClass(inv)==='warn';
-      const dueLabel=inv.paid ? 'încasată' : (days===null ? '—' : (days<0 ? `depășită ${Math.abs(days)} zile` : `${days} zile`));
+    <thead><tr><th>Nr.</th><th>Data</th><th>Scadență</th><th>Luna</th><th>Sumă</th><th>Monedă</th><th>Curs</th><th>RON</th><th>Status</th><th>Acțiune</th><th></th></tr></thead>
+    <tbody>${rows.map((r,i)=>{
+      const rate=Number(r.rate)||fxRates.eurRon||5;
+      const ron=invoiceValueRon(r);
+      const alert=invoiceAlert(r);
+      const status=r.paid
+        ? `<span class="log-badge done">Încasată ${r.paidDate||''}</span>`
+        : alert==='overdue'
+          ? '<span class="log-badge warn">Depășită</span>'
+          : alert==='due'
+            ? '<span class="log-badge warn">Scadentă ≤5z</span>'
+            : '<span class="log-badge open">Neîncasată</span>';
       return `<tr>
-        <td><input type="text" value="${escHtml(inv.invoiceNo||'')}" onchange="updateInvoice(${i},'invoiceNo',this.value)"></td>
-        <td><input type="date" value="${inv.invoiceDate||''}" onchange="updateInvoice(${i},'invoiceDate',this.value)"></td>
-        <td><input type="date" value="${inv.dueDate||''}" onchange="updateInvoice(${i},'dueDate',this.value)"><div style="font-size:8px;color:${warn?'var(--short)':'var(--dim)'};margin-top:2px;">${dueLabel}</div></td>
-        <td><input type="number" step="0.01" value="${inv.amount||0}" onchange="updateInvoice(${i},'amount',this.value)"></td>
+        <td><input type="text" value="${escHtml(r.invoiceNo||'')}" onchange="updateInvoice(${i},'invoiceNo',this.value)"></td>
+        <td><input type="date" value="${r.invoiceDate||''}" onchange="updateInvoice(${i},'invoiceDate',this.value)"></td>
+        <td><input type="date" value="${r.dueDate||''}" onchange="updateInvoice(${i},'dueDate',this.value)"></td>
+        <td><select onchange="updateInvoice(${i},'month',this.value)">${renderMonthSelectHtml(r.month||'')}</select></td>
+        <td><input type="number" step="0.01" value="${r.amount||0}" onchange="updateInvoice(${i},'amount',this.value)"></td>
         <td>
           <select onchange="updateInvoice(${i},'currency',this.value)">
-            <option value="RON" ${inv.currency==='RON'?'selected':''}>RON</option>
-            <option value="EUR" ${inv.currency==='EUR'?'selected':''}>EUR</option>
+            <option value="RON" ${r.currency==='RON'?'selected':''}>RON</option>
+            <option value="EUR" ${r.currency==='EUR'?'selected':''}>EUR</option>
           </select>
         </td>
         <td><input type="number" step="0.0001" value="${rate}" onchange="updateInvoice(${i},'rate',this.value)"></td>
-        <td style="color:var(--acc);font-weight:800">${fmtN(valueRon)} RON</td>
-        <td>
-          <button class="btn-log ${inv.paid?'btn-log-green':''}" onclick="toggleInvoicePaid(${i})">${inv.paid?'Încasată':'Marchează încasată'}</button>
-          ${inv.paidDate?`<div style="font-size:8px;color:var(--dim);margin-top:3px;">${inv.paidDate}</div>`:''}
-        </td>
-        <td><input type="text" value="${escHtml(inv.note||'')}" onchange="updateInvoice(${i},'note',this.value)"></td>
+        <td style="color:var(--acc);font-weight:800">${fmtN(ron)}</td>
+        <td>${status}</td>
+        <td>${r.paid ? `<button class="btn-log" onclick="unmarkInvoicePaid(${i})">Anulează</button>` : `<button class="btn-log btn-log-green" onclick="markInvoicePaid(${i})">✓ Încasată</button>`}</td>
         <td><button class="btn-del" onclick="deleteInvoice(${i})">✕</button></td>
       </tr>`;
     }).join('')}</tbody>
@@ -2237,8 +2347,16 @@ function renderInvoicesTable(c){
 function updateLogContractField(field,value){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
-  if(field==='transportMode' && !['truck','train'].includes(value)) return;
+  if(field==='deliveryStartMonth' && c.deliveryEndMonth && value>c.deliveryEndMonth){alert('Luna de început nu poate fi după luna de final.');renderLogisticsDetail();return;}
+  if(field==='deliveryEndMonth' && c.deliveryStartMonth && value<c.deliveryStartMonth){alert('Luna de final nu poate fi înainte de luna de început.');renderLogisticsDetail();return;}
   c[field]=value;
+  saveLogistics();
+  renderLogistics();
+}
+function toggleLogProblem(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  c.problem=!c.problem;
   saveLogistics();
   renderLogistics();
 }
@@ -2251,48 +2369,50 @@ function addAllocation(){
   c.allocations=c.allocations||[];
   c.allocations.push({month,qty});
   saveLogistics();
-  renderLogisticsDetail();
+  renderLogistics();
 }
 function updateAllocation(i,field,value){
   const c=getLogContract(selectedLogisticsId);
   if(!c || !c.allocations[i]) return;
   c.allocations[i][field]=field==='qty'?Number(value)||0:value;
   saveLogistics();
-  renderLogisticsDetail();
+  renderLogistics();
 }
 function deleteAllocation(i){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
   c.allocations.splice(i,1);
   saveLogistics();
-  renderLogisticsDetail();
+  renderLogistics();
 }
-function addDelivery(){
+function addMovement(){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
-  const date=document.getElementById('logDeliveryDate').value;
-  const qty=parseFloat(document.getElementById('logDeliveryQty').value);
-  const type=document.getElementById('logDeliveryType').value;
+  const date=document.getElementById('logMovementDate').value;
+  const qty=parseFloat(document.getElementById('logMovementQty').value);
   if(!date || !qty){alert('Completează data și cantitatea.');return;}
-  if(!['truck','train'].includes(type)){alert('Tipul poate fi doar camion sau tren.');return;}
-  c.deliveries=c.deliveries||[];
-  c.deliveries.push({date,qty,type,carrier:document.getElementById('logCarrier').value.trim(),status:document.getElementById('logDeliveryStatus').value,note:''});
-  if(c.status==='open') c.status='partial';
+  c.movements=c.movements||[];
+  c.movements.push({
+    date,
+    qty,
+    carrier:document.getElementById('logCarrier').value.trim(),
+    status:document.getElementById('logMovementStatus').value,
+    note:document.getElementById('logMovementNote').value.trim()
+  });
   saveLogistics();
   renderLogistics();
 }
-function updateDelivery(i,field,value){
+function updateMovement(i,field,value){
   const c=getLogContract(selectedLogisticsId);
-  if(!c || !c.deliveries[i]) return;
-  if(field==='type' && !['truck','train'].includes(value)) return;
-  c.deliveries[i][field]=field==='qty'?Number(value)||0:value;
+  if(!c || !c.movements[i]) return;
+  c.movements[i][field]=field==='qty'?Number(value)||0:value;
   saveLogistics();
   renderLogistics();
 }
-function deleteDelivery(i){
+function deleteMovement(i){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
-  c.deliveries.splice(i,1);
+  c.movements.splice(i,1);
   saveLogistics();
   renderLogistics();
 }
@@ -2303,28 +2423,42 @@ function generateTrains(){
   const weight=parseFloat(document.getElementById('logTrainWeight').value)||1800;
   const start=document.getElementById('logTrainStartDate').value || today();
   const startDate=new Date(start+'T12:00:00');
-  c.deliveries=c.deliveries||[];
+  c.movements=c.movements||[];
   for(let i=0;i<count;i++){
     const d=new Date(startDate);
     d.setDate(d.getDate()+i*7);
-    c.deliveries.push({date:d.toISOString().slice(0,10),qty:weight,type:'train',carrier:`Tren ${i+1}`,status:'planned',note:''});
+    c.movements.push({
+      date:d.toISOString().slice(0,10),
+      qty:weight,
+      carrier:`Tren ${i+1}`,
+      status:'planned',
+      note:''
+    });
   }
-  if(c.status==='open') c.status='partial';
   saveLogistics();
   renderLogistics();
 }
 function addInvoice(){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
-  const invoiceNo=document.getElementById('logInvoiceNo').value.trim();
-  const invoiceDate=document.getElementById('logInvoiceDate').value;
-  const dueDate=document.getElementById('logInvoiceDue').value;
-  const amount=parseFloat(document.getElementById('logInvoiceAmount').value);
-  const currency=document.getElementById('logInvoiceCurrency').value;
-  const rate=parseFloat(document.getElementById('logInvoiceRate').value)||fxRates.eurRon||5;
-  if(!invoiceDate || !dueDate || !amount){alert('Completează data facturii, scadența și suma.');return;}
+  const amount=parseFloat(document.getElementById('logInvAmount').value);
+  const currency=document.getElementById('logInvCurrency').value;
+  const rate=parseFloat(document.getElementById('logInvRate').value)||fxRates.eurRon||5;
+  const month=document.getElementById('logInvMonth').value;
+  if(!amount || !month){alert('Completează luna și suma facturii.');return;}
   c.invoices=c.invoices||[];
-  c.invoices.push({id:Date.now(),invoiceNo,invoiceDate,dueDate,amount,currency,rate:currency==='EUR'?rate:1,paid:false,paidDate:'',note:document.getElementById('logInvoiceNote').value.trim()});
+  c.invoices.push({
+    invoiceNo:document.getElementById('logInvNo').value.trim(),
+    invoiceDate:document.getElementById('logInvDate').value,
+    dueDate:document.getElementById('logInvDue').value,
+    month,
+    amount,
+    currency,
+    rate:currency==='EUR'?rate:1,
+    paid:false,
+    paidDate:'',
+    note:''
+  });
   saveLogistics();
   renderLogistics();
 }
@@ -2335,14 +2469,23 @@ function updateInvoice(i,field,value){
   else c.invoices[i][field]=value;
   if(field==='currency' && value==='RON') c.invoices[i].rate=1;
   if(field==='currency' && value==='EUR' && (!c.invoices[i].rate || c.invoices[i].rate===1)) c.invoices[i].rate=fxRates.eurRon||5;
+  if(field==='dueDate' && !c.invoices[i].month) c.invoices[i].month=ymFromDate(value);
   saveLogistics();
   renderLogistics();
 }
-function toggleInvoicePaid(i){
+function markInvoicePaid(i){
   const c=getLogContract(selectedLogisticsId);
   if(!c || !c.invoices[i]) return;
-  c.invoices[i].paid=!c.invoices[i].paid;
-  c.invoices[i].paidDate=c.invoices[i].paid ? today() : '';
+  c.invoices[i].paid=true;
+  c.invoices[i].paidDate=today();
+  saveLogistics();
+  renderLogistics();
+}
+function unmarkInvoicePaid(i){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c || !c.invoices[i]) return;
+  c.invoices[i].paid=false;
+  c.invoices[i].paidDate='';
   saveLogistics();
   renderLogistics();
 }
@@ -2376,14 +2519,15 @@ function duplicateSelectedLogistics(){
 }
 function exportLogistics(){
   const wb=XLSX.utils.book_new();
-  const contracts=[['id','tradeId','transport','status','deliveryStart','deliveryEnd','tradeProduct','tradeCrop','tradeQty','counterparty','allocatedQty','deliveredQty','invoicesOpenRon','invoicesPaidRon']];
+
+  const contracts=[['id','tradeId','flow','transport','problem','deliveryStartMonth','deliveryEndMonth','tradeProduct','tradeCrop','tradeQty','counterparty','allocatedQty','executedQty','invoicesRon','paidRon']];
   logisticsContracts.forEach(c=>{
     const t=getLogTrade(c);
     const p=t ? (products[t.product]||{name:t.product}) : {name:''};
-    contracts.push([c.id,c.tradeId,c.transportMode,c.status,c.deliveryStart,c.deliveryEnd,p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),deliveredQty(c),Math.round(invoicesRon(c,false)*100)/100,Math.round(invoicesRon(c,true)*100)/100]);
+    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),movementQty(c),Math.round(invoicesTotalRon(c)*100)/100,Math.round(invoicesPaidRon(c)*100)/100]);
   });
   const ws1=XLSX.utils.aoa_to_sheet(contracts);
-  ws1['!cols']=[12,10,12,12,14,14,18,10,12,22,12,12,16,16].map(w=>({wch:w}));
+  ws1['!cols']=[12,10,12,12,10,16,16,18,10,12,22,12,12,14,14].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws1,'Contracte');
 
   const allocations=[['contractId','tradeId','month','qty']];
@@ -2392,18 +2536,18 @@ function exportLogistics(){
   ws2['!cols']=[12,10,12,12].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws2,'Alocari');
 
-  const deliveries=[['contractId','tradeId','date','qty','type','carrier','status','note']];
-  logisticsContracts.forEach(c=>(c.deliveries||[]).forEach(d=>deliveries.push([c.id,c.tradeId,d.date,d.qty,d.type,d.carrier,d.status,d.note])));
-  const ws3=XLSX.utils.aoa_to_sheet(deliveries);
-  ws3['!cols']=[12,10,12,12,10,20,12,30].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws3,'Livrari');
+  const movements=[['contractId','tradeId','date','qty','carrier','status','note']];
+  logisticsContracts.forEach(c=>(c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,d.date,d.qty,d.carrier,d.status,d.note])));
+  const ws3=XLSX.utils.aoa_to_sheet(movements);
+  ws3['!cols']=[12,10,12,12,20,12,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws3,'Miscari');
 
-  const invoices=[['contractId','tradeId','invoiceNo','invoiceDate','dueDate','amount','currency','rate','valueRon','paid','paidDate','note']];
-  logisticsContracts.forEach(c=>(c.invoices||[]).forEach(inv=>{
-    invoices.push([c.id,c.tradeId,inv.invoiceNo,inv.invoiceDate,inv.dueDate,inv.amount,inv.currency,inv.rate,Math.round(invoiceValueRon(inv)*100)/100,inv.paid?'DA':'NU',inv.paidDate||'',inv.note||'']);
+  const invoices=[['contractId','tradeId','invoiceNo','invoiceDate','dueDate','month','amount','currency','rate','valueRon','paid','paidDate','note']];
+  logisticsContracts.forEach(c=>(c.invoices||[]).forEach(r=>{
+    invoices.push([c.id,c.tradeId,r.invoiceNo,r.invoiceDate,r.dueDate,r.month,r.amount,r.currency,r.rate,Math.round(invoiceValueRon(r)*100)/100,r.paid?'DA':'',r.paidDate||'',r.note||'']);
   }));
   const ws4=XLSX.utils.aoa_to_sheet(invoices);
-  ws4['!cols']=[12,10,16,14,14,14,10,10,14,10,14,30].map(w=>({wch:w}));
+  ws4['!cols']=[12,10,14,12,12,12,14,10,10,14,8,12,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws4,'Facturi');
 
   const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
@@ -2429,40 +2573,59 @@ function importLogistics(event){
       const imported=rows.map(r=>({
         id:Number(r.id)||Date.now()+Math.floor(Math.random()*100000),
         tradeId:Number(r.tradeId)||r.tradeId,
+        flow:r.flow==='pickup'?'pickup':'delivery',
         transportMode:r.transport==='train'?'train':'truck',
-        status:r.status||'open',
-        deliveryStart:r.deliveryStart||'',
-        deliveryEnd:r.deliveryEnd||'',
+        problem:String(r.problem||'').toUpperCase()==='DA',
+        deliveryStartMonth:r.deliveryStartMonth||'',
+        deliveryEndMonth:r.deliveryEndMonth||'',
         allocations:[],
-        deliveries:[],
+        movements:[],
         invoices:[],
         note:'',
         createdAt:new Date().toISOString()
       }));
+
       const byId={};
       imported.forEach(c=>byId[String(c.id)]=c);
+
       const addRows=(sheet, cb)=>{
         const ws=wb.Sheets[sheet];
         if(!ws) return;
         XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(cb);
       };
+
       addRows('Alocari', r=>{
         const c=byId[String(r.contractId)];
         if(c) c.allocations.push({month:r.month, qty:Number(r.qty)||0});
       });
-      addRows('Livrari', r=>{
+      addRows('Miscari', r=>{
         const c=byId[String(r.contractId)];
-        if(c) c.deliveries.push({date:r.date,qty:Number(r.qty)||0,type:r.type==='train'?'train':'truck',carrier:r.carrier||'',status:r.status||'planned',note:r.note||''});
+        if(c) c.movements.push({
+          date:r.date,
+          qty:Number(r.qty)||0,
+          carrier:r.carrier||'',
+          status:r.status||'planned',
+          note:r.note||''
+        });
       });
       addRows('Facturi', r=>{
         const c=byId[String(r.contractId)];
-        if(c) c.invoices.push({id:Date.now()+Math.floor(Math.random()*100000),invoiceNo:r.invoiceNo||'',invoiceDate:r.invoiceDate||'',dueDate:r.dueDate||'',amount:Number(r.amount)||0,currency:r.currency==='EUR'?'EUR':'RON',rate:Number(r.rate)||1,paid:String(r.paid||'').toUpperCase()==='DA',paidDate:r.paidDate||'',note:r.note||''});
+        if(c) c.invoices.push({
+          invoiceNo:r.invoiceNo||'',
+          invoiceDate:r.invoiceDate||'',
+          dueDate:r.dueDate||'',
+          month:r.month||'',
+          amount:Number(r.amount)||0,
+          currency:r.currency==='EUR'?'EUR':'RON',
+          rate:Number(r.rate)||1,
+          paid:String(r.paid||'').toUpperCase()==='DA',
+          paidDate:r.paidDate||'',
+          note:r.note||''
+        });
       });
-      addRows('Incasari', r=>{
-        const c=byId[String(r.contractId)];
-        if(c && (!wb.Sheets['Facturi'])) c.invoices.push({id:Date.now()+Math.floor(Math.random()*100000),invoiceNo:'',invoiceDate:'',dueDate:r.month?`${r.month}-28`:'',amount:Number(r.amount)||0,currency:r.currency==='EUR'?'EUR':'RON',rate:Number(r.rate)||1,paid:false,paidDate:'',note:r.note||''});
-      });
+
       logisticsContracts=imported;
+      migrateLogisticsData();
       selectedLogisticsId=logisticsContracts[0]?.id || null;
       saveLogistics();
       renderLogistics();
@@ -3283,8 +3446,8 @@ async function bootApp(){
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
 document.getElementById('fDateEur').value=today();
-document.getElementById('logCreateStart').value=today();
-document.getElementById('logCreateEnd').value=today();
+document.getElementById('logDeliveryStart').value=today();
+document.getElementById('logDeliveryEnd').value=today();
 
 fetch('/api/me').then(r=>r.json()).then(async d=>{
   if(d.authenticated){
