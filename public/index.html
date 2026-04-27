@@ -61,6 +61,7 @@
   .tab.new{background:rgba(52,211,153,.1);color:var(--new);border-color:var(--new);}
   .tab.news-tab-active{background:rgba(167,139,250,.1);color:var(--basis);border-color:var(--basis);}
   .tab.meteo-tab-active{background:rgba(56,189,248,.10);color:var(--meteo);border-color:var(--meteo);}
+  .tab.log-tab-active{background:rgba(245,158,11,.10);color:var(--acc);border-color:var(--acc);}
   .tab:not(:first-child){border-left:none;}
   .tab:first-child{border-radius:4px 0 0 0;}
   .tab:last-child{border-radius:0 4px 0 0;}
@@ -167,6 +168,43 @@
   .wn-status-partial{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.25);}
   .wn-status-deficit{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(239,68,68,.12);color:var(--short);border:1px solid rgba(239,68,68,.25);}
   .wn-note{font-size:10px;color:var(--dim);margin-top:8px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
+
+  /* ── Logistics V1 ───────────────────────────────────────────────────────── */
+  #logisticsSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
+  .log-grid{display:grid;grid-template-columns:380px 1fr;gap:14px;align-items:start;}
+  @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
+  .log-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .log-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
+  .log-muted{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.5;}
+  .log-list{display:flex;flex-direction:column;gap:7px;max-height:620px;overflow:auto;}
+  .log-list::-webkit-scrollbar{width:3px;}
+  .log-list::-webkit-scrollbar-track{background:var(--bg);}
+  .log-list::-webkit-scrollbar-thumb{background:var(--border2);}
+  .log-item{border:1px solid var(--border);background:var(--surface2);border-radius:4px;padding:9px;cursor:pointer;transition:all .15s;}
+  .log-item:hover{border-color:var(--border2);background:var(--surface3);}
+  .log-item.active{border-color:var(--acc);background:rgba(245,158,11,.08);}
+  .log-item-top{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .log-item-name{font-size:12px;font-weight:700;color:var(--bright);}
+  .log-badge{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;padding:2px 6px;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--dim);white-space:nowrap;}
+  .log-badge.open{color:var(--acc);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);}
+  .log-badge.done{color:var(--long);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08);}
+  .log-badge.problem{color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);}
+  .log-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .log-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:9px;}
+  .log-kpi-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .log-kpi-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:800;color:var(--bright);margin-top:3px;}
+  .log-section-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1.3px;margin:12px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+  .log-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:4px;}
+  .log-table{width:100%;border-collapse:collapse;}
+  .log-table th{background:var(--surface2);}
+  .log-table td input,.log-table td select{height:24px;padding:3px 5px;font-size:10px;min-width:88px;}
+  .log-mini-form{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-top:7px;}
+  @media(max-width:1300px){.log-mini-form{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:800px){.log-mini-form{grid-template-columns:1fr;}}
+  .log-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+  .log-empty{padding:28px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;border:1px dashed var(--border2);border-radius:4px;background:var(--surface2);}
+  .btn-log{padding:3px 7px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;cursor:pointer;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:var(--acc);transition:all .15s;white-space:nowrap;}
+  .btn-log:hover{background:rgba(245,158,11,.16);}
 
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
   .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
@@ -483,6 +521,7 @@
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
   <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
+  <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabTarget" onclick="setTargetTab()" style="margin-left:auto;">🎯 Target</div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
 </div>
@@ -562,6 +601,62 @@
       <div style="color:var(--dim);">mediu = rezervă activă pe termen scurt</div>
       <div style="color:var(--dim);">adânc = rezervă mai stabilă în profil</div>
       <div style="margin-top:8px;color:var(--dim);">1 mm precipitații = 1 L/mp</div>
+    </div>
+  </div>
+</div>
+
+<div id="logisticsSection">
+  <div class="meteo-toolbar">
+    <button class="news-back-btn" onclick="closeLogisticsTab()">← Înapoi</button>
+    <span class="meteo-badge" style="color:var(--acc);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);">LOGISTICĂ V1</span>
+    <span class="log-muted">Separat de poziție. Citește tranzacțiile, dar nu modifică long/short.</span>
+    <button class="btn-import" style="margin-left:auto;" onclick="exportLogistics()">⬇ Export Logistică</button>
+  </div>
+
+  <div class="log-grid">
+    <div class="log-card">
+      <div class="log-title">Creează contract logistic</div>
+      <div class="log-muted">Alege o tranzacție din registru. Contractul logistic va fi doar legat de ea, fără să modifice poziția.</div>
+
+      <div class="fg">
+        <label class="fl">Tranzacție sursă</label>
+        <select id="logSourceTrade"></select>
+      </div>
+
+      <div class="fr fr2">
+        <div class="fg">
+          <label class="fl">Nr. contract</label>
+          <input id="logContractNo" type="text" placeholder="ex: V-2026-014">
+        </div>
+        <div class="fg">
+          <label class="fl">Transport</label>
+          <select id="logTransportMode">
+            <option value="truck">Camion</option>
+            <option value="train">Tren</option>
+            <option value="mixed">Mixt</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fr fr2">
+        <div class="fg">
+          <label class="fl">Livrare de la</label>
+          <input id="logDeliveryStart" type="date">
+        </div>
+        <div class="fg">
+          <label class="fl">Livrare până la</label>
+          <input id="logDeliveryEnd" type="date">
+        </div>
+      </div>
+
+      <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
+
+      <div class="log-section-title">Contracte logistice</div>
+      <div class="log-list" id="logisticsList"></div>
+    </div>
+
+    <div class="log-card" id="logisticsDetail">
+      <div class="log-empty">// selectează sau creează un contract logistic</div>
     </div>
   </div>
 </div>
@@ -691,10 +786,10 @@
             <tr>
               <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
               <th>Preț / Basis</th><th>Monedă</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
-              <th>Contraparte</th><th>Data</th><th></th>
+              <th>Contraparte</th><th>Data</th><th>Log.</th><th></th>
             </tr>
             <tr class="filter-row" id="filterBar">
-              <td colspan="12">
+              <td colspan="13">
                 <div class="filter-bar-inner">
                   <select id="ffProd" onchange="applyFilter()"><option value="">Toate</option></select>
                   <div class="filter-sep"></div>
@@ -885,11 +980,6 @@ const PARITY_RULES={
   short:[{val:'FOR',label:'FOR',transport:false},{val:'FCA-V',label:'FCA',transport:false},{val:'DAP-V',label:'DAP',transport:true}],
 };
 
-// ── Water need config per crop ─────────────────────────────────────────────
-// targetSoil = soil moisture optim (m3/m3)
-// rootDepth  = adâncime rădăcini în cm
-// formula: necesar_mm = MAX(0, (targetSoil - soilCurrent) * rootDepth_cm * 10)
-// unde soilCurrent = media ponderată a celor 3 straturi (superficial 10%, mediu 60%, adânc 30%)
 const WATER_NEED_CROPS = [
   { key:'wheat',     emoji:'🌾', name:'Grâu',             targetSoil:0.25, rootDepth:60,  note:'Faza vegetativă / înflorire' },
   { key:'rapeseed',  emoji:'🌿', name:'Rapiță',            targetSoil:0.27, rootDepth:80,  note:'Înainte de înflorire' },
@@ -898,7 +988,6 @@ const WATER_NEED_CROPS = [
 ];
 
 function calcWaterNeed(summary) {
-  // Estimăm soil "efectiv" ca medie ponderată (superficial 10%, mediu 60%, adânc 30%)
   const s = summary || {};
   const surf = Number(s.soilSurface) || 0;
   const mid  = Number(s.soilMid)     || 0;
@@ -912,10 +1001,10 @@ function calcWaterNeed(summary) {
     const needMm = Math.max(0, (crop.targetSoil - soilEff) * crop.rootDepth * 10);
     const deficit = needMm - prognoza7;
     let status;
-    if (needMm <= 0)                   status = 'ok';       // sol deja optim
-    else if (prognoza7 >= needMm)      status = 'ok';       // prognoza acoperă
-    else if (prognoza7 >= needMm * 0.5) status = 'partial'; // acoperit 50%+
-    else                               status = 'deficit';
+    if (needMm <= 0) status = 'ok';
+    else if (prognoza7 >= needMm) status = 'ok';
+    else if (prognoza7 >= needMm * 0.5) status = 'partial';
+    else status = 'deficit';
     return { ...crop, soilEff: Math.round(soilEff * 1000) / 1000, needMm: Math.round(needMm * 10) / 10, prognoza7: Math.round(prognoza7 * 10) / 10, deficit: Math.round(deficit * 10) / 10, status };
   });
 }
@@ -995,6 +1084,10 @@ let weatherSelected = null;
 let weatherSearchTimer = null;
 let weatherSearchOpen = false;
 
+let logisticsTabActive = false;
+let logisticsContracts = [];
+let selectedLogisticsId = null;
+
 const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
 const TARGET_ROWS = [
   { key: 'plan',     label: 'Plan (tone)',      cls: '',                     editable: true,  fmt: 'num' },
@@ -1057,6 +1150,11 @@ function closeAllSideTabs(){
     meteoTabActive=false;
     document.getElementById('tabMeteo').className='tab';
     document.getElementById('meteoSection').style.display='none';
+  }
+  if(logisticsTabActive){
+    logisticsTabActive=false;
+    document.getElementById('tabLogistics').className='tab';
+    document.getElementById('logisticsSection').style.display='none';
   }
   document.querySelector('.main').style.display='flex';
 }
@@ -1168,13 +1266,20 @@ function updateFxWidget(){
 
 async function loadAll(){
   setSyncStatus('saving','● syncing...');
-  const [tRes,pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
+  const [tRes,pRes,lRes] = await Promise.all([
+    fetch('/api/trades'),
+    fetch('/api/products'),
+    fetch('/api/logistics/contracts')
+  ]);
   const tData = await tRes.json();
   trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
+  const lData = await lRes.json();
+  logisticsContracts = Array.isArray(lData) ? lData : [];
   setSyncStatus('saved','● synced');
   populateProd();
   populateFilterProd();
+  populateLogisticsSourceTrades();
   onFormChange();
   loadNotes();
   render();
@@ -1495,6 +1600,7 @@ async function saveProd(){
   await apiSaveProducts();
   populateProd();
   populateFilterProd();
+  populateLogisticsSourceTrades();
   closeModal('modProd');
   render();
 }
@@ -1988,7 +2094,7 @@ function renderTable(){
 
   const tbody=document.getElementById('tbody');
   if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="12"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="13"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
     return;
   }
 
@@ -2022,6 +2128,11 @@ function renderTable(){
       <td>${trsp}</td>
       <td class="tdim">${t.cpty||'—'}</td>
       <td class="tdim">${t.date||'—'}</td>
+      <td>
+        <button class="btn-log" onclick="event.stopPropagation();createLogisticsQuick(${t.id})">
+          ${tradeHasLogistics(t.id)?'✓ Log':'Log'}
+        </button>
+      </td>
       <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
     </tr>`;
   }).join('');
@@ -2031,6 +2142,8 @@ function render(){
   document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
   document.getElementById('b26').textContent=trades.filter(t=>t.crop==='2026').length;
+  const bLog=document.getElementById('bLogistics');
+  if(bLog) bLog.textContent=logisticsContracts.length;
 
   const pos=getPos(crop);
   const posAll=getPos(null);
@@ -2522,7 +2635,6 @@ function renderWeatherPresets(){
     const sm=soilStatus(s.soilMid);
     const sd=soilStatus(s.soilDeep);
 
-    // Source badge for cached DB data
     const cacheBadge = item._source === 'cached_db'
       ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);margin-top:3px;">⚡ date salvate · ${item._cacheNote||''}</div>`
       : '';
@@ -2602,7 +2714,6 @@ function renderWeatherDetail(item){
     `;
   }).join('');
 
-  // ── Water need table ──────────────────────────────────────────────────────
   const waterNeedHtml = renderWaterNeedTable(s);
 
   box.innerHTML=`
@@ -2769,6 +2880,637 @@ document.addEventListener('click', (e)=>{
   if(wrap && !wrap.contains(e.target) && weatherSearchOpen) hideWeatherSearchResults();
 });
 
+// ── LOGISTICS V1 ────────────────────────────────────────────────────────────
+function setLogisticsTab(){
+  closeAllSideTabs();
+  logisticsTabActive=true;
+  document.getElementById('tabLogistics').className='tab log-tab-active';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('logisticsSection').style.display='flex';
+  populateLogisticsSourceTrades();
+  renderLogistics();
+}
+
+function closeLogisticsTab(){
+  logisticsTabActive=false;
+  document.getElementById('tabLogistics').className='tab';
+  document.getElementById('logisticsSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
+}
+
+function getTradeLabel(t){
+  const p=products[t.product]||{name:t.product,emoji:'📦'};
+  const dir=t.dir==='long'?'CUMP':'VÂNZ';
+  const price=t.ptype==='fix'
+    ? (t.currency==='eur' && t.priceEur ? `${fmtDec(t.priceEur,2)} EUR/t` : `${fmtN(t.price||0)} RON/t`)
+    : `MATIF ${t.matif||''} ${(t.basis||0)>=0?'+':''}${t.basis||0}`;
+  return `#${t.id} · ${dir} · ${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty||'—'} · ${price}`;
+}
+
+function populateLogisticsSourceTrades(){
+  const sel=document.getElementById('logSourceTrade');
+  if(!sel) return;
+
+  const linkedIds=new Set(logisticsContracts.map(c=>Number(c.source_trade_id)).filter(Boolean));
+  const rows=trades
+    .slice()
+    .sort((a,b)=>b.id-a.id)
+    .map(t=>{
+      const linked=linkedIds.has(Number(t.id));
+      return `<option value="${t.id}">${linked?'✓ ':''}${getTradeLabel(t)}</option>`;
+    }).join('');
+
+  sel.innerHTML=rows || '<option value="">Nu există tranzacții</option>';
+}
+
+function findLogContract(id){
+  return logisticsContracts.find(c=>Number(c.id)===Number(id));
+}
+
+function findSourceTrade(contract){
+  return trades.find(t=>Number(t.id)===Number(contract.source_trade_id));
+}
+
+async function apiSaveLogisticsContract(contract){
+  const copy={...contract};
+  delete copy.created_at;
+  delete copy.updated_at;
+
+  if(copy.id){
+    await fetch(`/api/logistics/contracts/${copy.id}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(copy)
+    });
+  } else {
+    const res=await fetch('/api/logistics/contracts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(copy)
+    });
+    const data=await res.json();
+    copy.id=data.id;
+  }
+
+  await loadLogisticsContracts();
+  selectedLogisticsId=copy.id;
+  render();
+  renderLogistics();
+}
+
+async function loadLogisticsContracts(){
+  const res=await fetch('/api/logistics/contracts');
+  const data=await res.json();
+  logisticsContracts=Array.isArray(data)?data:[];
+  populateLogisticsSourceTrades();
+  const b=document.getElementById('bLogistics');
+  if(b) b.textContent=logisticsContracts.length;
+}
+
+async function createLogisticsFromTrade(){
+  const id=Number(document.getElementById('logSourceTrade').value);
+  const t=trades.find(x=>Number(x.id)===id);
+  if(!t){alert('Alege o tranzacție validă.');return;}
+
+  const existing=logisticsContracts.find(c=>Number(c.source_trade_id)===id);
+  if(existing){
+    selectedLogisticsId=existing.id;
+    renderLogistics();
+    return;
+  }
+
+  const c={
+    source_trade_id:t.id,
+    product:t.product,
+    crop:t.crop,
+    dir:t.dir,
+    qty:Number(t.qty)||0,
+    price:t.price||null,
+    priceEur:t.priceEur||null,
+    currency:t.currency||'ron',
+    parity:t.parity||'',
+    loc:t.loc||'',
+    cpty:t.cpty||'',
+    note:t.note||'',
+    contractNo:document.getElementById('logContractNo').value.trim(),
+    deliveryStart:document.getElementById('logDeliveryStart').value,
+    deliveryEnd:document.getElementById('logDeliveryEnd').value,
+    transportMode:document.getElementById('logTransportMode').value,
+    status:'open',
+    allocations:[],
+    deliveries:[],
+    cashflow:[]
+  };
+
+  await apiSaveLogisticsContract(c);
+
+  document.getElementById('logContractNo').value='';
+}
+
+function renderLogistics(){
+  const badge=document.getElementById('bLogistics');
+  if(badge) badge.textContent=logisticsContracts.length;
+  renderLogisticsList();
+
+  if(selectedLogisticsId && findLogContract(selectedLogisticsId)){
+    renderLogisticsDetail(selectedLogisticsId);
+  } else if(logisticsContracts.length){
+    selectedLogisticsId=logisticsContracts[0].id;
+    renderLogisticsDetail(selectedLogisticsId);
+  } else {
+    document.getElementById('logisticsDetail').innerHTML='<div class="log-empty">// nu există contracte logistice încă</div>';
+  }
+}
+
+function renderLogisticsList(){
+  const box=document.getElementById('logisticsList');
+  if(!box) return;
+
+  if(!logisticsContracts.length){
+    box.innerHTML='<div class="log-empty">// niciun contract logistic</div>';
+    return;
+  }
+
+  box.innerHTML=logisticsContracts.map(c=>{
+    const p=products[c.product]||{name:c.product,emoji:'📦'};
+    const delivered=sumDelivered(c);
+    const rem=(Number(c.qty)||0)-delivered;
+    const st=c.status||'open';
+    return `<div class="log-item ${Number(c.id)===Number(selectedLogisticsId)?'active':''}" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail(${c.id});renderLogisticsList();">
+      <div class="log-item-top">
+        <div class="log-item-name">${p.emoji} ${p.name} ${c.crop||''}</div>
+        <span class="log-badge ${st==='closed'?'done':st==='problem'?'problem':'open'}">${statusLogLabel(st)}</span>
+      </div>
+      <div class="log-muted">
+        ${c.contractNo?escHtml(c.contractNo)+' · ':''}${c.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(c.cpty||'—')}<br>
+        ${fmtN(c.qty||0)} t · livrat ${fmtN(delivered)} t · rămas ${fmtN(rem)} t
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function statusLogLabel(s){
+  if(s==='closed') return 'închis';
+  if(s==='problem') return 'problemă';
+  if(s==='partial') return 'parțial';
+  return 'deschis';
+}
+
+function sumDelivered(c){
+  return (c.deliveries||[]).reduce((s,d)=>s+(Number(d.receivedQty)||Number(d.loadedQty)||0),0);
+}
+
+function sumPlannedAlloc(c){
+  return (c.allocations||[]).reduce((s,a)=>s+(Number(a.qty)||0),0);
+}
+
+function sumPlannedDeliveries(c){
+  return (c.deliveries||[]).reduce((s,d)=>s+(Number(d.plannedQty)||0),0);
+}
+
+function renderLogisticsDetail(id){
+  const c=findLogContract(id);
+  if(!c) return;
+
+  const p=products[c.product]||{name:c.product,emoji:'📦'};
+  const delivered=sumDelivered(c);
+  const allocated=sumPlannedAlloc(c);
+  const remaining=(Number(c.qty)||0)-delivered;
+  const source=findSourceTrade(c);
+
+  document.getElementById('logisticsDetail').innerHTML=`
+    <div class="log-actions">
+      <div>
+        <div class="log-title">${p.emoji} ${p.name} ${c.crop||''} · ${c.dir==='long'?'Cumpărare':'Vânzare'}</div>
+        <div class="log-muted">
+          ${c.contractNo?`Contract: <span style="color:var(--bright)">${escHtml(c.contractNo)}</span> · `:''}
+          Sursă: ${source?`tranzacție #${source.id}`:'manual'} · ${escHtml(c.cpty||'—')} · ${escHtml(c.parity||'—')}
+        </div>
+      </div>
+      <select id="logStatus" onchange="updateLogField(${c.id},'status',this.value)" style="width:130px;margin-left:auto;">
+        <option value="open" ${c.status==='open'?'selected':''}>Deschis</option>
+        <option value="partial" ${c.status==='partial'?'selected':''}>Parțial</option>
+        <option value="closed" ${c.status==='closed'?'selected':''}>Închis</option>
+        <option value="problem" ${c.status==='problem'?'selected':''}>Problemă</option>
+      </select>
+      <button class="btn-sm" onclick="deleteLogisticsContract(${c.id})">Șterge</button>
+    </div>
+
+    <div class="log-kpis">
+      <div class="log-kpi"><div class="log-kpi-l">Contractat</div><div class="log-kpi-v">${fmtN(c.qty||0)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Alocat lunar</div><div class="log-kpi-v" style="color:${allocated===(Number(c.qty)||0)?'var(--long)':allocated>(Number(c.qty)||0)?'var(--short)':'var(--acc)'}">${fmtN(allocated)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Livrat</div><div class="log-kpi-v" style="color:var(--long)">${fmtN(delivered)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Rămas</div><div class="log-kpi-v" style="color:${remaining<0?'var(--short)':'var(--bright)'}">${fmtN(remaining)} t</div></div>
+    </div>
+
+    <div class="fr fr4" style="margin-top:4px;">
+      <div class="fg"><label class="fl">Nr. contract</label><input value="${escHtml(c.contractNo||'')}" onchange="updateLogField(${c.id},'contractNo',this.value)"></div>
+      <div class="fg"><label class="fl">Livrare de la</label><input type="date" value="${c.deliveryStart||''}" onchange="updateLogField(${c.id},'deliveryStart',this.value)"></div>
+      <div class="fg"><label class="fl">Livrare până la</label><input type="date" value="${c.deliveryEnd||''}" onchange="updateLogField(${c.id},'deliveryEnd',this.value)"></div>
+      <div class="fg"><label class="fl">Transport default</label>
+        <select onchange="updateLogField(${c.id},'transportMode',this.value)">
+          <option value="truck" ${c.transportMode==='truck'?'selected':''}>Camion</option>
+          <option value="train" ${c.transportMode==='train'?'selected':''}>Tren</option>
+          <option value="mixed" ${c.transportMode==='mixed'?'selected':''}>Mixt</option>
+        </select>
+      </div>
+    </div>
+
+    ${renderAllocations(c)}
+    ${renderDeliveries(c)}
+    ${renderCashflow(c)}
+  `;
+}
+
+function updateLogField(id,field,value){
+  const c=findLogContract(id);
+  if(!c) return;
+  c[field]=value;
+  apiSaveLogisticsContract(c);
+}
+
+function renderAllocations(c){
+  const rows=(c.allocations||[]).map((a,idx)=>{
+    const delivered=(c.deliveries||[])
+      .filter(d=>d.month===a.month)
+      .reduce((s,d)=>s+(Number(d.receivedQty)||Number(d.loadedQty)||0),0);
+    const rem=(Number(a.qty)||0)-delivered;
+    return `<tr>
+      <td><input type="month" value="${a.month||''}" onchange="updateAllocation(${c.id},${idx},'month',this.value)"></td>
+      <td><input type="number" step="0.001" value="${a.qty||''}" onchange="updateAllocation(${c.id},${idx},'qty',this.value)"></td>
+      <td style="color:var(--long)">${fmtN(delivered)}</td>
+      <td style="color:${rem<0?'var(--short)':'var(--bright)'}">${fmtN(rem)}</td>
+      <td><button class="btn-del" onclick="deleteAllocation(${c.id},${idx})">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="log-section-title">Alocare lunară</div>
+    <div class="log-table-wrap">
+      <table class="log-table">
+        <thead><tr><th>Luna</th><th>Planificat t</th><th>Livrat t</th><th>Rămas t</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5"><div class="empty">// fără alocări lunare</div></td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="log-mini-form">
+      <div class="fg"><label class="fl">Luna</label><input id="allocMonth" type="month"></div>
+      <div class="fg"><label class="fl">Cantitate t</label><input id="allocQty" type="number" step="0.001"></div>
+      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="addAllocation(${c.id})">+ Alocă lună</button></div>
+    </div>
+  `;
+}
+
+function addAllocation(id){
+  const c=findLogContract(id);
+  if(!c) return;
+  const month=document.getElementById('allocMonth').value;
+  const qty=Number(document.getElementById('allocQty').value)||0;
+  if(!month || qty<=0){alert('Completează luna și cantitatea.');return;}
+  c.allocations=c.allocations||[];
+  c.allocations.push({month,qty});
+  apiSaveLogisticsContract(c);
+}
+
+function updateAllocation(id,idx,field,value){
+  const c=findLogContract(id);
+  if(!c || !c.allocations[idx]) return;
+  c.allocations[idx][field]=field==='qty' ? Number(value)||0 : value;
+  apiSaveLogisticsContract(c);
+}
+
+function deleteAllocation(id,idx){
+  const c=findLogContract(id);
+  if(!c) return;
+  c.allocations.splice(idx,1);
+  apiSaveLogisticsContract(c);
+}
+
+function renderDeliveries(c){
+  const rows=(c.deliveries||[]).map((d,idx)=>{
+    const modeLabel=d.mode==='train'?'🚆 Tren':'🚚 Camion';
+    return `<tr>
+      <td>
+        <select onchange="updateDelivery(${c.id},${idx},'mode',this.value)">
+          <option value="truck" ${d.mode==='truck'?'selected':''}>Camion</option>
+          <option value="train" ${d.mode==='train'?'selected':''}>Tren</option>
+        </select>
+      </td>
+      <td><input value="${escHtml(d.unitLabel||'')}" onchange="updateDelivery(${c.id},${idx},'unitLabel',this.value)" placeholder="${modeLabel}"></td>
+      <td><input type="month" value="${d.month||''}" onchange="updateDelivery(${c.id},${idx},'month',this.value)"></td>
+      <td><input type="date" value="${d.loadingDate||''}" onchange="updateDelivery(${c.id},${idx},'loadingDate',this.value)"></td>
+      <td><input type="number" step="0.001" value="${d.plannedQty||''}" onchange="updateDelivery(${c.id},${idx},'plannedQty',this.value)"></td>
+      <td><input type="number" step="0.001" value="${d.loadedQty||''}" onchange="updateDelivery(${c.id},${idx},'loadedQty',this.value)"></td>
+      <td><input type="number" step="0.001" value="${d.receivedQty||''}" onchange="updateDelivery(${c.id},${idx},'receivedQty',this.value)"></td>
+      <td>
+        <select onchange="updateDelivery(${c.id},${idx},'status',this.value)">
+          <option value="planned" ${d.status==='planned'?'selected':''}>Planificat</option>
+          <option value="loading" ${d.status==='loading'?'selected':''}>La încărcare</option>
+          <option value="transit" ${d.status==='transit'?'selected':''}>În tranzit</option>
+          <option value="delivered" ${d.status==='delivered'?'selected':''}>Livrat</option>
+          <option value="problem" ${d.status==='problem'?'selected':''}>Problemă</option>
+        </select>
+      </td>
+      <td><input value="${escHtml(d.carrier||'')}" onchange="updateDelivery(${c.id},${idx},'carrier',this.value)" placeholder="transportator"></td>
+      <td><button class="btn-del" onclick="deleteDelivery(${c.id},${idx})">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="log-section-title">Livrări camion / tren</div>
+    <div class="log-table-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Tip</th><th>Unitate</th><th>Luna</th><th>Încărcare</th><th>Plan t</th><th>Încărcat t</th><th>Recepționat t</th><th>Status</th><th>Transportator</th><th></th>
+          </tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="10"><div class="empty">// fără livrări</div></td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="log-mini-form">
+      <div class="fg"><label class="fl">Tip</label>
+        <select id="delMode">
+          <option value="truck">Camion</option>
+          <option value="train">Tren</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Unitate</label><input id="delUnit" placeholder="SM-00-XXX / Tren 1"></div>
+      <div class="fg"><label class="fl">Luna</label><input id="delMonth" type="month"></div>
+      <div class="fg"><label class="fl">Plan t</label><input id="delPlanned" type="number" step="0.001"></div>
+      <div class="fg"><label class="fl">Data încărcare</label><input id="delDate" type="date"></div>
+      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="addDelivery(${c.id})">+ Adaugă livrare</button></div>
+    </div>
+
+    <div class="log-mini-form" style="grid-template-columns:repeat(4,1fr);">
+      <div class="fg"><label class="fl">Nr. trenuri</label><input id="trainCount" type="number" min="1" placeholder="5"></div>
+      <div class="fg"><label class="fl">Luna start</label><input id="trainStartMonth" type="month"></div>
+      <div class="fg"><label class="fl">Greutate default t</label><input id="trainDefaultQty" type="number" step="0.001" placeholder="1800"></div>
+      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="generateTrains(${c.id})">+ Generează trenuri</button></div>
+    </div>
+  `;
+}
+
+function addDelivery(id){
+  const c=findLogContract(id);
+  if(!c) return;
+  const mode=document.getElementById('delMode').value;
+  const unitLabel=document.getElementById('delUnit').value.trim();
+  const month=document.getElementById('delMonth').value;
+  const plannedQty=Number(document.getElementById('delPlanned').value)||0;
+  const loadingDate=document.getElementById('delDate').value;
+  if(!unitLabel){alert('Completează unitatea: camion sau tren.');return;}
+  c.deliveries=c.deliveries||[];
+  c.deliveries.push({mode,unitLabel,month,plannedQty,loadingDate,loadedQty:0,receivedQty:0,status:'planned',carrier:''});
+  apiSaveLogisticsContract(c);
+}
+
+function generateTrains(id){
+  const c=findLogContract(id);
+  if(!c) return;
+  const count=Number(document.getElementById('trainCount').value)||0;
+  const startMonth=document.getElementById('trainStartMonth').value;
+  const defaultQty=Number(document.getElementById('trainDefaultQty').value)||0;
+  if(count<=0 || !startMonth || defaultQty<=0){alert('Completează numărul de trenuri, luna start și greutatea default.');return;}
+
+  c.deliveries=c.deliveries||[];
+
+  const [y,m]=startMonth.split('-').map(Number);
+  for(let i=0;i<count;i++){
+    const d=new Date(y, m-1+i, 1);
+    const month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    c.deliveries.push({
+      mode:'train',
+      unitLabel:`Tren ${i+1}`,
+      month,
+      plannedQty:defaultQty,
+      loadingDate:'',
+      loadedQty:0,
+      receivedQty:0,
+      status:'planned',
+      carrier:''
+    });
+  }
+
+  apiSaveLogisticsContract(c);
+}
+
+function updateDelivery(id,idx,field,value){
+  const c=findLogContract(id);
+  if(!c || !c.deliveries[idx]) return;
+  const numeric=['plannedQty','loadedQty','receivedQty'];
+  c.deliveries[idx][field]=numeric.includes(field) ? Number(value)||0 : value;
+  apiSaveLogisticsContract(c);
+}
+
+function deleteDelivery(id,idx){
+  const c=findLogContract(id);
+  if(!c) return;
+  c.deliveries.splice(idx,1);
+  apiSaveLogisticsContract(c);
+}
+
+function renderCashflow(c){
+  const rows=(c.cashflow||[]).map((x,idx)=>`
+    <tr>
+      <td>
+        <select onchange="updateCashflow(${c.id},${idx},'type',this.value)">
+          <option value="payable" ${x.type==='payable'?'selected':''}>De plătit</option>
+          <option value="receivable" ${x.type==='receivable'?'selected':''}>De încasat</option>
+        </select>
+      </td>
+      <td><input type="number" step="0.01" value="${x.amount||''}" onchange="updateCashflow(${c.id},${idx},'amount',this.value)"></td>
+      <td>
+        <select onchange="updateCashflow(${c.id},${idx},'currency',this.value)">
+          <option value="RON" ${x.currency==='RON'?'selected':''}>RON</option>
+          <option value="EUR" ${x.currency==='EUR'?'selected':''}>EUR</option>
+          <option value="HUF" ${x.currency==='HUF'?'selected':''}>HUF</option>
+        </select>
+      </td>
+      <td><input type="date" value="${x.dueDate||''}" onchange="updateCashflow(${c.id},${idx},'dueDate',this.value)"></td>
+      <td>
+        <select onchange="updateCashflow(${c.id},${idx},'status',this.value)">
+          <option value="open" ${x.status==='open'?'selected':''}>Deschis</option>
+          <option value="partial" ${x.status==='partial'?'selected':''}>Parțial</option>
+          <option value="done" ${x.status==='done'?'selected':''}>Închis</option>
+        </select>
+      </td>
+      <td><input value="${escHtml(x.note||'')}" onchange="updateCashflow(${c.id},${idx},'note',this.value)" placeholder="factură / observații"></td>
+      <td><button class="btn-del" onclick="deleteCashflow(${c.id},${idx})">✕</button></td>
+    </tr>
+  `).join('');
+
+  const pay=(c.cashflow||[]).filter(x=>x.type==='payable').reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const rec=(c.cashflow||[]).filter(x=>x.type==='receivable').reduce((s,x)=>s+(Number(x.amount)||0),0);
+
+  return `
+    <div class="log-section-title">Cashflow simplu</div>
+    <div class="log-muted" style="margin-bottom:6px;">Total de plătit: <span style="color:var(--short)">${fmtN(pay)}</span> · Total de încasat: <span style="color:var(--long)">${fmtN(rec)}</span></div>
+    <div class="log-table-wrap">
+      <table class="log-table">
+        <thead><tr><th>Tip</th><th>Sumă</th><th>Monedă</th><th>Scadență</th><th>Status</th><th>Notă</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7"><div class="empty">// fără cashflow</div></td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="log-mini-form">
+      <div class="fg"><label class="fl">Tip</label>
+        <select id="cfType">
+          <option value="payable">De plătit</option>
+          <option value="receivable">De încasat</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Sumă</label><input id="cfAmount" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl">Monedă</label>
+        <select id="cfCurrency">
+          <option value="RON">RON</option>
+          <option value="EUR">EUR</option>
+          <option value="HUF">HUF</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Scadență</label><input id="cfDue" type="date"></div>
+      <div class="fg"><label class="fl">Notă</label><input id="cfNote" placeholder="factură / observații"></div>
+      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="addCashflow(${c.id})">+ Adaugă cashflow</button></div>
+    </div>
+  `;
+}
+
+function addCashflow(id){
+  const c=findLogContract(id);
+  if(!c) return;
+  const type=document.getElementById('cfType').value;
+  const amount=Number(document.getElementById('cfAmount').value)||0;
+  const currency=document.getElementById('cfCurrency').value;
+  const dueDate=document.getElementById('cfDue').value;
+  const note=document.getElementById('cfNote').value.trim();
+  if(amount<=0){alert('Completează suma.');return;}
+  c.cashflow=c.cashflow||[];
+  c.cashflow.push({type,amount,currency,dueDate,status:'open',note});
+  apiSaveLogisticsContract(c);
+}
+
+function updateCashflow(id,idx,field,value){
+  const c=findLogContract(id);
+  if(!c || !c.cashflow[idx]) return;
+  c.cashflow[idx][field]=field==='amount' ? Number(value)||0 : value;
+  apiSaveLogisticsContract(c);
+}
+
+function deleteCashflow(id,idx){
+  const c=findLogContract(id);
+  if(!c) return;
+  c.cashflow.splice(idx,1);
+  apiSaveLogisticsContract(c);
+}
+
+async function deleteLogisticsContract(id){
+  if(!confirm('Ștergi contractul logistic? Poziția nu va fi afectată.')) return;
+  await fetch(`/api/logistics/contracts/${id}`,{method:'DELETE'});
+  if(Number(selectedLogisticsId)===Number(id)) selectedLogisticsId=null;
+  await loadLogisticsContracts();
+  render();
+  renderLogistics();
+}
+
+function tradeHasLogistics(tradeId){
+  return logisticsContracts.some(c=>Number(c.source_trade_id)===Number(tradeId));
+}
+
+function createLogisticsQuick(tradeId){
+  const t=trades.find(x=>Number(x.id)===Number(tradeId));
+  if(!t) return;
+
+  const existing=logisticsContracts.find(c=>Number(c.source_trade_id)===Number(tradeId));
+  if(existing){
+    selectedLogisticsId=existing.id;
+    setLogisticsTab();
+    return;
+  }
+
+  const c={
+    source_trade_id:t.id,
+    product:t.product,
+    crop:t.crop,
+    dir:t.dir,
+    qty:Number(t.qty)||0,
+    price:t.price||null,
+    priceEur:t.priceEur||null,
+    currency:t.currency||'ron',
+    parity:t.parity||'',
+    loc:t.loc||'',
+    cpty:t.cpty||'',
+    note:t.note||'',
+    contractNo:'',
+    deliveryStart:'',
+    deliveryEnd:'',
+    transportMode:'truck',
+    status:'open',
+    allocations:[],
+    deliveries:[],
+    cashflow:[]
+  };
+
+  apiSaveLogisticsContract(c).then(()=>setLogisticsTab());
+}
+
+function exportLogistics(){
+  if(!logisticsContracts.length){alert('Nu există contracte logistice.');return;}
+
+  const rows=[[
+    'id','source_trade_id','contract_no','produs','recolta','directie','contraparte','cantitate_contractata',
+    'alocat_lunar','livrat','ramas','transport','livrare_de_la','livrare_pana_la','status'
+  ]];
+
+  logisticsContracts.forEach(c=>{
+    const p=products[c.product]||{name:c.product};
+    const delivered=sumDelivered(c);
+    rows.push([
+      c.id,
+      c.source_trade_id||'',
+      c.contractNo||'',
+      p.name,
+      c.crop||'',
+      c.dir==='long'?'cumparare':'vanzare',
+      c.cpty||'',
+      c.qty||0,
+      sumPlannedAlloc(c),
+      delivered,
+      (Number(c.qty)||0)-delivered,
+      c.transportMode||'',
+      c.deliveryStart||'',
+      c.deliveryEnd||'',
+      c.status||''
+    ]);
+  });
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[8,14,16,18,10,12,24,18,14,12,12,12,14,14,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Contracte Logistica');
+
+  const delRows=[['contract_id','contract_no','tip','unitate','luna','data_incarcare','plan_t','incarcat_t','receptionat_t','status','transportator']];
+  logisticsContracts.forEach(c=>{
+    (c.deliveries||[]).forEach(d=>{
+      delRows.push([c.id,c.contractNo||'',d.mode||'',d.unitLabel||'',d.month||'',d.loadingDate||'',d.plannedQty||0,d.loadedQty||0,d.receivedQty||0,d.status||'',d.carrier||'']);
+    });
+  });
+  const ws2=XLSX.utils.aoa_to_sheet(delRows);
+  ws2['!cols']=[10,16,10,18,10,14,12,12,14,12,18].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws2,'Livrari');
+
+  const dateStr=new Date().toISOString().slice(0,10);
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`agrotex_logistica_${dateStr}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
+
 async function syncTrades(){
   const anyModalOpen=['modEdit','modProd','modImport','modCfo'].some(id=>{
     const el=document.getElementById(id);
@@ -2777,19 +3519,27 @@ async function syncTrades(){
   if(anyModalOpen) return;
 
   try{
-    const [tRes,pRes]=await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
-    if(!tRes.ok || !pRes.ok) return;
+    const [tRes,pRes,lRes]=await Promise.all([
+      fetch('/api/trades'),
+      fetch('/api/products'),
+      fetch('/api/logistics/contracts')
+    ]);
+    if(!tRes.ok || !pRes.ok || !lRes.ok) return;
     const newTrades=await tRes.json();
     const newProducts=await pRes.json();
+    const newLogistics=await lRes.json();
 
     const tradesChanged=JSON.stringify(newTrades)!==JSON.stringify(trades);
     const productsChanged=JSON.stringify(newProducts)!==JSON.stringify(products);
+    const logisticsChanged=JSON.stringify(newLogistics)!==JSON.stringify(logisticsContracts);
 
-    if(tradesChanged || productsChanged){
+    if(tradesChanged || productsChanged || logisticsChanged){
       trades=Array.isArray(newTrades)?newTrades:trades;
       products=newProducts || products;
-      if(productsChanged){ populateProd(); populateFilterProd(); }
+      logisticsContracts=Array.isArray(newLogistics)?newLogistics:logisticsContracts;
+      if(productsChanged){ populateProd(); populateFilterProd(); populateLogisticsSourceTrades(); }
       render();
+      if(logisticsTabActive) renderLogistics();
       const s=document.getElementById('syncStatus');
       if(s){
         s.textContent='● sync';
@@ -2839,6 +3589,7 @@ document.addEventListener('visibilitychange', ()=>{
       window._lastFxLoad=Date.now();
     }
     if(meteoTabActive) loadWeatherPresets();
+    if(logisticsTabActive) loadLogisticsContracts();
   }
 });
 window.addEventListener('pageshow',(e)=>{
@@ -2846,6 +3597,7 @@ window.addEventListener('pageshow',(e)=>{
     loadMatif();
     loadFxRates();
     if(meteoTabActive) loadWeatherPresets();
+    if(logisticsTabActive) loadLogisticsContracts();
   }
 });
 </script>
