@@ -152,7 +152,6 @@
   .meteo-empty{padding:36px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;}
   .meteo-badge{display:inline-block;padding:2px 6px;border-radius:10px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.08);color:var(--meteo);font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.5px;}
 
-  /* ── Water Need Table ─────────────────────────────────────────────────────── */
   .water-need-section{margin-top:18px;}
   .water-need-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
   .water-need-title span{color:var(--meteo);}
@@ -169,9 +168,9 @@
   .wn-status-deficit{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(239,68,68,.12);color:var(--short);border:1px solid rgba(239,68,68,.25);}
   .wn-note{font-size:10px;color:var(--dim);margin-top:8px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
 
-  /* ── Logistics V1 ───────────────────────────────────────────────────────── */
+  /* Logistics V2 */
   #logisticsSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
-  .log-grid{display:grid;grid-template-columns:380px 1fr;gap:14px;align-items:start;}
+  .log-grid{display:grid;grid-template-columns:390px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
   .log-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
   .log-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
@@ -205,6 +204,11 @@
   .log-empty{padding:28px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;border:1px dashed var(--border2);border-radius:4px;background:var(--surface2);}
   .btn-log{padding:3px 7px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;cursor:pointer;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:var(--acc);transition:all .15s;white-space:nowrap;}
   .btn-log:hover{background:rgba(245,158,11,.16);}
+  .log-plan-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;}
+  .log-plan-row{display:grid;grid-template-columns:140px 1fr 1fr;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;align-items:center;}
+  .log-plan-month{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;color:var(--bright);}
+  .log-plan-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;color:var(--acc);}
+  .log-plan-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
 
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
   .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
@@ -608,15 +612,22 @@
 <div id="logisticsSection">
   <div class="meteo-toolbar">
     <button class="news-back-btn" onclick="closeLogisticsTab()">← Înapoi</button>
-    <span class="meteo-badge" style="color:var(--acc);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);">LOGISTICĂ V1</span>
+    <span class="meteo-badge" style="color:var(--acc);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);">LOGISTICĂ V2</span>
     <span class="log-muted">Separat de poziție. Citește tranzacțiile, dar nu modifică long/short.</span>
-    <button class="btn-import" style="margin-left:auto;" onclick="exportLogistics()">⬇ Export Logistică</button>
+    <button class="btn-import" style="margin-left:auto;" onclick="document.getElementById('logisticsImportFile').click()">⬆ Import Logistică</button>
+    <button class="btn-import" onclick="exportLogistics()">⬇ Export Logistică</button>
+    <input type="file" id="logisticsImportFile" accept=".xlsx,.xls" style="display:none" onchange="importLogistics(event)">
   </div>
 
   <div class="log-grid">
     <div class="log-card">
       <div class="log-title">Creează contract logistic</div>
-      <div class="log-muted">Alege o tranzacție din registru. Contractul logistic va fi doar legat de ea, fără să modifice poziția.</div>
+      <div class="log-muted">Caută și alege tranzacția sursă. Contractul logistic va fi doar legat de ea, fără să modifice poziția.</div>
+
+      <div class="fg">
+        <label class="fl">Caută contract / tranzacție</label>
+        <input id="logSourceSearch" type="text" placeholder="produs, contraparte, ID, locație..." oninput="populateLogisticsSourceTrades()">
+      </div>
 
       <div class="fg">
         <label class="fl">Tranzacție sursă</label>
@@ -625,15 +636,19 @@
 
       <div class="fr fr2">
         <div class="fg">
-          <label class="fl">Nr. contract</label>
-          <input id="logContractNo" type="text" placeholder="ex: V-2026-014">
-        </div>
-        <div class="fg">
           <label class="fl">Transport</label>
           <select id="logTransportMode">
             <option value="truck">Camion</option>
             <option value="train">Tren</option>
-            <option value="mixed">Mixt</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Status</label>
+          <select id="logInitialStatus">
+            <option value="open">Deschis</option>
+            <option value="partial">Parțial</option>
+            <option value="closed">Închis</option>
+            <option value="problem">Problemă</option>
           </select>
         </div>
       </div>
@@ -867,7 +882,6 @@
     </div>
   </div>
 </div>
-
 <div class="overlay" id="modEdit">
   <div class="modal" style="width:540px;max-width:98vw;">
     <div class="mtitle">Editează Tranzacție <span id="editId" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
@@ -980,82 +994,6 @@ const PARITY_RULES={
   short:[{val:'FOR',label:'FOR',transport:false},{val:'FCA-V',label:'FCA',transport:false},{val:'DAP-V',label:'DAP',transport:true}],
 };
 
-const WATER_NEED_CROPS = [
-  { key:'wheat',     emoji:'🌾', name:'Grâu',             targetSoil:0.25, rootDepth:60,  note:'Faza vegetativă / înflorire' },
-  { key:'rapeseed',  emoji:'🌿', name:'Rapiță',            targetSoil:0.27, rootDepth:80,  note:'Înainte de înflorire' },
-  { key:'corn',      emoji:'🌽', name:'Porumb',            targetSoil:0.28, rootDepth:100, note:'Răsărire / vegetativ timpuriu' },
-  { key:'sunflower', emoji:'🌻', name:'Floarea-soarelui', targetSoil:0.26, rootDepth:120, note:'Răsărire / vegetativ timpuriu' },
-];
-
-function calcWaterNeed(summary) {
-  const s = summary || {};
-  const surf = Number(s.soilSurface) || 0;
-  const mid  = Number(s.soilMid)     || 0;
-  const deep = Number(s.soilDeep)    || 0;
-  const hasData = (s.soilSurface !== null && s.soilMid !== null && s.soilDeep !== null);
-  const soilEff = hasData ? (surf * 0.10 + mid * 0.60 + deep * 0.30) : null;
-  const prognoza7 = Number(s.next7Precip) || 0;
-
-  return WATER_NEED_CROPS.map(crop => {
-    if (soilEff === null) return { ...crop, needMm: null, prognoza7, deficit: null, status: 'no-data' };
-    const needMm = Math.max(0, (crop.targetSoil - soilEff) * crop.rootDepth * 10);
-    const deficit = needMm - prognoza7;
-    let status;
-    if (needMm <= 0) status = 'ok';
-    else if (prognoza7 >= needMm) status = 'ok';
-    else if (prognoza7 >= needMm * 0.5) status = 'partial';
-    else status = 'deficit';
-    return { ...crop, soilEff: Math.round(soilEff * 1000) / 1000, needMm: Math.round(needMm * 10) / 10, prognoza7: Math.round(prognoza7 * 10) / 10, deficit: Math.round(deficit * 10) / 10, status };
-  });
-}
-
-function renderWaterNeedTable(summary) {
-  const crops = calcWaterNeed(summary);
-  const statusLabel = { ok: '<span class="wn-status-ok">✓ acoperit</span>', partial: '<span class="wn-status-partial">⚠ parțial</span>', deficit: '<span class="wn-status-deficit">✗ deficit</span>', 'no-data': '<span style="color:var(--dim);font-size:9px">—</span>' };
-  const rows = crops.map(c => {
-    const needStr = c.needMm === null ? '—' : (c.needMm === 0 ? '<span style="color:var(--long)">0 mm</span>' : `<span class="wn-need" style="color:${c.status==='deficit'?'var(--short)':c.status==='partial'?'var(--acc)':'var(--long)'}">${c.needMm} mm</span>`);
-    const defStr  = c.deficit === null ? '—' : (c.deficit <= 0 ? '<span style="color:var(--long)">surplus ' + Math.abs(c.deficit) + ' mm</span>' : `<span style="color:var(--short)">-${c.deficit} mm</span>`);
-    return `<tr>
-      <td class="wn-crop">${c.emoji} ${c.name}</td>
-      <td class="wn-target">${c.targetSoil.toFixed(2)} m³/m³</td>
-      <td style="color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px">${c.rootDepth} cm</td>
-      <td>${needStr}</td>
-      <td class="wn-prognoza">${c.prognoza7} mm</td>
-      <td>${defStr}</td>
-      <td>${statusLabel[c.status]}</td>
-      <td style="color:var(--dim);font-size:10px">${c.note}</td>
-    </tr>`;
-  }).join('');
-
-  const soilNote = crops[0] && crops[0].soilEff !== undefined && crops[0].soilEff !== null
-    ? `Sol efectiv (medie ponderată 10/60/30%): <span style="color:var(--bright)">${crops[0].soilEff.toFixed(3)} m³/m³</span> &nbsp;·&nbsp; Prognoză 7 zile: <span style="color:var(--meteo)">${crops[0].prognoza7} mm</span>`
-    : 'Date sol indisponibile';
-
-  return `
-    <div class="water-need-section">
-      <div class="water-need-title">💧 Necesar Precipitații — <span>Sol Optim per Cultură</span></div>
-      <div class="meteo-table-wrap">
-        <table class="water-need-table">
-          <thead>
-            <tr>
-              <th>Cultură</th>
-              <th>Target sol</th>
-              <th>Rădăcini</th>
-              <th>Necesar (mm)</th>
-              <th>Prognoză 7z</th>
-              <th>Diferență</th>
-              <th>Status</th>
-              <th>Faza</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="wn-note">${soilNote}</div>
-    </div>
-  `;
-}
-
 let products = {};
 let trades = [];
 let crop = '2025';
@@ -1065,19 +1003,14 @@ let fxRates = { eurRon:null, eurUsd:null, usdRon:null };
 let formCurrency = 'ron';
 let editCurrency = 'ron';
 let fxSource = 'BNR';
-
 let activeFilter = { prod:'', dir:'', ptype:'', cpty:'', dateFrom:'', dateTo:'' };
-
 let notes = [];
 let noteFilter = 'all';
-
 let newsData = [];
 let newsFilter = 'all';
 let newsTabActive = false;
-
 let targetData = {};
 let targetTabActive = false;
-
 let meteoTabActive = false;
 let weatherPresets = [];
 let weatherSelected = null;
@@ -1097,30 +1030,53 @@ const TARGET_ROWS = [
   { key: 'diff',     label: 'Diferență (tone)', cls: 'tgt-section-diff',     editable: false, fmt: 'diff' },
 ];
 
+const WATER_NEED_CROPS = [
+  { key:'wheat',     emoji:'🌾', name:'Grâu',             targetSoil:0.25, rootDepth:60,  note:'Faza vegetativă / înflorire' },
+  { key:'rapeseed',  emoji:'🌿', name:'Rapiță',            targetSoil:0.27, rootDepth:80,  note:'Înainte de înflorire' },
+  { key:'corn',      emoji:'🌽', name:'Porumb',            targetSoil:0.28, rootDepth:100, note:'Răsărire / vegetativ timpuriu' },
+  { key:'sunflower', emoji:'🌻', name:'Floarea-soarelui', targetSoil:0.26, rootDepth:120, note:'Răsărire / vegetativ timpuriu' },
+];
+
 const AGRI_KEYWORDS = ['grâu','porumb','rapiță','rapita','cereale','oleaginoase','recoltă','recolta','fermi','agricol','apia','madr','export','import','grain','wheat','corn','rapeseed','barley','orz','soia','matif','cbot','harvest','crop','usda','wasde','agri'];
 const MACRO_KEYWORDS = ['bursă','bursa','financiar','macroeconomic','bnr','curs','inflatie','inflație','dobândă','dobanda','energie','petrol','gaze','piață','piata','market','futures','price','euro','dollar','fed','ecb','tariff','taxa','economic'];
 
 function escHtml(str){
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function today(){return new Date().toISOString().split('T')[0];}
-function fmtN(n){return Number(n).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtN(n){return Number(n||0).toLocaleString('ro-RO',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function fmtNet(n){return (n>0?'+':'') + fmtN(n);}
 function fmtP(n){return n>0?fmtN(n):'—';}
 function fmtDec(n,d=1){
   const x=Number(n);
   return Number.isFinite(x)?x.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 }
-function soilStatus(v){
-  const n=Number(v);
-  if(!Number.isFinite(n)) return {label:'n/a', color:'var(--dim)'};
-  if(n<0.15) return {label:'scăzut', color:'var(--short)'};
-  if(n<0.25) return {label:'moderat', color:'var(--acc)'};
-  if(n<0.35) return {label:'bun', color:'var(--long)'};
-  return {label:'ridicat', color:'var(--meteo)'};
+function ymFromDate(date){
+  if(!date) return '';
+  return String(date).slice(0,7);
+}
+function monthLabel(ym){
+  if(!ym || !ym.includes('-')) return '—';
+  const [y,m]=ym.split('-');
+  const names=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+  return `${names[Number(m)-1] || m} ${y}`;
+}
+function monthRange(start,end){
+  const out=[];
+  if(!start || !end) return out;
+  let d=new Date(start+'T12:00:00');
+  const e=new Date(end+'T12:00:00');
+  d.setDate(1);
+  e.setDate(1);
+  while(d<=e){
+    out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    d.setMonth(d.getMonth()+1);
+  }
+  return out;
 }
 function closeModal(id){
   const el=document.getElementById(id);
+  if(!el) return;
   el.classList.remove('open');
   if(id==='modCfo') el.style.display='none';
   if(id==='modImport'){
@@ -1130,6 +1086,7 @@ function closeModal(id){
 }
 function setSyncStatus(state, text){
   const el=document.getElementById('syncStatus');
+  if(!el) return;
   el.className='sync '+state;
   el.textContent=text;
 }
@@ -1179,7 +1136,7 @@ async function loadFxRates(){
   try{
     const url='https://api.allorigins.win/raw?url='+encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
     const res=await fetch(url,{signal:AbortSignal.timeout(10000)});
-    if(!res.ok) throw new Error('allorigins failed');
+    if(!res.ok) throw new Error('BNR proxy failed');
     const text=await res.text();
     const parser=new DOMParser();
     const xml=parser.parseFromString(text,'text/xml');
@@ -1199,37 +1156,6 @@ async function loadFxRates(){
       fxRates.eurUsd=eurRon/usdRon;
       fxSource='BNR'+(pubDate?' '+pubDate:'');
       updateFxWidget();
-      const cursField=document.getElementById('fCursEur');
-      if(cursField && !cursField.value) cursField.value=eurRon.toFixed(4);
-      return;
-    }
-  }catch(e){}
-
-  try{
-    const url2='https://corsproxy.io/?'+encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
-    const res2=await fetch(url2,{signal:AbortSignal.timeout(8000)});
-    if(!res2.ok) throw new Error('corsproxy failed');
-    const text2=await res2.text();
-    const parser=new DOMParser();
-    const xml2=parser.parseFromString(text2,'text/xml');
-    const pubDate=xml2.querySelector('Header PublDate')?.textContent || '';
-    const rates2=xml2.querySelectorAll('Rate');
-    let eurRon=null, usdRon=null;
-    rates2.forEach(r=>{
-      const cur=r.getAttribute('currency');
-      const multiplier=parseFloat(r.getAttribute('multiplier')||'1');
-      const val=parseFloat(r.textContent)/multiplier;
-      if(cur==='EUR') eurRon=val;
-      if(cur==='USD') usdRon=val;
-    });
-    if(eurRon && usdRon){
-      fxRates.eurRon=eurRon;
-      fxRates.usdRon=usdRon;
-      fxRates.eurUsd=eurRon/usdRon;
-      fxSource='BNR'+(pubDate?' '+pubDate:'');
-      updateFxWidget();
-      const cursField=document.getElementById('fCursEur');
-      if(cursField && !cursField.value) cursField.value=eurRon.toFixed(4);
       return;
     }
   }catch(e){}
@@ -1243,8 +1169,6 @@ async function loadFxRates(){
       fxRates.eurUsd=data.rates.USD;
       fxSource='piață (non-BNR)';
       updateFxWidget();
-      const cursField=document.getElementById('fCursEur');
-      if(cursField && !cursField.value) cursField.value=fxRates.eurRon.toFixed(4);
       return;
     }
   }catch(e){}
@@ -1261,27 +1185,21 @@ function updateFxWidget(){
   document.getElementById('fxUsdRon').className='fx-rate';
   const isNonBNR=fxSource.includes('piață');
   const updEl=document.getElementById('fxUpdated');
-  updEl.innerHTML=`<span title="Sursa: ${fxSource}" style="cursor:help;color:${isNonBNR?'var(--short)':'var(--dim)'}">${isNonBNR?'⚠ ':''}${fxSource}</span>`;
+  updEl.innerHTML=`<span title="Sursa: ${escHtml(fxSource)}" style="cursor:help;color:${isNonBNR?'var(--short)':'var(--dim)'}">${isNonBNR?'⚠ ':''}${escHtml(fxSource)}</span>`;
 }
 
 async function loadAll(){
   setSyncStatus('saving','● syncing...');
-  const [tRes,pRes,lRes] = await Promise.all([
-    fetch('/api/trades'),
-    fetch('/api/products'),
-    fetch('/api/logistics/contracts')
-  ]);
+  const [tRes,pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
   const tData = await tRes.json();
   trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
-  const lData = await lRes.json();
-  logisticsContracts = Array.isArray(lData) ? lData : [];
   setSyncStatus('saved','● synced');
   populateProd();
   populateFilterProd();
-  populateLogisticsSourceTrades();
   onFormChange();
   loadNotes();
+  loadLogistics();
   render();
 }
 
@@ -1306,177 +1224,28 @@ async function apiBulkImport(tradeList){
   setSyncStatus('saved','● saved');
 }
 
-function loadNotes(){
-  try{
-    const stored=localStorage.getItem('agrotex_notes');
-    notes=stored?JSON.parse(stored):[];
-  }catch(e){notes=[];}
-  renderNotes();
+function populateProd(){
+  const opts=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  const sel=document.getElementById('fProd');
+  const cur=sel.value;
+  sel.innerHTML=opts;
+  if(cur&&products[cur]) sel.value=cur;
+  document.getElementById('eProd').innerHTML=opts;
 }
-function saveNotes(){
-  try{ localStorage.setItem('agrotex_notes', JSON.stringify(notes)); }catch(e){}
-}
-function addNote(){
-  const input=document.getElementById('noteInput');
-  const tag=document.getElementById('noteTag').value;
-  const text=input.value.trim();
-  if(!text) return;
-  notes.unshift({id:Date.now(),text,tag,done:false,date:today()});
-  input.value='';
-  saveNotes();
-  renderNotes();
-}
-function toggleNote(id){
-  const n=notes.find(x=>x.id===id);
-  if(n){
-    n.done=!n.done;
-    if(n.done) n.doneAt=today(); else delete n.doneAt;
-    saveNotes();
-    renderNotes();
-  }
-}
-function deleteNote(id){
-  notes=notes.filter(x=>x.id!==id);
-  saveNotes();
-  renderNotes();
-}
-function setNoteFilter(f){
-  noteFilter=f;
-  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen','nfLogbook'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
-  const map={all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen',logbook:'nfLogbook'};
-  if(map[f]) document.getElementById(map[f]).classList.add('active');
-  renderNotes();
-}
-function renderNotes(){
-  const total=notes.length;
-  const done=notes.filter(n=>n.done).length;
-  const open=total-done;
-
-  document.getElementById('notesPanelStats').innerHTML =
-    `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim)"><span style="color:var(--acc)">${open}</span> deschise · <span style="color:var(--long)">${done}</span> rezolvate</span>`;
-
-  const tagColors={todo:'var(--acc)',waiting:'var(--basis)',bid:'var(--long)',offer:'var(--short)'};
-  const tagLabels={todo:'TO-DO',waiting:'WAITING FOR',bid:'BID',offer:'OFERTĂ'};
-
-  if(noteFilter==='logbook'){
-    const doneNotes=notes.filter(n=>n.done);
-    if(!doneNotes.length){
-      document.getElementById('notesList').innerHTML=`<div class="notes-empty">// nicio notiță rezolvată încă</div>`;
-      return;
-    }
-    const MONTHS_RO=['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
-    const groups={};
-    doneNotes.forEach(n=>{
-      const d=new Date(n.doneAt||n.date||'2025-01-01');
-      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const label=`${MONTHS_RO[d.getMonth()]} ${d.getFullYear()}`;
-      if(!groups[key]) groups[key]={label,items:[]};
-      groups[key].items.push(n);
-    });
-    const sortedKeys=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
-    document.getElementById('notesList').innerHTML=sortedKeys.map(key=>{
-      const g=groups[key];
-      const items=g.items.sort((a,b)=>(b.doneAt||b.date||'').localeCompare(a.doneAt||a.date||''));
-      return `
-        <div style="padding:6px 13px 4px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--border);position:sticky;top:0;">${g.label} <span style="color:var(--border2);font-weight:400">· ${items.length}</span></div>
-        ${items.map(n=>`
-          <div class="note-item done" style="opacity:.75;">
-            <div class="note-check checked" onclick="toggleNote(${n.id})" title="Marchează ca deschis"></div>
-            <div style="flex:1;min-width:0;">
-              <div class="note-text">${escHtml(n.text)}</div>
-              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-                <span class="note-tag ${n.tag}" style="color:${tagColors[n.tag]||'var(--dim)'}">${tagLabels[n.tag]||n.tag}</span>
-                <span class="note-date">${n.doneAt || n.date || ''}</span>
-              </div>
-            </div>
-            <button class="note-del" onclick="deleteNote(${n.id})" title="Șterge">✕</button>
-          </div>
-        `).join('')}
-      `;
-    }).join('');
-    return;
-  }
-
-  let filtered=notes;
-  if(noteFilter==='open') filtered=notes.filter(n=>!n.done);
-  else if(noteFilter!=='all') filtered=notes.filter(n=>n.tag===noteFilter);
-
-  if(filtered.length===0){
-    document.getElementById('notesList').innerHTML=`<div class="notes-empty">// nicio notiță${noteFilter!=='all'?' pentru filtrul selectat':''}</div>`;
-    return;
-  }
-
-  document.getElementById('notesList').innerHTML=filtered.map(n=>`
-    <div class="note-item${n.done?' done':''}" id="note_${n.id}">
-      <div class="note-check${n.done?' checked':''}" onclick="toggleNote(${n.id})" title="${n.done?'Marchează ca deschis':'Marchează ca rezolvat'}"></div>
-      <div style="flex:1;min-width:0;">
-        <div class="note-text">${escHtml(n.text)}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-          <span class="note-tag ${n.tag}" style="color:${tagColors[n.tag]||'var(--dim)'}">${tagLabels[n.tag]||n.tag}</span>
-          <span class="note-date">${n.date||''}</span>
-        </div>
-      </div>
-      <button class="note-del" onclick="deleteNote(${n.id})" title="Șterge">✕</button>
-    </div>
-  `).join('');
-}
-
 function populateFilterProd(){
   const sel=document.getElementById('ffProd');
   const cur=sel.value;
   sel.innerHTML='<option value="">Toate</option>'+Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
   if(cur) sel.value=cur;
 }
-function applyFilter(){
-  activeFilter={
-    prod:document.getElementById('ffProd').value,
-    dir:document.getElementById('ffDir').value,
-    ptype:document.getElementById('ffPtype').value,
-    cpty:document.getElementById('ffCpty').value.trim().toLowerCase(),
-    dateFrom:document.getElementById('ffDateFrom').value,
-    dateTo:document.getElementById('ffDateTo').value,
-  };
-  const isActive=Object.values(activeFilter).some(v=>v!=='');
-  document.getElementById('btnResetFilter').style.display=isActive?'':'none';
-  renderTable();
+function setCrop(y){
+  crop=y;
+  document.getElementById('fCrop').value=y;
+  document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
+  document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
+  closeAllSideTabs();
+  render();
 }
-function resetFilter(){
-  activeFilter={prod:'',dir:'',ptype:'',cpty:'',dateFrom:'',dateTo:''};
-  document.getElementById('ffProd').value='';
-  document.getElementById('ffDir').value='';
-  document.getElementById('ffPtype').value='';
-  document.getElementById('ffCpty').value='';
-  document.getElementById('ffDateFrom').value='';
-  document.getElementById('ffDateTo').value='';
-  document.getElementById('btnResetFilter').style.display='none';
-  document.getElementById('filterMatch').innerHTML='';
-  renderTable();
-}
-function getFilteredTrades(){
-  let ft=trades.filter(t=>t.crop===crop);
-  const f=activeFilter;
-  if(f.prod) ft=ft.filter(t=>t.product===f.prod);
-  if(f.dir) ft=ft.filter(t=>t.dir===f.dir);
-  if(f.ptype) ft=ft.filter(t=>t.ptype===f.ptype);
-  if(f.cpty) ft=ft.filter(t=>(t.cpty||'').toLowerCase().includes(f.cpty));
-  if(f.dateFrom) ft=ft.filter(t=>t.date && t.date>=f.dateFrom);
-  if(f.dateTo) ft=ft.filter(t=>t.date && t.date<=f.dateTo);
-  return ft;
-}
-
-function setCurrency(cur){
-  formCurrency=cur;
-  document.getElementById('curBtnRon').className='cur-btn'+(cur==='ron'?' active':'');
-  document.getElementById('curBtnEur').className='cur-btn'+(cur==='eur'?' active':'');
-  onFormChange();
-}
-function setEditCurrency(cur){
-  editCurrency=cur;
-  document.getElementById('eCurBtnRon').className='cur-btn'+(cur==='ron'?' active':'');
-  document.getElementById('eCurBtnEur').className='cur-btn'+(cur==='eur'?' active':'');
-  onEditChange();
-}
-
 function onFormChange(){
   const dir=document.getElementById('fDir').value;
   const ptype=document.getElementById('fPtype').value;
@@ -1484,8 +1253,7 @@ function onFormChange(){
   const rules=PARITY_RULES[dir];
   const curVal=pSel.value;
   pSel.innerHTML=rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
-  const match=rules.find(r=>r.val===curVal);
-  if(match) pSel.value=curVal;
+  if(rules.find(r=>r.val===curVal)) pSel.value=curVal;
   const chosen=rules.find(r=>r.val===pSel.value)||rules[0];
   const needT=chosen.transport;
   document.getElementById('parityInfo').textContent=needT?'⚠ cost transport obligatoriu':'';
@@ -1506,14 +1274,14 @@ function onFormChange(){
   const prod=document.getElementById('fProd').value;
   const showBonif=dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
   document.getElementById('grpBonif').style.display=showBonif?'':'none';
-  if(!showBonif) document.getElementById('fBonif').value='';
-
-  if(isEur && fxRates.eurRon){
-    const cf=document.getElementById('fCursEur');
-    if(!cf.value) cf.value=fxRates.eurRon.toFixed(4);
-  }
+  if(isEur && fxRates.eurRon && !document.getElementById('fCursEur').value) document.getElementById('fCursEur').value=fxRates.eurRon.toFixed(4);
 }
-
+function setCurrency(cur){
+  formCurrency=cur;
+  document.getElementById('curBtnRon').className='cur-btn'+(cur==='ron'?' active':'');
+  document.getElementById('curBtnEur').className='cur-btn'+(cur==='eur'?' active':'');
+  onFormChange();
+}
 async function addTrade(){
   const product=document.getElementById('fProd').value;
   const cr=document.getElementById('fCrop').value;
@@ -1529,8 +1297,7 @@ async function addTrade(){
   const rules=PARITY_RULES[dir];
   const chosen=rules.find(r=>r.val===parity)||rules[0];
   const needT=chosen.transport;
-  const showCurToggle=(dir==='short' && ptype==='fix');
-  const isEur=(showCurToggle && formCurrency==='eur');
+  const isEur=(dir==='short' && ptype==='fix' && formCurrency==='eur');
 
   let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,bonif:bonif||0};
 
@@ -1573,11 +1340,344 @@ async function addTrade(){
   checkCfoAlert(t);
   ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
 }
-
 async function deleteTrade(id){
+  if(logisticsContracts.some(c=>String(c.tradeId)===String(id))){
+    alert('Această tranzacție are contract logistic legat. Șterge întâi contractul logistic dacă vrei să o elimini.');
+    return;
+  }
   await apiDeleteTrade(id);
   trades=trades.filter(t=>t.id!==id);
   render();
+}
+
+function getPos(cropFilter){
+  const pos={};
+  Object.keys(products).forEach(k=>{pos[k]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};});
+  trades.filter(t=>!cropFilter || t.crop===cropFilter).forEach(t=>{
+    if(!pos[t.product]) pos[t.product]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};
+    if(t.dir==='long'){
+      pos[t.product].long+=Number(t.qty)||0;
+      pos[t.product].buyQ+=Number(t.qty)||0;
+      if(t.ptype==='fix') pos[t.product].buyV+=(Number(t.qty)||0)*(Number(t.price)||0);
+    } else {
+      if(t.ptype==='basis'){
+        pos[t.product].shortBasis+=Number(t.qty)||0;
+      } else {
+        pos[t.product].shortFix+=Number(t.qty)||0;
+        pos[t.product].sellQ+=Number(t.qty)||0;
+        pos[t.product].sellV+=(Number(t.qty)||0)*(Number(t.price)||0);
+        const isDap=t.parity==='DAP-V'||t.parity==='DAP';
+        const trsp=Number(t.transport)||0;
+        const priceFca=isDap&&trsp>0?(Number(t.price)||0)-trsp:(Number(t.price)||0);
+        pos[t.product].sellVfca+=(Number(t.qty)||0)*priceFca;
+        pos[t.product].sellQfca+=Number(t.qty)||0;
+      }
+    }
+  });
+  Object.keys(pos).forEach(k=>{
+    pos[k].short=pos[k].shortFix;
+    pos[k].net=pos[k].long-pos[k].shortFix;
+    pos[k].avgBuy=pos[k].buyQ>0?pos[k].buyV/pos[k].buyQ:0;
+    pos[k].avgSell=pos[k].sellQ>0?pos[k].sellV/pos[k].sellQ:0;
+    pos[k].avgSellFca=pos[k].sellQfca>0?pos[k].sellVfca/pos[k].sellQfca:0;
+  });
+  return pos;
+}
+
+function applyFilter(){
+  activeFilter={
+    prod:document.getElementById('ffProd').value,
+    dir:document.getElementById('ffDir').value,
+    ptype:document.getElementById('ffPtype').value,
+    cpty:document.getElementById('ffCpty').value.trim().toLowerCase(),
+    dateFrom:document.getElementById('ffDateFrom').value,
+    dateTo:document.getElementById('ffDateTo').value,
+  };
+  const isActive=Object.values(activeFilter).some(v=>v!=='');
+  document.getElementById('btnResetFilter').style.display=isActive?'':'none';
+  renderTable();
+}
+function resetFilter(){
+  activeFilter={prod:'',dir:'',ptype:'',cpty:'',dateFrom:'',dateTo:''};
+  document.getElementById('ffProd').value='';
+  document.getElementById('ffDir').value='';
+  document.getElementById('ffPtype').value='';
+  document.getElementById('ffCpty').value='';
+  document.getElementById('ffDateFrom').value='';
+  document.getElementById('ffDateTo').value='';
+  document.getElementById('btnResetFilter').style.display='none';
+  document.getElementById('filterMatch').innerHTML='';
+  renderTable();
+}
+function getFilteredTrades(){
+  let ft=trades.filter(t=>t.crop===crop);
+  const f=activeFilter;
+  if(f.prod) ft=ft.filter(t=>t.product===f.prod);
+  if(f.dir) ft=ft.filter(t=>t.dir===f.dir);
+  if(f.ptype) ft=ft.filter(t=>t.ptype===f.ptype);
+  if(f.cpty) ft=ft.filter(t=>(t.cpty||'').toLowerCase().includes(f.cpty));
+  if(f.dateFrom) ft=ft.filter(t=>t.date && t.date>=f.dateFrom);
+  if(f.dateTo) ft=ft.filter(t=>t.date && t.date<=f.dateTo);
+  return ft;
+}
+function hasLogisticsForTrade(tradeId){
+  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId));
+}
+function renderTable(){
+  const ft=getFilteredTrades();
+  const totalCrop=trades.filter(t=>t.crop===crop).length;
+  const isFiltered=Object.values(activeFilter).some(v=>v!=='');
+  document.getElementById('filterMatch').innerHTML=isFiltered?`<span class="filter-active-dot"></span><span>${ft.length}</span> / ${totalCrop} afișate`:'';
+  document.getElementById('tcount').textContent=isFiltered ? `${ft.length} / ${totalCrop} tranzacții (${crop})` : `${totalCrop} tranzacții (${crop})`;
+
+  const tbody=document.getElementById('tbody');
+  if(ft.length===0){
+    tbody.innerHTML=`<tr><td colspan="13"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML=ft.map(t=>{
+    const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
+    const isEurTrade=t.currency==='eur'&&t.ptype==='fix';
+    let priceDisplay;
+    if(t.ptype==='fix'){
+      if(isEurTrade&&t.priceEur){
+        priceDisplay=`<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">≈${fmtN(t.price)} RON</span>`;
+      } else {
+        priceDisplay=t.price?`<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>`:`<span style="color:var(--short)">—</span>`;
+      }
+    } else {
+      priceDisplay=`<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
+    }
+    const curBadge=isEurTrade?`<span class="teur">EUR</span>`:(t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
+    const trspVal=t.transportEur!=null?t.transportEur:(t.cursEur&&t.transport?t.transport/t.cursEur:null);
+    const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
+    const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
+    const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
+    const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
+    return `<tr class="tr-click" onclick="openEdit(${t.id})">
+      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
+      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
+      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
+      <td style="color:var(--bright)">${fmtN(t.qty)}</td>
+      <td>${priceDisplay}</td>
+      <td>${curBadge}</td>
+      <td class="tpar">${t.parity}</td>
+      <td class="tdim">${escHtml(t.loc||'—')}</td>
+      <td>${trsp}</td>
+      <td class="tdim">${escHtml(t.cpty||'—')}</td>
+      <td class="tdim">${t.date||'—'}</td>
+      <td>${logBadge}</td>
+      <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+function render(){
+  document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
+  document.getElementById('b26').textContent=trades.filter(t=>t.crop==='2026').length;
+  document.getElementById('bLogistics').textContent=logisticsContracts.length;
+
+  const pos=getPos(crop);
+  const posAll=getPos(null);
+  const activeProds=Object.keys(products).filter(k=>pos[k]&&(pos[k].long>0||pos[k].short>0));
+  const showProds=activeProds.length>0?activeProds:Object.keys(products).slice(0,4);
+
+  document.getElementById('cards').innerHTML=showProds.map(k=>{
+    const prod=products[k]; const p=pos[k]||{long:0,short:0,shortBasis:0,net:0};
+    const nc=p.net>0?'long':p.net<0?'short':'flat';
+    const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
+    const mb=Math.max(p.long,p.shortFix||p.short,1);
+    const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
+    const avgBuy=p.avgBuy||0;
+    const avgSell=p.avgSellFca>0?p.avgSellFca:(p.avgSell||0);
+    const margin=(avgBuy>0&&avgSell>0)?avgSell-avgBuy:null;
+    const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
+    const marginSign=margin===null?'':margin>=0?'+':'';
+    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
+    return `<div class="card">
+      <div class="cstripe" style="background:${prod.color}"></div>
+      <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
+      <div class="cnet ${nc}">${fmtN(Math.abs(p.net))}<span>t</span></div>
+      <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.shortFix||p.short)}t▼</span></div>
+      <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${(p.shortFix||p.short)/mb*100}%"></div></div>
+      ${basisRow}
+      <div class="cmets">
+        <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(avgBuy)}</div></div>
+        <div><div class="cml">Med. vânz.</div><div class="cmv">${fmtP(avgSell)}</div></div>
+      </div>
+      ${marginRow}
+    </div>`;
+  }).join('');
+
+  renderTable();
+
+  let aggHTML='';
+  let totalLong=0, totalShort=0, totalNet=0;
+  ['2025','2026'].forEach(yr=>{
+    const cp=getPos(yr);
+    aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'Recoltă Veche 2025':'Recoltă Nouă 2026'}</div>`;
+    Object.entries(products).forEach(([k,prod])=>{
+      const p=cp[k]||{long:0,short:0,net:0};
+      const nc=p.net>0?'an-l':p.net<0?'an-s':'an-f';
+      totalLong+=p.long; totalShort+=p.short; totalNet+=p.net;
+      aggHTML+=`<div class="agg-row">
+        <div class="adot" style="background:${prod.color}"></div>
+        <div class="aname">${prod.emoji} ${prod.name}</div>
+        <div class="albl">L</div><div class="anum al">${fmtN(p.long)}</div>
+        <div class="albl">S</div><div class="anum as2">${fmtN(p.short)}</div>
+        <div class="albl">NET</div><div class="anum ${nc}">${fmtNet(p.net)}</div>
+      </div>`;
+    });
+  });
+  const tnc=totalNet>0?'an-l':totalNet<0?'an-s':'an-f';
+  aggHTML+=`<div class="agg-row" style="border-top:1px solid var(--border2);margin-top:6px;padding-top:6px;font-weight:600;">
+    <div class="adot" style="background:var(--dim)"></div>
+    <div class="aname" style="color:var(--fg)">TOTAL</div>
+    <div class="albl">L</div><div class="anum al">${fmtN(totalLong)}</div>
+    <div class="albl">S</div><div class="anum as2">${fmtN(totalShort)}</div>
+    <div class="albl">NET</div><div class="anum ${tnc}">${fmtNet(totalNet)}</div>
+  </div>`;
+  document.getElementById('aggSection').innerHTML=aggHTML;
+  document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(totalLong)} t · Short: ${fmtN(totalShort)} t · Net: ${fmtNet(totalLong-totalShort)} t`;
+
+  if(logisticsTabActive){
+    populateLogisticsSourceTrades();
+    renderLogistics();
+  }
+}
+
+let editingId=null;
+function openEdit(id){
+  const t=trades.find(x=>x.id===id);
+  if(!t) return;
+  editingId=id;
+  editCurrency=t.currency==='eur'?'eur':'ron';
+  document.getElementById('editId').textContent=`#${id}`;
+
+  const eProd=document.getElementById('eProd');
+  eProd.innerHTML=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  eProd.value=t.product||Object.keys(products)[0];
+
+  document.getElementById('eCrop').value=t.crop||'2025';
+  document.getElementById('eDir').value=t.dir||'long';
+  document.getElementById('eQty').value=t.qty||'';
+  document.getElementById('ePtype').value=t.ptype||'fix';
+  document.getElementById('eLoc').value=t.loc||'';
+  document.getElementById('eBonif').value=t.bonif||'';
+  document.getElementById('eCpty').value=t.cpty||'';
+  document.getElementById('eNote').value=t.note||'';
+
+  document.getElementById('ePrice').value=(t.currency==='eur'?'':t.price)||'';
+  document.getElementById('eDate').value=t.date||today();
+  document.getElementById('eTransp').value=t.transport||'';
+  document.getElementById('ePriceEur').value=t.priceEur||'';
+  document.getElementById('eCursEur').value=t.cursEur||(fxRates.eurRon?fxRates.eurRon.toFixed(4):'');
+  document.getElementById('eDateEur').value=t.date||today();
+  document.getElementById('eTranspEur').value=t.transportEur!=null ? t.transportEur : '';
+  document.getElementById('eMatif').value=t.matif||'';
+  document.getElementById('eBasis').value=t.basis!==undefined?t.basis:'';
+  document.getElementById('eDateB').value=t.date||today();
+  document.getElementById('eTranspB').value=t.transport||'';
+
+  document.getElementById('eCurBtnRon').className='cur-btn'+(editCurrency==='ron'?' active':'');
+  document.getElementById('eCurBtnEur').className='cur-btn'+(editCurrency==='eur'?' active':'');
+  onEditChange();
+  setTimeout(()=>{document.getElementById('eParity').value=t.parity||PARITY_RULES[t.dir||'long'][0].val; onEditChange();},10);
+  document.getElementById('modEdit').classList.add('open');
+}
+function setEditCurrency(cur){
+  editCurrency=cur;
+  document.getElementById('eCurBtnRon').className='cur-btn'+(cur==='ron'?' active':'');
+  document.getElementById('eCurBtnEur').className='cur-btn'+(cur==='eur'?' active':'');
+  onEditChange();
+}
+function onEditChange(){
+  const dir=document.getElementById('eDir').value;
+  const ptype=document.getElementById('ePtype').value;
+  const pSel=document.getElementById('eParity');
+  const rules=PARITY_RULES[dir];
+  const curVal=pSel.value;
+  pSel.innerHTML=rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
+  if(rules.find(r=>r.val===curVal)) pSel.value=curVal;
+  const chosen=rules.find(r=>r.val===pSel.value)||rules[0];
+  const needT=chosen.transport;
+
+  const showCurToggle=(dir==='short' && ptype==='fix');
+  document.getElementById('eRowCurrencyToggle').style.display=showCurToggle?'':'none';
+  if(!showCurToggle) editCurrency='ron';
+
+  const isEur=(showCurToggle && editCurrency==='eur');
+  document.getElementById('eRowFixRon').style.display=(ptype==='fix' && !isEur)?'':'none';
+  document.getElementById('eRowFixEur').style.display=(ptype==='fix' && isEur)?'':'none';
+  document.getElementById('eRowBasis').style.display=ptype==='basis'?'':'none';
+
+  document.getElementById('eGrpT').style.display=(ptype==='fix' && !isEur && needT)?'':'none';
+  document.getElementById('eGrpTEur').style.display=(ptype==='fix' && isEur && needT)?'':'none';
+  document.getElementById('eGrpTB').style.display=(ptype==='basis' && needT)?'':'none';
+
+  const eProd=document.getElementById('eProd').value;
+  const showBonifE=dir==='short' && ptype==='fix' && (eProd==='rapeseed'||eProd==='sunflower');
+  document.getElementById('eGrpBonif').style.display=showBonifE?'':'none';
+}
+async function saveEdit(){
+  const id=editingId;
+  const product=document.getElementById('eProd').value;
+  const cr=document.getElementById('eCrop').value;
+  const dir=document.getElementById('eDir').value;
+  const qty=parseFloat(document.getElementById('eQty').value);
+  const parity=document.getElementById('eParity').value;
+  const loc=document.getElementById('eLoc').value.trim();
+  const bonif=parseFloat(document.getElementById('eBonif').value)||0;
+  const cpty=document.getElementById('eCpty').value.trim();
+  const note=document.getElementById('eNote').value.trim();
+  const ptype=document.getElementById('ePtype').value;
+  if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
+
+  const isEur=(dir==='short' && ptype==='fix' && editCurrency==='eur');
+  const rules=PARITY_RULES[dir];
+  const chosen=rules.find(r=>r.val===parity)||rules[0];
+  const needT=chosen.transport;
+
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:false,bonif:bonif||0};
+
+  if(ptype==='fix'){
+    let price, currency='ron', cursEur=null;
+    if(isEur){
+      const priceEur=parseFloat(document.getElementById('ePriceEur').value);
+      cursEur=parseFloat(document.getElementById('eCursEur').value)||fxRates.eurRon||5;
+      if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
+      price=priceEur*cursEur;
+      currency='eur';
+      t.priceEur=priceEur;
+      t.cursEur=cursEur;
+    } else {
+      price=parseFloat(document.getElementById('ePrice').value);
+      currency='ron';
+    }
+    const date=document.getElementById(isEur?'eDateEur':'eDate').value;
+    const trspRaw=needT?(parseFloat(document.getElementById(isEur?'eTranspEur':'eTransp').value)||0):0;
+    const trsp=isEur?trspRaw*cursEur:trspRaw;
+    t.price=price||0; t.currency=currency; t.date=date||today(); t.transport=trsp; t.transportEur=isEur?trspRaw:null;
+    if(!price||!date) t.incomplete=true;
+  } else {
+    const basis=parseFloat(document.getElementById('eBasis').value);
+    const matif=document.getElementById('eMatif').value.trim();
+    const date=document.getElementById('eDateB').value;
+    const trsp=needT?(parseFloat(document.getElementById('eTranspB').value)||0):0;
+    t.basis=isNaN(basis)?0:basis; t.matif=matif; t.date=date||today(); t.transport=trsp;
+    t.currency='eur';
+    if(isNaN(basis)||!date) t.incomplete=true;
+  }
+
+  setSyncStatus('saving','● saving...');
+  await fetch(`/api/trades/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
+  setSyncStatus('saved','● saved');
+  const idx=trades.findIndex(x=>x.id===id);
+  if(idx>=0) trades[idx]={...t,id};
+  closeModal('modEdit');
+  render();
+  checkCfoAlert({...t,id});
 }
 
 function openAddProd(){
@@ -1600,11 +1700,774 @@ async function saveProd(){
   await apiSaveProducts();
   populateProd();
   populateFilterProd();
-  populateLogisticsSourceTrades();
   closeModal('modProd');
   render();
 }
 
+function checkCfoAlert(t){
+  let priceRon=0;
+  if(t.ptype==='fix'){
+    priceRon = t.currency==='eur' ? (t.priceEur || 0) * (t.cursEur || fxRates.eurRon || 5) : (t.price || 0);
+  } else {
+    const matifPrices={wheat:207,corn:208,rapeseed:498};
+    const mp=matifPrices[t.product] || 250;
+    priceRon=(mp + (t.basis || 0)) * (fxRates.eurRon || 5);
+  }
+  const valoareTotala=priceRon * (t.qty || 0);
+  if(valoareTotala < 1000000) return;
+
+  const prod=products[t.product] || {name:t.product,emoji:''};
+  const dirText=t.dir==='long'?'CUMPĂRARE':'VÂNZARE';
+  const cpty=t.cpty || '—';
+  const priceText=t.ptype==='fix'
+    ? (t.currency==='eur' ? `${(t.priceEur||0).toFixed(2)} EUR/t (≈ ${priceRon.toFixed(0)} RON/t)` : `${priceRon.toFixed(0)} RON/t`)
+    : `MATIF ${t.matif} + ${t.basis} EUR/t basis`;
+  const valStr=new Intl.NumberFormat('ro-RO',{minimumFractionDigits:0}).format(Math.round(valoareTotala));
+
+  document.getElementById('cfoDetails').innerHTML=`
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Produs:</span> <strong>${prod.emoji} ${prod.name} — Recoltă ${t.crop}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Direcție:</span> <strong style="color:${t.dir==='long'?'var(--long)':'var(--short)'}">${dirText}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Cantitate:</span> <strong>${(t.qty||0).toLocaleString('ro-RO')} t</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Preț:</span> <strong>${priceText}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Contraparte:</span> <strong>${escHtml(cpty)}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Paritate:</span> <strong>${t.parity||'—'}</strong></div>
+    <div><span style="color:var(--dim);width:120px;display:inline-block">Valoare totală:</span> <strong style="color:#f59e0b">${valStr} RON</strong></div>
+  `;
+
+  document.getElementById('cfoDraft').value = `${t.dir === 'long' ? 'Am cumpărat' : 'Am vândut'} ${(t.qty||0).toLocaleString('ro-RO')} tone de ${prod.name} (${t.crop}) ${t.dir === 'long' ? 'de la' : 'către'} ${cpty}, la ${priceText}, paritate ${t.parity||'—'}.${t.loc ? ' Baza ' + t.loc + '.' : ''}
+
+Valoare totală estimată: ${valStr} RON.${t.note ? '\n\n' + t.note : ''}`;
+
+  document.getElementById('modCfo').style.display='flex';
+}
+function copyCfoDraft(){
+  const ta=document.getElementById('cfoDraft');
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn=document.querySelector('#modCfo .btn-save');
+    btn.textContent='✅ Copiat!';
+    setTimeout(()=>{btn.innerHTML='📋 Copiază Mesaj';},2000);
+  }).catch(()=>{
+    ta.select(); document.execCommand('copy');
+  });
+}
+
+/* Logistics V2 */
+function loadLogistics(){
+  try{
+    logisticsContracts = JSON.parse(localStorage.getItem('agrotex_logistics_v2') || '[]');
+  }catch(e){
+    logisticsContracts = [];
+  }
+}
+function saveLogistics(){
+  localStorage.setItem('agrotex_logistics_v2', JSON.stringify(logisticsContracts));
+  document.getElementById('bLogistics').textContent=logisticsContracts.length;
+}
+function setLogisticsTab(){
+  closeAllSideTabs();
+  logisticsTabActive=true;
+  document.getElementById('tabLogistics').className='tab log-tab-active';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('logisticsSection').style.display='flex';
+  populateLogisticsSourceTrades();
+  renderLogistics();
+}
+function closeLogisticsTab(){
+  logisticsTabActive=false;
+  document.getElementById('tabLogistics').className='tab';
+  document.getElementById('logisticsSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
+}
+function tradeLabel(t){
+  const p=products[t.product] || {name:t.product,emoji:'📦'};
+  const dir=t.dir==='long'?'CUMPĂRARE':'VÂNZARE';
+  const price=t.ptype==='fix'
+    ? (t.currency==='eur' && t.priceEur ? `${fmtN(t.priceEur)} EUR/t` : `${fmtN(t.price)} RON/t`)
+    : `MATIF ${t.matif || ''} ${t.basis>=0?'+':''}${t.basis || 0} EUR/t`;
+  return `#${t.id} · ${p.emoji} ${p.name} ${t.crop} · ${dir} · ${fmtN(t.qty)} t · ${escHtml(t.cpty||'—')} · ${price}`;
+}
+function populateLogisticsSourceTrades(){
+  const sel=document.getElementById('logSourceTrade');
+  if(!sel) return;
+  const q=(document.getElementById('logSourceSearch')?.value || '').toLowerCase().trim();
+  const filtered=trades.filter(t=>{
+    if(hasLogisticsForTrade(t.id)) return false;
+    if(!q) return true;
+    const p=products[t.product] || {name:t.product};
+    const hay=[
+      t.id,t.product,p.name,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date
+    ].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+  sel.innerHTML=filtered.length
+    ? filtered.map(t=>`<option value="${t.id}">${tradeLabel(t)}</option>`).join('')
+    : '<option value="">Nicio tranzacție disponibilă</option>';
+}
+function createLogisticsFromTrade(){
+  const tradeId=document.getElementById('logSourceTrade').value;
+  if(!tradeId){alert('Selectează o tranzacție sursă.');return;}
+  const t=trades.find(x=>String(x.id)===String(tradeId));
+  if(!t){alert('Tranzacția nu mai există.');return;}
+  if(hasLogisticsForTrade(t.id)){alert('Există deja un contract logistic pentru această tranzacție.');return;}
+
+  const start=document.getElementById('logDeliveryStart').value || t.date || today();
+  const end=document.getElementById('logDeliveryEnd').value || start;
+  const mode=document.getElementById('logTransportMode').value;
+  if(!['truck','train'].includes(mode)){alert('Transportul poate fi doar camion sau tren.');return;}
+
+  const months=monthRange(start,end);
+  const qty=Number(t.qty)||0;
+  const perMonth=months.length ? Math.round((qty/months.length)*100)/100 : qty;
+
+  const contract={
+    id:Date.now(),
+    tradeId:t.id,
+    transportMode:mode,
+    status:document.getElementById('logInitialStatus').value || 'open',
+    deliveryStart:start,
+    deliveryEnd:end,
+    allocations:months.map((m,idx)=>({month:m, qty: idx===months.length-1 ? Math.round((qty-perMonth*(months.length-1))*100)/100 : perMonth})),
+    deliveries:[],
+    receipts:[],
+    note:'',
+    createdAt:new Date().toISOString()
+  };
+
+  logisticsContracts.unshift(contract);
+  selectedLogisticsId=contract.id;
+  saveLogistics();
+  populateLogisticsSourceTrades();
+  renderLogistics();
+  render();
+}
+function getLogContract(id){
+  return logisticsContracts.find(c=>String(c.id)===String(id));
+}
+function getLogTrade(c){
+  return trades.find(t=>String(t.id)===String(c.tradeId));
+}
+function logContractName(c){
+  const t=getLogTrade(c);
+  if(!t) return 'Tranzacție lipsă';
+  const p=products[t.product] || {name:t.product,emoji:'📦'};
+  return `${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}`;
+}
+function deliveredQty(c){
+  return (c.deliveries||[]).reduce((s,d)=>s+(Number(d.qty)||0),0);
+}
+function allocatedQty(c){
+  return (c.allocations||[]).reduce((s,a)=>s+(Number(a.qty)||0),0);
+}
+function receiptsRon(c){
+  return (c.receipts||[]).reduce((s,r)=>{
+    const amount=Number(r.amount)||0;
+    const rate=Number(r.rate)||fxRates.eurRon||5;
+    return s + (r.currency==='EUR' ? amount*rate : amount);
+  },0);
+}
+function renderLogistics(){
+  renderLogisticsList();
+  renderLogisticsDetail();
+}
+function renderLogisticsList(){
+  const box=document.getElementById('logisticsList');
+  if(!logisticsContracts.length){
+    box.innerHTML='<div class="log-empty">// nu există contracte logistice</div>';
+    return;
+  }
+  box.innerHTML=logisticsContracts.map(c=>{
+    const t=getLogTrade(c);
+    const qty=t ? Number(t.qty)||0 : 0;
+    const delivered=deliveredQty(c);
+    const left=Math.max(0, qty-delivered);
+    const mode=c.transportMode==='train'?'Tren':'Camion';
+    const cls=c.status==='closed'?'done':c.status==='problem'?'problem':'open';
+    return `<div class="log-item ${String(selectedLogisticsId)===String(c.id)?'active':''}" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail();renderLogisticsList();">
+      <div class="log-item-top">
+        <div class="log-item-name">${logContractName(c)}</div>
+        <span class="log-badge ${cls}">${escHtml(c.status||'open')}</span>
+      </div>
+      <div class="log-muted" style="margin-top:5px;">${mode} · ${c.deliveryStart||'—'} → ${c.deliveryEnd||'—'} · livrat ${fmtN(delivered)} t · rămas ${fmtN(left)} t</div>
+    </div>`;
+  }).join('');
+}
+function renderProgramAggregate(){
+  const agg={};
+  logisticsContracts.forEach(c=>{
+    (c.allocations||[]).forEach(a=>{
+      if(!a.month) return;
+      if(!agg[a.month]) agg[a.month]={deliveries:0, receipts:0};
+      agg[a.month].deliveries += Number(a.qty)||0;
+    });
+    (c.receipts||[]).forEach(r=>{
+      if(!r.month) return;
+      if(!agg[r.month]) agg[r.month]={deliveries:0, receipts:0};
+      const amount=Number(r.amount)||0;
+      const rate=Number(r.rate)||fxRates.eurRon||5;
+      agg[r.month].receipts += r.currency==='EUR' ? amount*rate : amount;
+    });
+  });
+
+  const months=Object.keys(agg).sort();
+  if(!months.length) return `<div class="log-empty">// nu există program de livrări și încasări</div>`;
+
+  const totalDel=months.reduce((s,m)=>s+agg[m].deliveries,0);
+  const totalRec=months.reduce((s,m)=>s+agg[m].receipts,0);
+
+  return `
+    <div class="log-plan-grid">
+      ${months.map(m=>`
+        <div class="log-plan-row">
+          <div class="log-plan-month">${monthLabel(m)}</div>
+          <div>
+            <div class="log-plan-label">Livrări programate</div>
+            <div class="log-plan-val">${fmtN(agg[m].deliveries)} t</div>
+          </div>
+          <div>
+            <div class="log-plan-label">Încasări programate RON</div>
+            <div class="log-plan-val">${fmtN(agg[m].receipts)} RON</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="log-muted">Total livrări programate: <span style="color:var(--bright);font-weight:800">${fmtN(totalDel)} t</span> · Total încasări programate: <span style="color:var(--bright);font-weight:800">${fmtN(totalRec)} RON</span></div>
+  `;
+}
+function renderLogisticsDetail(){
+  const detail=document.getElementById('logisticsDetail');
+  const c=getLogContract(selectedLogisticsId);
+
+  if(!c){
+    detail.innerHTML=`
+      <div class="log-title">Program livrări și încasări</div>
+      ${renderProgramAggregate()}
+      <div class="log-empty" style="margin-top:12px;">// selectează sau creează un contract logistic</div>
+    `;
+    return;
+  }
+
+  const t=getLogTrade(c);
+  const prod=t ? (products[t.product]||{name:t.product,emoji:'📦'}) : {name:'Tranzacție lipsă',emoji:'📦'};
+  const qty=t ? Number(t.qty)||0 : 0;
+  const delivered=deliveredQty(c);
+  const allocated=allocatedQty(c);
+  const left=Math.max(0, qty-delivered);
+  const recRon=receiptsRon(c);
+
+  detail.innerHTML=`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div>
+        <div class="log-title">${logContractName(c)}</div>
+        <div class="log-muted">Tranzacție sursă #${c.tradeId} · ${t ? (t.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${t ? escHtml(t.parity||'—') : '—'} · ${t ? escHtml(t.loc||'—') : '—'}</div>
+      </div>
+      <div class="log-actions">
+        <button class="btn-log" onclick="duplicateSelectedLogistics()">Duplică</button>
+        <button class="btn-log" style="color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);" onclick="deleteSelectedLogistics()">Șterge</button>
+      </div>
+    </div>
+
+    <div class="log-kpis" style="margin-top:10px;">
+      <div class="log-kpi"><div class="log-kpi-l">Cantitate contract</div><div class="log-kpi-v">${fmtN(qty)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Alocat lunar</div><div class="log-kpi-v">${fmtN(allocated)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Livrat efectiv</div><div class="log-kpi-v">${fmtN(delivered)} t</div></div>
+      <div class="log-kpi"><div class="log-kpi-l">Rămas</div><div class="log-kpi-v">${fmtN(left)} t</div></div>
+    </div>
+
+    <div class="fr fr4" style="margin-top:10px;">
+      <div class="fg">
+        <label class="fl">Transport</label>
+        <select id="logEditMode" onchange="updateLogContractField('transportMode',this.value)">
+          <option value="truck" ${c.transportMode==='truck'?'selected':''}>Camion</option>
+          <option value="train" ${c.transportMode==='train'?'selected':''}>Tren</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Status</label>
+        <select id="logEditStatus" onchange="updateLogContractField('status',this.value)">
+          <option value="open" ${c.status==='open'?'selected':''}>Deschis</option>
+          <option value="partial" ${c.status==='partial'?'selected':''}>Parțial</option>
+          <option value="closed" ${c.status==='closed'?'selected':''}>Închis</option>
+          <option value="problem" ${c.status==='problem'?'selected':''}>Problemă</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Livrare de la</label>
+        <input type="date" value="${c.deliveryStart||''}" onchange="updateLogContractField('deliveryStart',this.value)">
+      </div>
+      <div class="fg">
+        <label class="fl">Livrare până la</label>
+        <input type="date" value="${c.deliveryEnd||''}" onchange="updateLogContractField('deliveryEnd',this.value)">
+      </div>
+    </div>
+
+    <div class="log-section-title">Program livrări și încasări, total contracte</div>
+    ${renderProgramAggregate()}
+
+    <div class="log-section-title">Alocare lunară contract</div>
+    ${renderAllocationsTable(c)}
+
+    <div class="log-mini-form">
+      <div class="fg"><label class="fl">Luna</label><input id="logAllocMonth" type="month"></div>
+      <div class="fg"><label class="fl">Cantitate t</label><input id="logAllocQty" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addAllocation()">+ Adaugă alocare</button></div>
+    </div>
+
+    <div class="log-section-title">Livrări zilnice</div>
+    ${renderDeliveriesTable(c)}
+
+    <div class="log-mini-form">
+      <div class="fg"><label class="fl">Data livrării</label><input id="logDeliveryDate" type="date" value="${today()}"></div>
+      <div class="fg"><label class="fl">Cantitate zi/camion/tren t</label><input id="logDeliveryQty" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl">Tip</label>
+        <select id="logDeliveryType">
+          <option value="truck">Camion</option>
+          <option value="train">Tren</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Transportator / tren</label><input id="logCarrier" type="text"></div>
+      <div class="fg"><label class="fl">Status</label>
+        <select id="logDeliveryStatus">
+          <option value="planned">Programat</option>
+          <option value="loaded">Încărcat</option>
+          <option value="delivered">Livrat</option>
+          <option value="problem">Problemă</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addDelivery()">+ Adaugă livrare</button></div>
+    </div>
+
+    ${c.transportMode==='train' ? `
+      <div class="log-mini-form" style="margin-top:10px;">
+        <div class="fg"><label class="fl">Nr. trenuri</label><input id="logTrainCount" type="number" value="1" min="1"></div>
+        <div class="fg"><label class="fl">Greutate tren t</label><input id="logTrainWeight" type="number" step="0.01" value="1800"></div>
+        <div class="fg"><label class="fl">Prima dată</label><input id="logTrainStartDate" type="date" value="${today()}"></div>
+        <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="generateTrains()">Generează trenuri</button></div>
+      </div>
+    ` : ''}
+
+    <div class="log-section-title">Încasări programate</div>
+    <div class="log-muted" style="margin-bottom:7px;">Sumele pot fi RON sau EUR. În dashboard se afișează în RON, la cursul introdus.</div>
+    ${renderReceiptsTable(c)}
+
+    <div class="log-mini-form">
+      <div class="fg"><label class="fl">Luna încasării</label><input id="logReceiptMonth" type="month"></div>
+      <div class="fg"><label class="fl">Sumă</label><input id="logReceiptAmount" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl">Monedă</label>
+        <select id="logReceiptCurrency" onchange="document.getElementById('logReceiptRateWrap').style.display=this.value==='EUR'?'flex':'none'">
+          <option value="RON">RON</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      <div class="fg" id="logReceiptRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logReceiptRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
+      <div class="fg"><label class="fl">Observații</label><input id="logReceiptNote" type="text"></div>
+      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addReceipt()">+ Adaugă încasare</button></div>
+    </div>
+  `;
+}
+function renderAllocationsTable(c){
+  if(!c.allocations || !c.allocations.length) return '<div class="log-empty">// nicio alocare lunară</div>';
+  return `<div class="log-table-wrap"><table class="log-table">
+    <thead><tr><th>Luna</th><th>Cantitate t</th><th></th></tr></thead>
+    <tbody>${c.allocations.map((a,i)=>`
+      <tr>
+        <td><input type="month" value="${a.month||''}" onchange="updateAllocation(${i},'month',this.value)"></td>
+        <td><input type="number" step="0.01" value="${a.qty||0}" onchange="updateAllocation(${i},'qty',this.value)"></td>
+        <td><button class="btn-del" onclick="deleteAllocation(${i})">✕</button></td>
+      </tr>
+    `).join('')}</tbody>
+  </table></div>`;
+}
+function renderDeliveriesTable(c){
+  if(!c.deliveries || !c.deliveries.length) return '<div class="log-empty">// nicio livrare introdusă</div>';
+  return `<div class="log-table-wrap"><table class="log-table">
+    <thead><tr><th>Data</th><th>Cantitate t</th><th>Tip</th><th>Transportator / tren</th><th>Status</th><th>Observații</th><th></th></tr></thead>
+    <tbody>${c.deliveries.map((d,i)=>`
+      <tr>
+        <td><input type="date" value="${d.date||''}" onchange="updateDelivery(${i},'date',this.value)"></td>
+        <td><input type="number" step="0.01" value="${d.qty||0}" onchange="updateDelivery(${i},'qty',this.value)"></td>
+        <td>
+          <select onchange="updateDelivery(${i},'type',this.value)">
+            <option value="truck" ${d.type==='truck'?'selected':''}>Camion</option>
+            <option value="train" ${d.type==='train'?'selected':''}>Tren</option>
+          </select>
+        </td>
+        <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateDelivery(${i},'carrier',this.value)"></td>
+        <td>
+          <select onchange="updateDelivery(${i},'status',this.value)">
+            <option value="planned" ${d.status==='planned'?'selected':''}>Programat</option>
+            <option value="loaded" ${d.status==='loaded'?'selected':''}>Încărcat</option>
+            <option value="delivered" ${d.status==='delivered'?'selected':''}>Livrat</option>
+            <option value="problem" ${d.status==='problem'?'selected':''}>Problemă</option>
+          </select>
+        </td>
+        <td><input type="text" value="${escHtml(d.note||'')}" onchange="updateDelivery(${i},'note',this.value)"></td>
+        <td><button class="btn-del" onclick="deleteDelivery(${i})">✕</button></td>
+      </tr>
+    `).join('')}</tbody>
+  </table></div>`;
+}
+function renderReceiptsTable(c){
+  if(!c.receipts || !c.receipts.length) return '<div class="log-empty">// nicio încasare programată</div>';
+  return `<div class="log-table-wrap"><table class="log-table">
+    <thead><tr><th>Luna</th><th>Sumă</th><th>Monedă</th><th>Curs</th><th>Valoare RON</th><th>Observații</th><th></th></tr></thead>
+    <tbody>${c.receipts.map((r,i)=>{
+      const rate=Number(r.rate)||fxRates.eurRon||5;
+      const ron=r.currency==='EUR' ? (Number(r.amount)||0)*rate : Number(r.amount)||0;
+      return `<tr>
+        <td><input type="month" value="${r.month||''}" onchange="updateReceipt(${i},'month',this.value)"></td>
+        <td><input type="number" step="0.01" value="${r.amount||0}" onchange="updateReceipt(${i},'amount',this.value)"></td>
+        <td>
+          <select onchange="updateReceipt(${i},'currency',this.value)">
+            <option value="RON" ${r.currency==='RON'?'selected':''}>RON</option>
+            <option value="EUR" ${r.currency==='EUR'?'selected':''}>EUR</option>
+          </select>
+        </td>
+        <td><input type="number" step="0.0001" value="${rate}" onchange="updateReceipt(${i},'rate',this.value)"></td>
+        <td style="color:var(--acc);font-weight:800">${fmtN(ron)} RON</td>
+        <td><input type="text" value="${escHtml(r.note||'')}" onchange="updateReceipt(${i},'note',this.value)"></td>
+        <td><button class="btn-del" onclick="deleteReceipt(${i})">✕</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+function updateLogContractField(field,value){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  if(field==='transportMode' && !['truck','train'].includes(value)) return;
+  c[field]=value;
+  saveLogistics();
+  renderLogistics();
+}
+function addAllocation(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  const month=document.getElementById('logAllocMonth').value;
+  const qty=parseFloat(document.getElementById('logAllocQty').value);
+  if(!month || !qty){alert('Completează luna și cantitatea.');return;}
+  c.allocations=c.allocations||[];
+  c.allocations.push({month,qty});
+  saveLogistics();
+  renderLogisticsDetail();
+}
+function updateAllocation(i,field,value){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c || !c.allocations[i]) return;
+  c.allocations[i][field]=field==='qty'?Number(value)||0:value;
+  saveLogistics();
+  renderLogisticsDetail();
+}
+function deleteAllocation(i){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  c.allocations.splice(i,1);
+  saveLogistics();
+  renderLogisticsDetail();
+}
+function addDelivery(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  const date=document.getElementById('logDeliveryDate').value;
+  const qty=parseFloat(document.getElementById('logDeliveryQty').value);
+  const type=document.getElementById('logDeliveryType').value;
+  if(!date || !qty){alert('Completează data și cantitatea.');return;}
+  if(!['truck','train'].includes(type)){alert('Tipul poate fi doar camion sau tren.');return;}
+  c.deliveries=c.deliveries||[];
+  c.deliveries.push({
+    date,
+    qty,
+    type,
+    carrier:document.getElementById('logCarrier').value.trim(),
+    status:document.getElementById('logDeliveryStatus').value,
+    note:''
+  });
+  if(c.status==='open') c.status='partial';
+  saveLogistics();
+  renderLogistics();
+}
+function updateDelivery(i,field,value){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c || !c.deliveries[i]) return;
+  if(field==='type' && !['truck','train'].includes(value)) return;
+  c.deliveries[i][field]=field==='qty'?Number(value)||0:value;
+  saveLogistics();
+  renderLogistics();
+}
+function deleteDelivery(i){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  c.deliveries.splice(i,1);
+  saveLogistics();
+  renderLogistics();
+}
+function generateTrains(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  const count=parseInt(document.getElementById('logTrainCount').value,10)||1;
+  const weight=parseFloat(document.getElementById('logTrainWeight').value)||1800;
+  const start=document.getElementById('logTrainStartDate').value || today();
+  const startDate=new Date(start+'T12:00:00');
+  c.deliveries=c.deliveries||[];
+  for(let i=0;i<count;i++){
+    const d=new Date(startDate);
+    d.setDate(d.getDate()+i*7);
+    c.deliveries.push({
+      date:d.toISOString().slice(0,10),
+      qty:weight,
+      type:'train',
+      carrier:`Tren ${i+1}`,
+      status:'planned',
+      note:''
+    });
+  }
+  if(c.status==='open') c.status='partial';
+  saveLogistics();
+  renderLogistics();
+}
+function addReceipt(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  const month=document.getElementById('logReceiptMonth').value;
+  const amount=parseFloat(document.getElementById('logReceiptAmount').value);
+  const currency=document.getElementById('logReceiptCurrency').value;
+  const rate=parseFloat(document.getElementById('logReceiptRate').value)||fxRates.eurRon||5;
+  if(!month || !amount){alert('Completează luna și suma.');return;}
+  c.receipts=c.receipts||[];
+  c.receipts.push({
+    month,
+    amount,
+    currency,
+    rate:currency==='EUR'?rate:1,
+    note:document.getElementById('logReceiptNote').value.trim()
+  });
+  saveLogistics();
+  renderLogisticsDetail();
+}
+function updateReceipt(i,field,value){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c || !c.receipts[i]) return;
+  if(field==='amount' || field==='rate') c.receipts[i][field]=Number(value)||0;
+  else c.receipts[i][field]=value;
+  if(field==='currency' && value==='RON') c.receipts[i].rate=1;
+  if(field==='currency' && value==='EUR' && (!c.receipts[i].rate || c.receipts[i].rate===1)) c.receipts[i].rate=fxRates.eurRon||5;
+  saveLogistics();
+  renderLogisticsDetail();
+}
+function deleteReceipt(i){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  c.receipts.splice(i,1);
+  saveLogistics();
+  renderLogisticsDetail();
+}
+function deleteSelectedLogistics(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  if(!confirm('Ștergi contractul logistic selectat?')) return;
+  logisticsContracts=logisticsContracts.filter(x=>String(x.id)!==String(selectedLogisticsId));
+  selectedLogisticsId=logisticsContracts[0]?.id || null;
+  saveLogistics();
+  renderLogistics();
+  render();
+}
+function duplicateSelectedLogistics(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  const copy=JSON.parse(JSON.stringify(c));
+  copy.id=Date.now();
+  copy.createdAt=new Date().toISOString();
+  logisticsContracts.unshift(copy);
+  selectedLogisticsId=copy.id;
+  saveLogistics();
+  renderLogistics();
+}
+function exportLogistics(){
+  const wb=XLSX.utils.book_new();
+
+  const contracts=[['id','tradeId','transport','status','deliveryStart','deliveryEnd','tradeProduct','tradeCrop','tradeQty','counterparty','allocatedQty','deliveredQty','receiptsRon']];
+  logisticsContracts.forEach(c=>{
+    const t=getLogTrade(c);
+    const p=t ? (products[t.product]||{name:t.product}) : {name:''};
+    contracts.push([c.id,c.tradeId,c.transportMode,c.status,c.deliveryStart,c.deliveryEnd,p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),deliveredQty(c),Math.round(receiptsRon(c)*100)/100]);
+  });
+  const ws1=XLSX.utils.aoa_to_sheet(contracts);
+  ws1['!cols']=[12,10,12,12,14,14,18,10,12,22,12,12,14].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws1,'Contracte');
+
+  const allocations=[['contractId','tradeId','month','qty']];
+  logisticsContracts.forEach(c=>(c.allocations||[]).forEach(a=>allocations.push([c.id,c.tradeId,a.month,a.qty])));
+  const ws2=XLSX.utils.aoa_to_sheet(allocations);
+  ws2['!cols']=[12,10,12,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws2,'Alocari');
+
+  const deliveries=[['contractId','tradeId','date','qty','type','carrier','status','note']];
+  logisticsContracts.forEach(c=>(c.deliveries||[]).forEach(d=>deliveries.push([c.id,c.tradeId,d.date,d.qty,d.type,d.carrier,d.status,d.note])));
+  const ws3=XLSX.utils.aoa_to_sheet(deliveries);
+  ws3['!cols']=[12,10,12,12,10,20,12,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws3,'Livrari');
+
+  const receipts=[['contractId','tradeId','month','amount','currency','rate','valueRon','note']];
+  logisticsContracts.forEach(c=>(c.receipts||[]).forEach(r=>{
+    const rate=Number(r.rate)||fxRates.eurRon||5;
+    const valueRon=r.currency==='EUR' ? (Number(r.amount)||0)*rate : Number(r.amount)||0;
+    receipts.push([c.id,c.tradeId,r.month,r.amount,r.currency,rate,Math.round(valueRon*100)/100,r.note]);
+  }));
+  const ws4=XLSX.utils.aoa_to_sheet(receipts);
+  ws4['!cols']=[12,10,12,14,10,10,14,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws4,'Incasari');
+
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`agrotex_logistica_${today()}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
+}
+function importLogistics(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sheetContracts=wb.Sheets['Contracte'];
+      if(!sheetContracts) throw new Error('Lipsește sheet-ul Contracte');
+      const rows=XLSX.utils.sheet_to_json(sheetContracts,{defval:''});
+      const imported=rows.map(r=>({
+        id:Number(r.id)||Date.now()+Math.floor(Math.random()*100000),
+        tradeId:Number(r.tradeId)||r.tradeId,
+        transportMode:r.transport==='train'?'train':'truck',
+        status:r.status||'open',
+        deliveryStart:r.deliveryStart||'',
+        deliveryEnd:r.deliveryEnd||'',
+        allocations:[],
+        deliveries:[],
+        receipts:[],
+        note:'',
+        createdAt:new Date().toISOString()
+      }));
+
+      const byId={};
+      imported.forEach(c=>byId[String(c.id)]=c);
+
+      const addRows=(sheet, cb)=>{
+        const ws=wb.Sheets[sheet];
+        if(!ws) return;
+        XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(cb);
+      };
+
+      addRows('Alocari', r=>{
+        const c=byId[String(r.contractId)];
+        if(c) c.allocations.push({month:r.month, qty:Number(r.qty)||0});
+      });
+      addRows('Livrari', r=>{
+        const c=byId[String(r.contractId)];
+        if(c) c.deliveries.push({
+          date:r.date,
+          qty:Number(r.qty)||0,
+          type:r.type==='train'?'train':'truck',
+          carrier:r.carrier||'',
+          status:r.status||'planned',
+          note:r.note||''
+        });
+      });
+      addRows('Incasari', r=>{
+        const c=byId[String(r.contractId)];
+        if(c) c.receipts.push({
+          month:r.month,
+          amount:Number(r.amount)||0,
+          currency:r.currency==='EUR'?'EUR':'RON',
+          rate:Number(r.rate)||1,
+          note:r.note||''
+        });
+      });
+
+      logisticsContracts=imported;
+      selectedLogisticsId=logisticsContracts[0]?.id || null;
+      saveLogistics();
+      renderLogistics();
+      render();
+      alert(`Import logistică reușit: ${logisticsContracts.length} contracte.`);
+    }catch(err){
+      alert('Eroare import logistică: '+err.message);
+    }
+    event.target.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* Notes */
+function loadNotes(){
+  try{ notes=JSON.parse(localStorage.getItem('agrotex_notes') || '[]'); }catch(e){notes=[];}
+  renderNotes();
+}
+function saveNotes(){ localStorage.setItem('agrotex_notes', JSON.stringify(notes)); }
+function addNote(){
+  const input=document.getElementById('noteInput');
+  const tag=document.getElementById('noteTag').value;
+  const text=input.value.trim();
+  if(!text) return;
+  notes.unshift({id:Date.now(),text,tag,done:false,date:today()});
+  input.value='';
+  saveNotes();
+  renderNotes();
+}
+function toggleNote(id){
+  const n=notes.find(x=>x.id===id);
+  if(!n) return;
+  n.done=!n.done;
+  if(n.done) n.doneAt=today(); else delete n.doneAt;
+  saveNotes();
+  renderNotes();
+}
+function deleteNote(id){
+  notes=notes.filter(x=>x.id!==id);
+  saveNotes();
+  renderNotes();
+}
+function setNoteFilter(f){
+  noteFilter=f;
+  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen','nfLogbook'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  const map={all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen',logbook:'nfLogbook'};
+  if(map[f]) document.getElementById(map[f]).classList.add('active');
+  renderNotes();
+}
+function renderNotes(){
+  const total=notes.length;
+  const done=notes.filter(n=>n.done).length;
+  const open=total-done;
+  document.getElementById('notesPanelStats').innerHTML =
+    `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim)"><span style="color:var(--acc)">${open}</span> deschise · <span style="color:var(--long)">${done}</span> rezolvate</span>`;
+
+  const tagColors={todo:'var(--acc)',waiting:'var(--basis)',bid:'var(--long)',offer:'var(--short)'};
+  const tagLabels={todo:'TO-DO',waiting:'WAITING FOR',bid:'BID',offer:'OFERTĂ'};
+  let filtered=notes;
+  if(noteFilter==='open') filtered=notes.filter(n=>!n.done);
+  else if(noteFilter==='logbook') filtered=notes.filter(n=>n.done);
+  else if(noteFilter!=='all') filtered=notes.filter(n=>n.tag===noteFilter);
+
+  if(!filtered.length){
+    document.getElementById('notesList').innerHTML=`<div class="notes-empty">// nicio notiță</div>`;
+    return;
+  }
+  document.getElementById('notesList').innerHTML=filtered.map(n=>`
+    <div class="note-item${n.done?' done':''}" id="note_${n.id}">
+      <div class="note-check${n.done?' checked':''}" onclick="toggleNote(${n.id})"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="note-text">${escHtml(n.text)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+          <span class="note-tag ${n.tag}" style="color:${tagColors[n.tag]||'var(--dim)'}">${tagLabels[n.tag]||n.tag}</span>
+          <span class="note-date">${n.doneAt || n.date || ''}</span>
+        </div>
+      </div>
+      <button class="note-del" onclick="deleteNote(${n.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+/* Import / Export tranzacții */
 function openImport(){
   importBuffer=[];
   document.getElementById('importStatus').style.display='none';
@@ -1649,9 +2512,8 @@ function parseFile(file){
           return '';
         };
 
-        const qtyRaw=get(['cantitate','qty','quantity','tone','cant']);
-        const qty=parseFloat(qtyRaw);
-        if(!qtyRaw||isNaN(qty)||qty<=0){skipped++;return;}
+        const qty=parseFloat(get(['cantitate','qty','quantity','tone','cant']));
+        if(!qty||qty<=0){skipped++;return;}
 
         const productRaw=get(['produs','product']);
         const product=productRaw.toLowerCase()
@@ -1669,33 +2531,25 @@ function parseFile(file){
         const monedaRaw=get(['moneda','currency','valuta']).toUpperCase();
         const currency=(monedaRaw==='EUR')?'eur':'ron';
         const parityRaw=get(['paritate','parity']).toUpperCase();
-        const pretRaw=get(['pret_basis','pret','basis','price','valoare','pret_ron','pret_eur']);
+        const pretVal=parseFloat(get(['pret_basis','pret','basis','price','valoare','pret_ron','pret_eur']));
         const matif=get(['contract_matif','matif','contract']);
-        const cursEurRaw=get(['curs_eur','curs','eur_ron','rate']);
-        const transpRaw=get(['cost_transport','transport','transp']);
+        const cursEur=parseFloat(get(['curs_eur','curs','eur_ron','rate']))||null;
+        const transpVal=parseFloat(get(['cost_transport','transport','transp']))||0;
         const loc=get(['locatie','locatia','baza','location','loc']);
         const cpty=get(['contraparte','counterparty','partener','cpty']);
         const dateRaw=get(['data','date','zi']);
         const noteRaw=get(['nota','note','obs']);
-        const bonifRaw=get(['bonif','bonificatie','bonus','quality_bonus']);
+        const bonif=parseFloat(get(['bonif','bonificatie','bonus','quality_bonus']))||0;
 
         let parity=parityRaw;
         if(parity==='DAP'&&dir==='short') parity='DAP-V';
         if(parity==='FCA'&&dir==='short') parity='FCA-V';
         if(!parity) parity=PARITY_RULES[dir][0].val;
 
-        const pretVal=parseFloat(pretRaw);
-        const cursEur=parseFloat(cursEurRaw)||null;
-
-        const incomplete=[];
-        if(ptype==='fix' && (isNaN(pretVal)||pretVal<=0)) incomplete.push('pret');
-        if(ptype==='basis' && isNaN(pretVal)) incomplete.push('basis');
-        if(!dateRaw) incomplete.push('data');
-
-        let t={product,crop:cr,dir,qty,parity,loc,cpty,note:noteRaw||'',ptype,currency,bonif:parseFloat(bonifRaw)||0,incomplete:incomplete.length>0};
+        let t={product,crop:cr,dir,qty,parity,loc,cpty,note:noteRaw||'',ptype,currency,bonif,incomplete:false};
 
         if(ptype==='fix'){
-          let price=isNaN(pretVal)?0:pretVal;
+          let price=pretVal||0;
           if(currency==='eur' && price>0){
             const rate=cursEur || fxRates.eurRon || 5;
             t.priceEur=price;
@@ -1704,14 +2558,15 @@ function parseFile(file){
           }
           t.price=price;
           t.date=dateRaw||today();
-          const transpVal=parseFloat(transpRaw)||0;
           t.transport=currency==='eur' ? transpVal*(cursEur||fxRates.eurRon||5) : transpVal;
           if(currency==='eur'&&transpVal>0) t.transportEur=transpVal;
+          if(!price || !dateRaw) t.incomplete=true;
         } else {
           t.basis=isNaN(pretVal)?0:pretVal;
           t.matif=matif||'';
           t.date=dateRaw||today();
-          t.transport=parseFloat(transpRaw)||0;
+          t.transport=transpVal;
+          if(isNaN(pretVal) || !dateRaw) t.incomplete=true;
         }
         importBuffer.push(t);
       });
@@ -1722,7 +2577,6 @@ function parseFile(file){
       st.style.display='';
       st.className='import-status err';
       st.textContent=`Eroare parsare: ${err.message}`;
-      console.error(err);
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1737,7 +2591,7 @@ function showImportPreview(rows, skipped){
   }
   const incomplete=rows.filter(t=>t.incomplete).length;
   st.className='import-status ok';
-  st.textContent=`✓ ${rows.length} tranzacții pregătite${skipped>0?` · ${skipped} rânduri ignorate`:''}${incomplete>0?` · ${incomplete} incomplete (editabile după import)`:''}`;
+  st.textContent=`✓ ${rows.length} tranzacții pregătite${skipped>0?` · ${skipped} rânduri ignorate`:''}${incomplete>0?` · ${incomplete} incomplete`:''}`;
   const preview=rows.slice(0,8);
   document.getElementById('importPreview').innerHTML=`
     <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>Preț/Basis</th><th>Monedă</th><th>Paritate</th><th>Status</th></tr></thead>
@@ -1746,7 +2600,7 @@ function showImportPreview(rows, skipped){
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲':'▼'}</td>
       <td>${fmtN(t.qty)}</td>
-      <td>${t.ptype==='fix'?(t.price?`${fmtN(t.price)} RON/t`:'<span style="color:var(--short)">—</span>'):`MATIF ${t.matif||'—'} ${t.basis?`${t.basis>=0?'+':''}${t.basis} €/t`:'<span style="color:var(--short)">—</span>'}`}</td>
+      <td>${t.ptype==='fix'?(t.price?`${fmtN(t.price)} RON/t`:'—'):`MATIF ${t.matif||'—'} ${t.basis>=0?'+':''}${t.basis} €/t`}</td>
       <td class="teur">${(t.currency||'ron').toUpperCase()}</td>
       <td class="tpar">${t.parity}</td>
       <td>${t.incomplete?'<span style="color:var(--short);font-size:9px">⚠ incomplet</span>':'<span style="color:var(--long);font-size:9px">✓</span>'}</td>
@@ -1762,633 +2616,44 @@ async function confirmImport(){
   closeModal('modImport');
   importBuffer=[];
 }
-
-let editingId=null;
-function openEdit(id){
-  const t=trades.find(x=>x.id===id);
-  if(!t) return;
-  editingId=id;
-  editCurrency=t.currency==='eur'?'eur':'ron';
-  document.getElementById('editId').textContent=`#${id}`;
-
-  const eProd=document.getElementById('eProd');
-  eProd.innerHTML=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
-  eProd.value=t.product||Object.keys(products)[0];
-
-  document.getElementById('eCrop').value=t.crop||'2025';
-  document.getElementById('eDir').value=t.dir||'long';
-  document.getElementById('eQty').value=t.qty||'';
-  document.getElementById('ePtype').value=t.ptype||'fix';
-  document.getElementById('eLoc').value=t.loc||'';
-  document.getElementById('eBonif').value=t.bonif||'';
-  document.getElementById('eCpty').value=t.cpty||'';
-  document.getElementById('eNote').value=t.note||'';
-
-  document.getElementById('ePrice').value=(t.currency==='eur'?'':t.price)||'';
-  document.getElementById('eDate').value=t.date||today();
-  document.getElementById('eTransp').value=t.transport||'';
-
-  document.getElementById('ePriceEur').value=t.priceEur||t.price||'';
-  document.getElementById('eCursEur').value=t.cursEur||(fxRates.eurRon?fxRates.eurRon.toFixed(4):'');
-  document.getElementById('eDateEur').value=t.date||today();
-  document.getElementById('eTranspEur').value=t.transportEur!=null ? t.transportEur : (t.cursEur&&t.transport ? (t.transport/t.cursEur).toFixed(2) : t.transport||'');
-
-  document.getElementById('eMatif').value=t.matif||'';
-  document.getElementById('eBasis').value=t.basis!==undefined?t.basis:'';
-  document.getElementById('eDateB').value=t.date||today();
-  document.getElementById('eTranspB').value=t.transport||'';
-
-  document.getElementById('eCurBtnRon').className='cur-btn'+(editCurrency==='ron'?' active':'');
-  document.getElementById('eCurBtnEur').className='cur-btn'+(editCurrency==='eur'?' active':'');
-  onEditChange();
-  setTimeout(()=>{document.getElementById('eParity').value=t.parity||PARITY_RULES[t.dir||'long'][0].val; onEditChange();},10);
-  document.getElementById('modEdit').classList.add('open');
-}
-function onEditChange(){
-  const dir=document.getElementById('eDir').value;
-  const ptype=document.getElementById('ePtype').value;
-  const pSel=document.getElementById('eParity');
-  const rules=PARITY_RULES[dir];
-  const curVal=pSel.value;
-  pSel.innerHTML=rules.map(r=>`<option value="${r.val}">${r.label}</option>`).join('');
-  const match=rules.find(r=>r.val===curVal);
-  if(match) pSel.value=curVal;
-  const chosen=rules.find(r=>r.val===pSel.value)||rules[0];
-  const needT=chosen.transport;
-
-  const showCurToggle=(dir==='short' && ptype==='fix');
-  document.getElementById('eRowCurrencyToggle').style.display=showCurToggle?'':'none';
-  if(!showCurToggle) editCurrency='ron';
-
-  const isEur=(showCurToggle && editCurrency==='eur');
-  document.getElementById('eRowFixRon').style.display=(ptype==='fix' && !isEur)?'':'none';
-  document.getElementById('eRowFixEur').style.display=(ptype==='fix' && isEur)?'':'none';
-  document.getElementById('eRowBasis').style.display=ptype==='basis'?'':'none';
-
-  document.getElementById('eGrpT').style.display=(ptype==='fix' && !isEur && needT)?'':'none';
-  document.getElementById('eGrpTEur').style.display=(ptype==='fix' && isEur && needT)?'':'none';
-  document.getElementById('eGrpTB').style.display=(ptype==='basis' && needT)?'':'none';
-
-  const eProd=document.getElementById('eProd').value;
-  const showBonifE=dir==='short' && ptype==='fix' && (eProd==='rapeseed'||eProd==='sunflower');
-  document.getElementById('eGrpBonif').style.display=showBonifE?'':'none';
-  if(!showBonifE) document.getElementById('eBonif').value='';
-
-  if(isEur && fxRates.eurRon){
-    const cf=document.getElementById('eCursEur');
-    if(!cf.value) cf.value=fxRates.eurRon.toFixed(4);
-  }
-}
-async function saveEdit(){
-  const id=editingId;
-  const product=document.getElementById('eProd').value;
-  const cr=document.getElementById('eCrop').value;
-  const dir=document.getElementById('eDir').value;
-  const qty=parseFloat(document.getElementById('eQty').value);
-  const parity=document.getElementById('eParity').value;
-  const loc=document.getElementById('eLoc').value.trim();
-  const bonif=parseFloat(document.getElementById('eBonif').value)||0;
-  const cpty=document.getElementById('eCpty').value.trim();
-  const note=document.getElementById('eNote').value.trim();
-  const ptype=document.getElementById('ePtype').value;
-  if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
-
-  const showCurToggle=(dir==='short' && ptype==='fix');
-  const isEur=(showCurToggle && editCurrency==='eur');
-  const rules=PARITY_RULES[dir];
-  const chosen=rules.find(r=>r.val===parity)||rules[0];
-  const needT=chosen.transport;
-
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:false,bonif:bonif||0};
-
-  if(ptype==='fix'){
-    let price, currency='ron', priceEur=null, cursEur=null;
-    if(isEur){
-      priceEur=parseFloat(document.getElementById('ePriceEur').value);
-      cursEur=parseFloat(document.getElementById('eCursEur').value)||fxRates.eurRon||5;
-      if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
-      price=priceEur*cursEur;
-      currency='eur';
-      t.priceEur=priceEur;
-      t.cursEur=cursEur;
-    } else {
-      price=parseFloat(document.getElementById('ePrice').value);
-      currency='ron';
-    }
-    const date=document.getElementById(isEur?'eDateEur':'eDate').value;
-    const trspRaw=needT?(parseFloat(document.getElementById(isEur?'eTranspEur':'eTransp').value)||0):0;
-    const trsp=isEur?trspRaw*cursEur:trspRaw;
-    t.price=price||0; t.currency=currency; t.date=date||today(); t.transport=trsp; t.transportEur=isEur?trspRaw:null;
-    if(!price||!date) t.incomplete=true;
-  } else {
-    const basis=parseFloat(document.getElementById('eBasis').value);
-    const matif=document.getElementById('eMatif').value.trim();
-    const date=document.getElementById('eDateB').value;
-    const trsp=needT?(parseFloat(document.getElementById('eTranspB').value)||0):0;
-    t.basis=isNaN(basis)?0:basis; t.matif=matif; t.date=date||today(); t.transport=trsp;
-    t.currency='eur';
-    if(isNaN(basis)||!date) t.incomplete=true;
-  }
-
-  setSyncStatus('saving','● saving...');
-  await fetch(`/api/trades/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
-  setSyncStatus('saved','● saved');
-  const idx=trades.findIndex(x=>x.id===id);
-  if(idx>=0) trades[idx]={...t,id};
-  closeModal('modEdit');
-  render();
-  checkCfoAlert({...t,id});
-}
-
-function checkCfoAlert(t){
-  let priceRon=0;
-  if(t.ptype==='fix'){
-    priceRon = t.currency==='eur' ? (t.priceEur || 0) * (t.cursEur || fxRates.eurRon || 5) : (t.price || 0);
-  } else {
-    const matifPrices={wheat:207,corn:208,rapeseed:498};
-    const mp=matifPrices[t.product] || 250;
-    const eurRon=fxRates.eurRon || 5.09;
-    priceRon=(mp + (t.basis || 0)) * eurRon;
-  }
-  const valoareTotala=priceRon * (t.qty || 0);
-  if(valoareTotala < 1000000) return;
-
-  const prod=products[t.product] || {name:t.product,emoji:''};
-  const dirText=t.dir==='long'?'CUMPĂRARE':'VÂNZARE';
-  const cpty=t.cpty || '—';
-  const priceText=t.ptype==='fix'
-    ? (t.currency==='eur' ? `${(t.priceEur||0).toFixed(2)} EUR/t (≈ ${priceRon.toFixed(0)} RON/t)` : `${priceRon.toFixed(0)} RON/t`)
-    : `MATIF ${t.matif} + ${t.basis} EUR/t basis`;
-  const valStr=new Intl.NumberFormat('ro-RO',{minimumFractionDigits:0}).format(Math.round(valoareTotala));
-
-  document.getElementById('cfoDetails').innerHTML=`
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Produs:</span> <strong>${prod.emoji} ${prod.name} — Recoltă ${t.crop}</strong></div>
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Direcție:</span> <strong style="color:${t.dir==='long'?'var(--long)':'var(--short)'}">${dirText}</strong></div>
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Cantitate:</span> <strong>${(t.qty||0).toLocaleString('ro-RO')} t</strong></div>
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Preț:</span> <strong>${priceText}</strong></div>
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Contraparte:</span> <strong>${cpty}</strong></div>
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Paritate:</span> <strong>${t.parity||'—'}</strong></div>
-    <div><span style="color:var(--dim);width:120px;display:inline-block">Valoare totală:</span> <strong style="color:#f59e0b">${valStr} RON</strong></div>
-  `;
-
-  const draft = `${t.dir === 'long' ? 'Am cumpărat' : 'Am vândut'} ${(t.qty||0).toLocaleString('ro-RO')} tone de ${prod.name} (${t.crop}) ${t.dir === 'long' ? 'de la' : 'către'} ${cpty}, la ${priceText}, paritate ${t.parity||'—'}.${t.loc ? ' Baza ' + t.loc + '.' : ''}
-
-Valoare totală estimată: ${valStr} RON.${t.note ? '\n\n' + t.note : ''}`;
-
-  document.getElementById('cfoDraft').value=draft;
-  document.getElementById('modCfo').style.display='flex';
-}
-function copyCfoDraft(){
-  const ta=document.getElementById('cfoDraft');
-  navigator.clipboard.writeText(ta.value).then(()=>{
-    const btn=document.querySelector('#modCfo .btn-save');
-    btn.textContent='✅ Copiat!';
-    setTimeout(()=>{btn.innerHTML='📋 Copiază Mesaj';},2000);
-  }).catch(()=>{
-    ta.select(); document.execCommand('copy');
-  });
-}
-
 function exportDB(){
   if(!Array.isArray(trades)||trades.length===0){alert('Nu există tranzacții de exportat.');return;}
-  try{
-    const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','bonif','incomplet']];
-    trades.forEach(t=>{
-      const pretExport=t.ptype==='fix' ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||'')) : (t.basis!==undefined ? t.basis : '');
-      rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,t.cursEur||'',t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),t.loc||'',t.cpty||'',t.date||'',t.note||'',t.bonif||0,t.incomplete?'DA':'']);
-    });
-    const wb=XLSX.utils.book_new();
-    const ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
-
-    const pos25=getPos('2025'); const pos26=getPos('2026');
-    const sumRows=[['Produs','Recolta','Long (t)','Short (t)','Net (t)']];
-    ['2025','2026'].forEach(yr=>{
-      const p=yr==='2025'?pos25:pos26;
-      Object.entries(products).forEach(([k,prod])=>{
-        const pp=p[k]||{long:0,short:0,net:0};
-        sumRows.push([prod.name,yr,pp.long,pp.short,pp.net]);
-      });
-    });
-    const ws2=XLSX.utils.aoa_to_sheet(sumRows);
-    ws2['!cols']=[{wch:20},{wch:10},{wch:12},{wch:12},{wch:12}];
-    XLSX.utils.book_append_sheet(wb,ws2,'Pozitii');
-
-    const dateStr=new Date().toISOString().slice(0,10);
-    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-    const blob=new Blob([wbout],{type:'application/octet-stream'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download=`agrotex_export_${dateStr}.xlsx`;
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
-  }catch(err){alert('Eroare export: '+err.message);}
+  const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','bonif','incomplet']];
+  trades.forEach(t=>{
+    const pretExport=t.ptype==='fix' ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||'')) : (t.basis!==undefined ? t.basis : '');
+    rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,t.cursEur||'',t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),t.loc||'',t.cpty||'',t.date||'',t.note||'',t.bonif||0,t.incomplete?'DA':'']);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`agrotex_export_${today()}.xlsx`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 function downloadTemplate(){
-  try{
-    const headers=['produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','contract_matif','curs_eur','cost_transport','locatie','contraparte','data','nota'];
-    const ex1=['wheat','2025','long','1000','fix','ron','DAP','1050','','','','Carei','Fermier X','2025-09-15',''];
-    const ex2=['corn','2025','short','500','fix','eur','FOR','195','','4.97','','Valea lui Mihai','Trader Y','2025-10-01','vanzare EUR'];
-    const wb=XLSX.utils.book_new();
-    const ws=XLSX.utils.aoa_to_sheet([headers,ex1,ex2]);
-    ws['!cols']=[18,10,12,14,12,10,10,14,16,10,16,20,22,14,24].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,ws,'Import Tranzactii');
-    const ws2=XLSX.utils.aoa_to_sheet([
-      ['CAMP','VALORI ACCEPTATE / NOTE'],
-      ['recolta','2025 | 2026'],['directie','long (cumparare) | short (vanzare)'],
-      ['tip_pret','fix | basis'],['moneda','ron (default) | eur'],
-      ['paritate (long)','DAP | FCA'],['paritate (short)','FOR | FCA | DAP'],
-      ['produs','wheat | corn | rapeseed | sunflower | soy | triticale | barley'],
-      ['data','YYYY-MM-DD ex: 2025-09-15'],
-    ]);
-    ws2['!cols']=[{wch:28},{wch:60}];
-    XLSX.utils.book_append_sheet(wb,ws2,'Valori Valide');
-    const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-    const blob=new Blob([wbout],{type:'application/octet-stream'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download='agrotex_import_template.xlsx';
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
-  }catch(err){alert('Eroare template: '+err.message);}
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','contract_matif','curs_eur','cost_transport','locatie','contraparte','data','nota'],
+    ['wheat','2025','long','1000','fix','ron','DAP','1050','','','','Carei','Fermier X','2025-09-15',''],
+    ['corn','2025','short','500','fix','eur','FOR','195','','4.97','','Valea lui Mihai','Trader Y','2025-10-01','vanzare EUR']
+  ]);
+  ws['!cols']=[18,10,12,14,12,10,10,14,16,10,16,20,22,14,24].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Import Tranzactii');
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='agrotex_import_template.xlsx';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 
-function populateProd(){
-  const opts=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
-  const sel=document.getElementById('fProd');
-  const cur=sel.value;
-  sel.innerHTML=opts;
-  if(cur&&products[cur]) sel.value=cur;
-  document.getElementById('eProd').innerHTML=opts;
-}
-
-function setCrop(y){
-  crop=y;
-  document.getElementById('fCrop').value=y;
-  document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
-  document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
-  closeAllSideTabs();
-  render();
-}
-
-function getPos(cropFilter){
-  const pos={};
-  Object.keys(products).forEach(k=>{pos[k]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};});
-  trades.filter(t=>!cropFilter || t.crop===cropFilter).forEach(t=>{
-    if(!pos[t.product]) pos[t.product]={long:0,shortFix:0,shortBasis:0,net:0,buyQ:0,sellQ:0,buyV:0,sellV:0,sellVfca:0,sellQfca:0};
-    if(t.dir==='long'){
-      pos[t.product].long+=t.qty; pos[t.product].buyQ+=t.qty;
-      if(t.ptype==='fix'){
-        pos[t.product].buyV+=t.qty*t.price;
-        if(t.bonif>0){
-          const priceBuyBonif=t.price*(1+t.bonif/100);
-          pos[t.product].buyVbonif=(pos[t.product].buyVbonif||0)+t.qty*priceBuyBonif;
-          pos[t.product].buyQbonif=(pos[t.product].buyQbonif||0)+t.qty;
-        }
-      }
-    } else {
-      if(t.ptype==='basis'){
-        pos[t.product].shortBasis+=t.qty;
-      } else {
-        pos[t.product].shortFix+=t.qty; pos[t.product].sellQ+=t.qty;
-        pos[t.product].sellV+=t.qty*t.price;
-        const isDap=t.parity==='DAP-V'||t.parity==='DAP';
-        const trsp=t.transport||0;
-        const priceFca=isDap&&trsp>0?t.price-trsp:t.price;
-        pos[t.product].sellVfca+=t.qty*priceFca;
-        pos[t.product].sellQfca+=t.qty;
-        if(t.bonif>0){
-          const mult=1+t.bonif/100;
-          const priceFcaBonif=isDap&&trsp>0?t.price*mult-trsp:t.price*mult;
-          pos[t.product].sellVbonif=(pos[t.product].sellVbonif||0)+t.qty*priceFcaBonif;
-          pos[t.product].sellQbonif=(pos[t.product].sellQbonif||0)+t.qty;
-        }
-      }
-    }
-  });
-  Object.keys(pos).forEach(k=>{
-    pos[k].short=pos[k].shortFix;
-    pos[k].net=pos[k].long-pos[k].shortFix;
-    pos[k].avgBuy=pos[k].buyQ>0?pos[k].buyV/pos[k].buyQ:0;
-    pos[k].avgSell=pos[k].sellQ>0?pos[k].sellV/pos[k].sellQ:0;
-    pos[k].avgSellFca=pos[k].sellQfca>0?pos[k].sellVfca/pos[k].sellQfca:0;
-    pos[k].avgBuyBonif=pos[k].buyQbonif>0?pos[k].buyVbonif/pos[k].buyQbonif:0;
-    pos[k].avgSellBonif=pos[k].sellQbonif>0?pos[k].sellVbonif/pos[k].sellQbonif:0;
-  });
-  return pos;
-}
-
-function renderTable(){
-  const ft=getFilteredTrades();
-  const totalCrop=trades.filter(t=>t.crop===crop).length;
-  const isFiltered=Object.values(activeFilter).some(v=>v!=='');
-
-  if(isFiltered){
-    document.getElementById('filterMatch').innerHTML=`<span class="filter-active-dot"></span><span>${ft.length}</span> / ${totalCrop} afișate`;
-  } else {
-    document.getElementById('filterMatch').innerHTML='';
-  }
-
-  document.getElementById('tcount').textContent=isFiltered ? `${ft.length} / ${totalCrop} tranzacții (${crop})` : `${totalCrop} tranzacții (${crop})`;
-
-  const tbody=document.getElementById('tbody');
-  if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="13"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML=ft.map(t=>{
-    const prod=products[t.product]||{name:t.product,emoji:'📦',color:'#888'};
-    const isEurTrade=t.currency==='eur'&&t.ptype==='fix';
-    let priceDisplay;
-    if(t.ptype==='fix'){
-      if(isEurTrade&&t.priceEur){
-        priceDisplay=`<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">≈${fmtN(t.price)} RON</span>`;
-      } else {
-        priceDisplay=t.price?`<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>`:`<span style="color:var(--short)">—</span>`;
-      }
-    } else {
-      priceDisplay=`<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
-    }
-    const curBadge=isEurTrade?`<span class="teur">EUR</span>`:(t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
-    const trspVal=t.transportEur!=null?t.transportEur:(t.cursEur&&t.transport?t.transport/t.cursEur:null);
-    const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
-    const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
-    const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
-    return `<tr class="tr-click" onclick="openEdit(${t.id})">
-      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
-      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
-      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
-      <td style="color:var(--bright)">${fmtN(t.qty)}</td>
-      <td>${priceDisplay}</td>
-      <td>${curBadge}</td>
-      <td class="tpar">${t.parity}</td>
-      <td class="tdim">${t.loc||'—'}</td>
-      <td>${trsp}</td>
-      <td class="tdim">${t.cpty||'—'}</td>
-      <td class="tdim">${t.date||'—'}</td>
-      <td>
-        <button class="btn-log" onclick="event.stopPropagation();createLogisticsQuick(${t.id})">
-          ${tradeHasLogistics(t.id)?'✓ Log':'Log'}
-        </button>
-      </td>
-      <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function render(){
-  document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
-  document.getElementById('b26').textContent=trades.filter(t=>t.crop==='2026').length;
-  const bLog=document.getElementById('bLogistics');
-  if(bLog) bLog.textContent=logisticsContracts.length;
-
-  const pos=getPos(crop);
-  const posAll=getPos(null);
-
-  const activeProds=Object.keys(products).filter(k=>pos[k]&&(pos[k].long>0||pos[k].short>0));
-  const showProds=activeProds.length>0?activeProds:Object.keys(products).slice(0,4);
-
-  document.getElementById('cards').innerHTML=showProds.map(k=>{
-    const prod=products[k]; const p=pos[k];
-    const nc=p.net>0?'long':p.net<0?'short':'flat';
-    const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
-    const mb=Math.max(p.long,p.shortFix,1);
-    const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
-    const avgBuyFinal=p.avgBuyBonif>0?p.avgBuyBonif:p.avgBuy;
-    const avgSellFinal=p.avgSellBonif>0?p.avgSellBonif:(p.avgSellFca>0?p.avgSellFca:p.avgSell);
-    const margin=(avgBuyFinal>0&&avgSellFinal>0)?avgSellFinal-avgBuyFinal:null;
-    const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
-    const marginSign=margin===null?'':margin>=0?'+':'';
-    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
-    const sellLabel=p.avgSellFca>0&&p.avgSellFca!==p.avgSell?'≈ FCA':'DAP';
-    return `<div class="card">
-      <div class="cstripe" style="background:${prod.color}"></div>
-      <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
-      <div class="cnet ${nc}">${fmtN(Math.abs(p.net))}<span>t</span></div>
-      <div class="barrow"><span style="color:var(--long);opacity:.7">▲${fmtN(p.long)}t</span><span style="color:var(--short);opacity:.7">${fmtN(p.shortFix)}t▼</span></div>
-      <div class="bartr"><div class="barl" style="width:${p.long/mb*100}%"></div><div class="bars" style="width:${p.shortFix/mb*100}%"></div></div>
-      ${basisRow}
-      <div class="cmets">
-        <div><div class="cml">Med. cump.</div><div class="cmv">${fmtP(avgBuyFinal)}</div></div>
-        <div><div class="cml">Med. vânz. ${sellLabel}</div><div class="cmv">${fmtP(avgSellFinal)}</div></div>
-      </div>
-      ${marginRow}
-    </div>`;
-  }).join('');
-
-  renderTable();
-
-  let aggHTML='';
-  let totalLong=0, totalShort=0, totalNet=0;
-  ['2025','2026'].forEach(yr=>{
-    const cp=getPos(yr);
-    aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'Recoltă Veche 2025':'Recoltă Nouă 2026'}</div>`;
-    Object.entries(products).forEach(([k,prod])=>{
-      const p=cp[k]||{long:0,short:0,net:0};
-      const nc=p.net>0?'an-l':p.net<0?'an-s':'an-f';
-      totalLong+=p.long; totalShort+=p.short; totalNet+=p.net;
-      aggHTML+=`<div class="agg-row">
-        <div class="adot" style="background:${prod.color}"></div>
-        <div class="aname">${prod.emoji} ${prod.name}</div>
-        <div class="albl">L</div><div class="anum al">${fmtN(p.long)}</div>
-        <div class="albl">S</div><div class="anum as2">${fmtN(p.short)}</div>
-        <div class="albl">NET</div><div class="anum ${nc}">${fmtNet(p.net)}</div>
-      </div>`;
-    });
-  });
-  const tnc=totalNet>0?'an-l':totalNet<0?'an-s':'an-f';
-  aggHTML+=`<div class="agg-row" style="border-top:1px solid var(--border2);margin-top:6px;padding-top:6px;font-weight:600;">
-    <div class="adot" style="background:var(--dim)"></div>
-    <div class="aname" style="color:var(--fg)">TOTAL</div>
-    <div class="albl">L</div><div class="anum al">${fmtN(totalLong)}</div>
-    <div class="albl">S</div><div class="anum as2">${fmtN(totalShort)}</div>
-    <div class="albl">NET</div><div class="anum ${tnc}">${fmtNet(totalNet)}</div>
-  </div>`;
-  document.getElementById('aggSection').innerHTML=aggHTML;
-
-  const tL=Object.values(posAll).reduce((s,p)=>s+p.long,0);
-  const tS=Object.values(posAll).reduce((s,p)=>s+p.short,0);
-  document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(tL)} t · Short: ${fmtN(tS)} t · Net: ${fmtNet(tL-tS)} t`;
-}
-
-function newsItemCategory(item){
-  const text=(item.title+' '+(item.desc||'')).toLowerCase();
-  const isAgri=AGRI_KEYWORDS.some(k=>text.includes(k));
-  const isMacro=MACRO_KEYWORDS.some(k=>text.includes(k));
-  return {isAgri,isMacro};
-}
-function setNewsTab(){
-  closeAllSideTabs();
-  newsTabActive=true;
-  const tn=document.getElementById('tabNews');
-  tn.style.color='var(--acc)';
-  tn.style.borderColor='var(--acc)';
-  document.querySelector('.main').style.display='none';
-  document.getElementById('newsSection').style.display='flex';
-  if(newsData.length===0) loadNews();
-  else renderNews();
-}
-function setCropFromNews(){
-  newsTabActive=false;
-  const tn=document.getElementById('tabNews');
-  tn.style.color='var(--dim)';
-  tn.style.borderColor='var(--border2)';
-  document.getElementById('newsSection').style.display='none';
-  document.querySelector('.main').style.display='flex';
-}
-function setNewsFilter(f){
-  newsFilter=f;
-  ['nfAll2','nfRo','nfEn','nfAgri','nfMacro'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
-  const map={all:'nfAll2',ro:'nfRo',en:'nfEn',agri:'nfAgri',macro:'nfMacro'};
-  if(map[f]) document.getElementById(map[f])?.classList.add('active');
-  renderNews();
-}
-function fmtNewsDate(ts){
-  if(!ts) return '';
-  const d=typeof ts==='number'?new Date(ts):new Date(ts);
-  if(isNaN(d.getTime())) return '';
-  const now=new Date();
-  const diff=Math.floor((now-d)/1000);
-  if(diff<60) return 'acum';
-  if(diff<3600) return Math.floor(diff/60)+'m';
-  if(diff<86400) return Math.floor(diff/3600)+'h';
-  return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});
-}
-function renderNews(){
-  const grid=document.getElementById('newsGrid');
-  if(!newsData.length){
-    grid.innerHTML='<div class="news-empty">// nicio știre disponibilă momentan</div>';
-    return;
-  }
-  let items=newsData;
-  if(newsFilter==='ro') items=items.filter(i=>i.lang==='ro');
-  else if(newsFilter==='en') items=items.filter(i=>i.lang==='en');
-  else if(newsFilter==='agri') items=items.filter(i=>newsItemCategory(i).isAgri);
-  else if(newsFilter==='macro') items=items.filter(i=>newsItemCategory(i).isMacro);
-
-  if(!items.length){
-    grid.innerHTML='<div class="news-empty">// nicio știre pentru filtrul selectat</div>';
-    return;
-  }
-
-  grid.innerHTML=items.slice(0,60).map(item=>{
-    const langClass=item.lang==='ro'?'ro':'en';
-    const dateStr=fmtNewsDate(item.ts||new Date(item.date).getTime());
-    const cat=newsItemCategory(item);
-    const catTags=[cat.isAgri?'🌾':'',cat.isMacro?'📈':''].filter(Boolean).join(' ');
-    const flag=item.lang==='ro'?'🇷🇴':'🌍';
-    return `<a class="news-card" href="${item.link}" target="_blank" rel="noopener noreferrer">
-      <div class="news-card-top">
-        <span class="news-source-badge ${langClass}">${flag} ${item.source}</span>
-        ${catTags?`<span style="font-size:10px">${catTags}</span>`:''}
-        <span class="news-date">${dateStr}</span>
-      </div>
-      <div class="news-title">${item.title}</div>
-      ${item.desc?`<div class="news-desc">${item.desc}</div>`:''}
-    </a>`;
-  }).join('');
-}
-async function loadNews(forceRefresh=false){
-  const grid=document.getElementById('newsGrid');
-  if(grid && !newsData.length) grid.innerHTML='<div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>';
-  try{
-    const url=forceRefresh?'/api/news?refresh=1':'/api/news';
-    const res=await fetch(url);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    newsData=data.items||[];
-    const badge=document.getElementById('bNews');
-    if(badge && newsData.length){ badge.textContent=newsData.length; badge.style.display=''; }
-    const upd=document.getElementById('newsUpdated');
-    if(upd){
-      const t=new Date(data.fetchedAt);
-      const timeStr=t.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
-      upd.textContent=(data.cached?'cache ':'')+timeStr+` · ${newsData.length} știri`;
-    }
-    renderNews();
-  }catch(e){
-    console.error('News load error:',e);
-    if(grid && !newsData.length) grid.innerHTML='<div class="news-empty">// eroare la încărcarea știrilor</div>';
-  }
-}
-
-async function loadMatif(retryCount=0){
-  const btn=document.getElementById('matifRefreshBtn');
-  if(btn && retryCount===0){ btn.style.animation='spin .8s linear infinite'; btn.style.color='var(--acc)'; }
-  try{
-    const res=await fetch('/api/matif');
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    const q=data.quotes || {};
-    const hasData=Object.values(q).some(v=>v.front!==null);
-
-    function fmtMatifPrice(v){ return v!=null ? Number(v).toFixed(2) : '—'; }
-    function delivShort(s){ return s ? s.replace('September','Sep').replace('December','Dec').replace('January','Jan').replace('February','Feb').replace('March','Mar').replace('April','Apr').replace('August','Aug').replace('October','Oct').replace('November','Nov').replace('June','Jun').replace('July','Jul') : ''; }
-
-    function updatePair(key, priceId, changeId, delId, rowsId){
-      const item=q[key];
-      if(!item || !item.front) return;
-      const f=item.front;
-      const marketTraded=f.last!==null;
-      const price=marketTraded ? f.last : (f.settl!==null ? f.settl : f.bid);
-      const priceEl=document.getElementById(priceId);
-      if(priceEl){ priceEl.textContent=fmtMatifPrice(price); priceEl.className='matif-price'; }
-      const chEl=document.getElementById(changeId);
-      if(!marketTraded){
-        if(chEl){ chEl.textContent='settlement'; chEl.className='matif-change flat'; }
-      } else if(chEl && f.change != null){
-        const sign=f.change>0?'+':'';
-        chEl.textContent=sign+f.change.toFixed(2);
-        chEl.className='matif-change '+(f.change>0?'up':f.change<0?'down':'flat');
-      }
-      const delEl=document.getElementById(delId);
-      if(delEl) delEl.textContent=delivShort(f.delivery);
-      const rowsEl=document.getElementById(rowsId);
-      if(rowsEl && item.allRows && item.allRows.length){
-        rowsEl.innerHTML=item.allRows.map(r=>{
-          const p=r.last!==null ? r.last : (r.settl!==null ? r.settl : r.bid);
-          const rTraded=r.last!==null;
-          const chSign=(r.change||0)>=0?'+':'';
-          const chColor=(r.change||0)>0?'var(--long)':(r.change||0)<0?'var(--short)':'var(--dim)';
-          const settlLabel=!rTraded ? '<span style="font-size:8px;color:var(--dim);opacity:.7"> S</span>' : '';
-          return `<div class="tt-row"><span>${delivShort(r.delivery)}</span><span>${fmtMatifPrice(p)} EUR/t${settlLabel}</span><span style="color:${chColor};font-size:9px">${rTraded ? chSign+(r.change||0).toFixed(2) : ''}</span></div>`;
-        }).join('');
-      }
-    }
-
-    updatePair('wheat','mWheatPrice','mWheatChange','mWheatDel','mWheatRows');
-    updatePair('corn','mCornPrice','mCornChange','mCornDel','mCornRows');
-    updatePair('rapeseed','mRapePrice','mRapeChange','mRapeDel','mRapeRows');
-
-    const updEl=document.getElementById('matifUpdated');
-    if(updEl){
-      const fetchTime=new Date(data.fetchedAt);
-      const timeStr=fetchTime.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
-      const anyOpen=Object.values(data.quotes||{}).some(q=>q.front && q.front.isOpen);
-      if(anyOpen){
-        updEl.textContent=data.cached ? `cache ${timeStr}` : `live ${timeStr}`;
-        updEl.title=`Cotații live Euronext (delay ~15 min). Actualizat: ${timeStr}`;
-      } else {
-        updEl.textContent=`settl ${timeStr}`;
-        updEl.title=`Piața închisă — settlement sesiune anterioară. Actualizat: ${timeStr}`;
-      }
-    }
-
-    if(btn){ btn.style.animation=''; btn.style.color='var(--dim)'; }
-    if(!hasData && retryCount<3) setTimeout(()=>loadMatif(retryCount+1),4000);
-  }catch(e){
-    console.error('MATIF load error:',e);
-    const updEl=document.getElementById('matifUpdated');
-    if(updEl) updEl.textContent='eroare';
-    const btn=document.getElementById('matifRefreshBtn');
-    if(btn){ btn.style.animation=''; btn.style.color='var(--short)'; }
-    if(retryCount<3) setTimeout(()=>loadMatif(retryCount+1),5000);
-  }
-}
-
+/* Target */
 function setTargetTab(){
   closeAllSideTabs();
   targetTabActive=true;
@@ -2427,29 +2692,24 @@ async function saveTarget(){
   try{
     await fetch(`/api/target/${year}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(targetData[year])});
     const s=document.getElementById('targetSaveStatus');
-    s.textContent='✓ Salvat';
-    s.style.color='var(--long)';
+    s.textContent='✓ Salvat'; s.style.color='var(--long)';
     setTimeout(()=>{s.textContent='';},2000);
   }catch(e){
     const s=document.getElementById('targetSaveStatus');
-    s.textContent='✗ Eroare';
-    s.style.color='var(--short)';
+    s.textContent='✗ Eroare'; s.style.color='var(--short)';
   }
 }
 function renderTarget(){
   const year=document.getElementById('targetYear').value;
   const d=targetData[year] || {};
-
   document.getElementById('targetHeaderRow').innerHTML =
     `<th class="tgt-th" style="text-align:left;min-width:130px;"></th>` +
     TARGET_MONTHS.map(m=>`<th class="tgt-th">${m}</th>`).join('') +
     `<th class="tgt-th total">Total</th>`;
 
-  const tbody=document.getElementById('targetBody');
-  tbody.innerHTML=TARGET_ROWS.map(row=>{
+  document.getElementById('targetBody').innerHTML=TARGET_ROWS.map(row=>{
     const vals=d[row.key] || Array(12).fill('');
     let cells, total;
-
     if(row.key==='diff'){
       const plan=d.plan || Array(12).fill('');
       const realizat=d.realizat || Array(12).fill('');
@@ -2474,16 +2734,13 @@ function renderTarget(){
       cells=TARGET_MONTHS.map((_,mi)=>{
         const v=vals[mi] || '';
         return `<td class="tgt-cell ${row.cls}">
-          <input class="tgt-input" id="tgt_${row.key}_${mi}" value="${v}"
-            onchange="onTargetChange('${year}','${row.key}',${mi},this.value)"
-            onkeydown="if(event.key==='Tab'){event.preventDefault();focusNextTarget('${row.key}',${mi});}">
+          <input class="tgt-input" id="tgt_${row.key}_${mi}" value="${v}" onchange="onTargetChange('${year}','${row.key}',${mi},this.value)">
         </td>`;
       }).join('');
       const sum=vals.reduce((s,v)=>s+(parseFloat(v)||0),0);
       const sumFmt=sum ? (row.fmt==='ron' ? fmtN(sum)+' RON' : fmtN(sum)) : '';
       total=`<td class="tgt-total">${sumFmt}</td>`;
     }
-
     return `<tr><td class="tgt-label">${row.label}</td>${cells}${total}</tr>`;
   }).join('');
 }
@@ -2495,67 +2752,6 @@ function onTargetChange(year,key,mi,val){
   clearTimeout(window._targetSaveTimer);
   window._targetSaveTimer=setTimeout(()=>saveTarget(),2000);
 }
-function importTarget(event){
-  const file=event.target.files[0];
-  if(!file) return;
-  const year=document.getElementById('targetYear').value;
-  const s=document.getElementById('targetSaveStatus');
-
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-      const sheetName=wb.SheetNames.find(n=>n.includes(year)) || wb.SheetNames[0];
-      const ws=wb.Sheets[sheetName];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false});
-      const KEY_MAP={plan:['plan','plan (tone)'], realizat:['realizat','realizat (tone)'], adaos:['adaos','adaos (ron)'], marja:['marj','marja','marjă']};
-      const imported={ plan:Array(12).fill(''), realizat:Array(12).fill(''), adaos:Array(12).fill(''), marja:Array(12).fill('') };
-      let found=0;
-
-      rows.slice(1).forEach(row=>{
-        if(!row || !row[0]) return;
-        const rowLabel=String(row[0]).toLowerCase().trim();
-        for(const [key,aliases] of Object.entries(KEY_MAP)){
-          if(aliases.some(a=>rowLabel.includes(a))){
-            for(let mi=0; mi<12; mi++){
-              const val=row[mi+1];
-              imported[key][mi]=(val!==undefined && val!==null && val!=='') ? String(val) : '';
-            }
-            found++;
-            break;
-          }
-        }
-      });
-
-      if(found===0){
-        s.textContent='✗ Format nerecunoscut';
-        s.style.color='var(--short)';
-        setTimeout(()=>{s.textContent='';},3000);
-        return;
-      }
-
-      targetData[year]=imported;
-      renderTarget();
-      saveTarget();
-      s.textContent=`✓ Importat ${found} rânduri`;
-      s.style.color='var(--long)';
-      setTimeout(()=>{s.textContent='';},2500);
-    }catch(err){
-      s.textContent='✗ Eroare: '+err.message;
-      s.style.color='var(--short)';
-      setTimeout(()=>{s.textContent='';},3000);
-    }
-    event.target.value='';
-  };
-  reader.readAsArrayBuffer(file);
-}
-function focusNextTarget(key,mi){
-  const nextMi=mi+1;
-  if(nextMi<12){
-    const el=document.getElementById(`tgt_${key}_${nextMi}`);
-    if(el) el.focus();
-  }
-}
 function exportTarget(){
   const year=document.getElementById('targetYear').value;
   const d=targetData[year] || {};
@@ -2563,20 +2759,13 @@ function exportTarget(){
   const realizat=d.realizat || Array(12).fill('');
   const adaos=d.adaos || Array(12).fill('');
   const marja=d.marja || Array(12).fill('');
-
   const header=['', ...TARGET_MONTHS, 'Total'];
-  const rowPlan=['Plan (tone)', ...plan.map(v=>parseFloat(v)||''), plan.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
-  const rowReal=['Realizat (tone)', ...realizat.map(v=>parseFloat(v)||''), realizat.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
-  const rowAdaos=['Adaos (RON)', ...adaos.map(v=>parseFloat(v)||''), adaos.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
-  const rowMarja=['Marjă / tonă', ...marja.map(v=>parseFloat(v)||''), ''];
+  const mk=(label, arr)=>[label, ...arr.map(v=>parseFloat(v)||''), arr.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
   const rowDiff=['Diferență (tone)', ...TARGET_MONTHS.map((_,mi)=>{const p=parseFloat(plan[mi])||0; const r=parseFloat(realizat[mi])||0; return (p||r)?r-p:'';}), (()=>{const tp=plan.reduce((s,v)=>s+(parseFloat(v)||0),0); const tr=realizat.reduce((s,v)=>s+(parseFloat(v)||0),0); return (tp||tr)?tr-tp:'';})()];
-
   const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet([header,rowPlan,rowReal,rowAdaos,rowMarja,rowDiff]);
+  const ws=XLSX.utils.aoa_to_sheet([header,mk('Plan (tone)',plan),mk('Realizat (tone)',realizat),mk('Adaos (RON)',adaos),mk('Marjă / tonă',marja),rowDiff]);
   ws['!cols']=[{wch:18}, ...Array(12).fill({wch:12}), {wch:14}];
-  ws['!freeze']={xSplit:1,ySplit:1};
   XLSX.utils.book_append_sheet(wb,ws,`Target ${year}`);
-
   const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   const blob=new Blob([wbout],{type:'application/octet-stream'});
   const url=URL.createObjectURL(blob);
@@ -2585,7 +2774,222 @@ function exportTarget(){
   document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
+function importTarget(event){
+  alert('Import Target păstrat simplu în această versiune. Folosește editarea directă sau export/import tranzacții.');
+  event.target.value='';
+}
 
+/* News */
+function newsItemCategory(item){
+  const text=(item.title+' '+(item.desc||'')).toLowerCase();
+  return {isAgri:AGRI_KEYWORDS.some(k=>text.includes(k)), isMacro:MACRO_KEYWORDS.some(k=>text.includes(k))};
+}
+function setNewsTab(){
+  closeAllSideTabs();
+  newsTabActive=true;
+  const tn=document.getElementById('tabNews');
+  tn.style.color='var(--acc)';
+  tn.style.borderColor='var(--acc)';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('newsSection').style.display='flex';
+  if(newsData.length===0) loadNews();
+  else renderNews();
+}
+function setCropFromNews(){
+  newsTabActive=false;
+  const tn=document.getElementById('tabNews');
+  tn.style.color='var(--dim)';
+  tn.style.borderColor='var(--border2)';
+  document.getElementById('newsSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
+}
+function setNewsFilter(f){
+  newsFilter=f;
+  ['nfAll2','nfRo','nfEn','nfAgri','nfMacro'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  const map={all:'nfAll2',ro:'nfRo',en:'nfEn',agri:'nfAgri',macro:'nfMacro'};
+  if(map[f]) document.getElementById(map[f])?.classList.add('active');
+  renderNews();
+}
+function fmtNewsDate(ts){
+  const d=typeof ts==='number'?new Date(ts):new Date(ts);
+  if(isNaN(d.getTime())) return '';
+  const diff=Math.floor((new Date()-d)/1000);
+  if(diff<60) return 'acum';
+  if(diff<3600) return Math.floor(diff/60)+'m';
+  if(diff<86400) return Math.floor(diff/3600)+'h';
+  return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});
+}
+function renderNews(){
+  const grid=document.getElementById('newsGrid');
+  if(!newsData.length){
+    grid.innerHTML='<div class="news-empty">// nicio știre disponibilă momentan</div>';
+    return;
+  }
+  let items=newsData;
+  if(newsFilter==='ro') items=items.filter(i=>i.lang==='ro');
+  else if(newsFilter==='en') items=items.filter(i=>i.lang==='en');
+  else if(newsFilter==='agri') items=items.filter(i=>newsItemCategory(i).isAgri);
+  else if(newsFilter==='macro') items=items.filter(i=>newsItemCategory(i).isMacro);
+
+  grid.innerHTML=items.slice(0,60).map(item=>{
+    const langClass=item.lang==='ro'?'ro':'en';
+    const dateStr=fmtNewsDate(item.ts||new Date(item.date).getTime());
+    const cat=newsItemCategory(item);
+    const catTags=[cat.isAgri?'🌾':'',cat.isMacro?'📈':''].filter(Boolean).join(' ');
+    const flag=item.lang==='ro'?'🇷🇴':'🌍';
+    return `<a class="news-card" href="${item.link}" target="_blank" rel="noopener noreferrer">
+      <div class="news-card-top">
+        <span class="news-source-badge ${langClass}">${flag} ${escHtml(item.source)}</span>
+        ${catTags?`<span style="font-size:10px">${catTags}</span>`:''}
+        <span class="news-date">${dateStr}</span>
+      </div>
+      <div class="news-title">${escHtml(item.title)}</div>
+      ${item.desc?`<div class="news-desc">${escHtml(item.desc)}</div>`:''}
+    </a>`;
+  }).join('');
+}
+async function loadNews(forceRefresh=false){
+  const grid=document.getElementById('newsGrid');
+  if(grid && !newsData.length) grid.innerHTML='<div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>';
+  try{
+    const res=await fetch(forceRefresh?'/api/news?refresh=1':'/api/news');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    newsData=data.items||[];
+    const badge=document.getElementById('bNews');
+    if(badge && newsData.length){ badge.textContent=newsData.length; badge.style.display=''; }
+    const upd=document.getElementById('newsUpdated');
+    if(upd){
+      const t=new Date(data.fetchedAt);
+      upd.textContent=(data.cached?'cache ':'')+t.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+` · ${newsData.length} știri`;
+    }
+    renderNews();
+  }catch(e){
+    if(grid && !newsData.length) grid.innerHTML='<div class="news-empty">// eroare la încărcarea știrilor</div>';
+  }
+}
+
+/* MATIF */
+async function loadMatif(retryCount=0){
+  const btn=document.getElementById('matifRefreshBtn');
+  if(btn && retryCount===0){ btn.style.animation='spin .8s linear infinite'; btn.style.color='var(--acc)'; }
+  try{
+    const res=await fetch('/api/matif');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const q=data.quotes || {};
+    function fmtMatifPrice(v){ return v!=null ? Number(v).toFixed(2) : '—'; }
+    function delivShort(s){ return s || ''; }
+    function updatePair(key, priceId, changeId, delId, rowsId){
+      const item=q[key];
+      if(!item || !item.front) return;
+      const f=item.front;
+      const price=f.last!==null ? f.last : (f.settl!==null ? f.settl : f.bid);
+      const priceEl=document.getElementById(priceId);
+      if(priceEl){ priceEl.textContent=fmtMatifPrice(price); priceEl.className='matif-price'; }
+      const chEl=document.getElementById(changeId);
+      if(chEl && f.change != null){
+        const sign=f.change>0?'+':'';
+        chEl.textContent=sign+f.change.toFixed(2);
+        chEl.className='matif-change '+(f.change>0?'up':f.change<0?'down':'flat');
+      }
+      const delEl=document.getElementById(delId);
+      if(delEl) delEl.textContent=delivShort(f.delivery);
+      const rowsEl=document.getElementById(rowsId);
+      if(rowsEl && item.allRows && item.allRows.length){
+        rowsEl.innerHTML=item.allRows.map(r=>{
+          const p=r.last!==null ? r.last : (r.settl!==null ? r.settl : r.bid);
+          const chSign=(r.change||0)>=0?'+':'';
+          const chColor=(r.change||0)>0?'var(--long)':(r.change||0)<0?'var(--short)':'var(--dim)';
+          return `<div class="tt-row"><span>${escHtml(delivShort(r.delivery))}</span><span>${fmtMatifPrice(p)} EUR/t</span><span style="color:${chColor};font-size:9px">${r.change!=null ? chSign+(r.change||0).toFixed(2) : ''}</span></div>`;
+        }).join('');
+      }
+    }
+    updatePair('wheat','mWheatPrice','mWheatChange','mWheatDel','mWheatRows');
+    updatePair('corn','mCornPrice','mCornChange','mCornDel','mCornRows');
+    updatePair('rapeseed','mRapePrice','mRapeChange','mRapeDel','mRapeRows');
+
+    const updEl=document.getElementById('matifUpdated');
+    if(updEl){
+      const fetchTime=new Date(data.fetchedAt);
+      const timeStr=fetchTime.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+      updEl.textContent=data.cached ? `cache ${timeStr}` : `live ${timeStr}`;
+    }
+    if(btn){ btn.style.animation=''; btn.style.color='var(--dim)'; }
+  }catch(e){
+    const updEl=document.getElementById('matifUpdated');
+    if(updEl) updEl.textContent='eroare';
+    if(btn){ btn.style.animation=''; btn.style.color='var(--short)'; }
+    if(retryCount<3) setTimeout(()=>loadMatif(retryCount+1),5000);
+  }
+}
+
+/* Meteo */
+function soilStatus(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return {label:'n/a', color:'var(--dim)'};
+  if(n<0.15) return {label:'scăzut', color:'var(--short)'};
+  if(n<0.25) return {label:'moderat', color:'var(--acc)'};
+  if(n<0.35) return {label:'bun', color:'var(--long)'};
+  return {label:'ridicat', color:'var(--meteo)'};
+}
+function formatMeteoDate(d){
+  const x=new Date(d+'T12:00:00');
+  return x.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});
+}
+function formatMeteoShortDay(d){
+  const x=new Date(d+'T12:00:00');
+  return x.toLocaleDateString('ro-RO',{weekday:'short'});
+}
+function calcWaterNeed(summary) {
+  const s = summary || {};
+  const surf = Number(s.soilSurface) || 0;
+  const mid  = Number(s.soilMid) || 0;
+  const deep = Number(s.soilDeep) || 0;
+  const hasData = (s.soilSurface !== null && s.soilMid !== null && s.soilDeep !== null);
+  const soilEff = hasData ? (surf * 0.10 + mid * 0.60 + deep * 0.30) : null;
+  const prognoza7 = Number(s.next7Precip) || 0;
+
+  return WATER_NEED_CROPS.map(crop => {
+    if (soilEff === null) return { ...crop, needMm: null, prognoza7, deficit: null, status: 'no-data' };
+    const needMm = Math.max(0, (crop.targetSoil - soilEff) * crop.rootDepth * 10);
+    const deficit = needMm - prognoza7;
+    let status;
+    if (needMm <= 0) status = 'ok';
+    else if (prognoza7 >= needMm) status = 'ok';
+    else if (prognoza7 >= needMm * 0.5) status = 'partial';
+    else status = 'deficit';
+    return { ...crop, soilEff: Math.round(soilEff * 1000) / 1000, needMm: Math.round(needMm * 10) / 10, prognoza7: Math.round(prognoza7 * 10) / 10, deficit: Math.round(deficit * 10) / 10, status };
+  });
+}
+function renderWaterNeedTable(summary) {
+  const crops = calcWaterNeed(summary);
+  const statusLabel = { ok: '<span class="wn-status-ok">✓ acoperit</span>', partial: '<span class="wn-status-partial">⚠ parțial</span>', deficit: '<span class="wn-status-deficit">✗ deficit</span>', 'no-data': '<span style="color:var(--dim);font-size:9px">—</span>' };
+  const rows = crops.map(c => {
+    const needStr = c.needMm === null ? '—' : (c.needMm === 0 ? '<span style="color:var(--long)">0 mm</span>' : `<span class="wn-need" style="color:${c.status==='deficit'?'var(--short)':c.status==='partial'?'var(--acc)':'var(--long)'}">${c.needMm} mm</span>`);
+    const defStr  = c.deficit === null ? '—' : (c.deficit <= 0 ? '<span style="color:var(--long)">surplus ' + Math.abs(c.deficit) + ' mm</span>' : `<span style="color:var(--short)">-${c.deficit} mm</span>`);
+    return `<tr>
+      <td class="wn-crop">${c.emoji} ${c.name}</td>
+      <td class="wn-target">${c.targetSoil.toFixed(2)} m³/m³</td>
+      <td style="color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px">${c.rootDepth} cm</td>
+      <td>${needStr}</td>
+      <td class="wn-prognoza">${c.prognoza7} mm</td>
+      <td>${defStr}</td>
+      <td>${statusLabel[c.status]}</td>
+      <td style="color:var(--dim);font-size:10px">${c.note}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="water-need-section">
+      <div class="water-need-title">💧 Necesar Precipitații — <span>Sol Optim per Cultură</span></div>
+      <div class="meteo-table-wrap">
+        <table class="water-need-table">
+          <thead><tr><th>Cultură</th><th>Target sol</th><th>Rădăcini</th><th>Necesar</th><th>Prognoză 7z</th><th>Diferență</th><th>Status</th><th>Faza</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
 function setMeteoTab(){
   closeAllSideTabs();
   meteoTabActive=true;
@@ -2601,192 +3005,6 @@ function closeMeteoTab(){
   document.getElementById('meteoSection').style.display='none';
   document.querySelector('.main').style.display='flex';
 }
-function formatMeteoDate(d){
-  const x=new Date(d+'T12:00:00');
-  return x.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});
-}
-function formatMeteoShortDay(d){
-  const x=new Date(d+'T12:00:00');
-  return x.toLocaleDateString('ro-RO',{weekday:'short'});
-}
-
-function renderWeatherPresets(){
-  const grid=document.getElementById('meteoPresetGrid');
-  if(!weatherPresets.length){
-    grid.innerHTML='<div class="meteo-empty">// nu există date meteo disponibile</div>';
-    return;
-  }
-
-  grid.innerHTML=weatherPresets.map((item,idx)=>{
-    if(item.error){
-      return `<div class="meteo-card"><div class="meteo-name">${escHtml(item.location.name)}</div><div class="meteo-country">${escHtml(item.location.country||'')}</div><div class="meteo-empty" style="padding:18px 0 6px;">eroare la încărcare</div></div>`;
-    }
-    const s=item.summary||{};
-    const risks=(s.risks||[]).map(r=>`<span class="meteo-risk">${escHtml(r)}</span>`).join('');
-    const days=(item.dailyForecast||[]).slice(0,7).map(d=>`
-      <div class="meteo-day">
-        <div class="meteo-day-date">${formatMeteoShortDay(d.date)}</div>
-        <div class="meteo-day-temp">${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</div>
-        <div class="meteo-day-rain">${fmtDec(d.precip||0,1)} mm</div>
-      </div>
-    `).join('');
-
-    const ss=soilStatus(s.soilSurface);
-    const sm=soilStatus(s.soilMid);
-    const sd=soilStatus(s.soilDeep);
-
-    const cacheBadge = item._source === 'cached_db'
-      ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);margin-top:3px;">⚡ date salvate · ${item._cacheNote||''}</div>`
-      : '';
-
-    return `<div class="meteo-card" onclick="selectWeatherPreset(${idx})" style="cursor:pointer;">
-      <div class="meteo-top">
-        <div>
-          <div class="meteo-name">${escHtml(item.location.name)}</div>
-          <div class="meteo-country">${escHtml(item.location.country||'')}</div>
-          ${cacheBadge}
-        </div>
-        <div style="text-align:right;">
-          <div class="meteo-temp">${fmtDec(s.currentTemp||0,0)}°</div>
-          <div class="meteo-cond">${escHtml(s.currentWeatherLabel||'—')}</div>
-        </div>
-      </div>
-
-      <div class="meteo-kpis">
-        <div class="meteo-kpi"><div class="meteo-kpi-l">Ploaie 7z prognoză</div><div class="meteo-kpi-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
-        <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 7 zile</div><div class="meteo-kpi-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
-        <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 30 zile</div><div class="meteo-kpi-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
-        <div class="meteo-kpi"><div class="meteo-kpi-l">De la ultima ploaie</div><div class="meteo-kpi-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
-      </div>
-
-      <div class="meteo-soil-grid">
-        <div class="meteo-soil-box">
-          <div class="meteo-soil-l">Sol superficial</div>
-          <div class="meteo-soil-v">${fmtDec(s.soilSurface,3)}</div>
-          <div class="meteo-soil-s" style="color:${ss.color}">${ss.label}</div>
-        </div>
-        <div class="meteo-soil-box">
-          <div class="meteo-soil-l">Sol mediu</div>
-          <div class="meteo-soil-v">${fmtDec(s.soilMid,3)}</div>
-          <div class="meteo-soil-s" style="color:${sm.color}">${sm.label}</div>
-        </div>
-        <div class="meteo-soil-box">
-          <div class="meteo-soil-l">Sol adânc</div>
-          <div class="meteo-soil-v">${fmtDec(s.soilDeep,3)}</div>
-          <div class="meteo-soil-s" style="color:${sd.color}">${sd.label}</div>
-        </div>
-      </div>
-
-      <div class="meteo-risks">${risks}</div>
-      <div class="meteo-days">${days}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderWeatherDetail(item){
-  const box=document.getElementById('meteoDetail');
-  if(!item || item.error){
-    box.innerHTML='<div class="meteo-empty">// nu există detalii pentru această locație</div>';
-    return;
-  }
-  const s=item.summary||{};
-  const ss=soilStatus(s.soilSurface);
-  const sm=soilStatus(s.soilMid);
-  const sd=soilStatus(s.soilDeep);
-
-  const rows=(item.dailyForecast||[]).slice(0,7).map(d=>{
-    const ds=soilStatus(d.soilSurface);
-    const dm=soilStatus(d.soilMid);
-    const dd=soilStatus(d.soilDeep);
-    return `
-      <tr>
-        <td>${formatMeteoDate(d.date)}</td>
-        <td>${formatMeteoShortDay(d.date)}</td>
-        <td>${escHtml(d.weatherLabel||'—')}</td>
-        <td>${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</td>
-        <td>${fmtDec(d.precip||0,1)} mm</td>
-        <td>${fmtDec(d.windMax||0,0)} km/h</td>
-        <td>${fmtDec(d.humidityMean||0,0)}%</td>
-        <td>${fmtDec(d.soilSurface,3)} <span style="color:${ds.color};font-size:9px">(${ds.label})</span></td>
-        <td>${fmtDec(d.soilMid,3)} <span style="color:${dm.color};font-size:9px">(${dm.label})</span></td>
-        <td>${fmtDec(d.soilDeep,3)} <span style="color:${dd.color};font-size:9px">(${dd.label})</span></td>
-      </tr>
-    `;
-  }).join('');
-
-  const waterNeedHtml = renderWaterNeedTable(s);
-
-  box.innerHTML=`
-    <div class="meteo-detail-top">
-      <div>
-        <div class="meteo-detail-title">${escHtml(item.location.name)}</div>
-        <div class="meteo-detail-sub">${escHtml(item.location.country||'')} · ${Number(item.location.latitude).toFixed(4)}, ${Number(item.location.longitude).toFixed(4)} · ${escHtml(item.location.timezone||'')}</div>
-      </div>
-      <div class="meteo-badge">Actualizat: ${new Date(item.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</div>
-    </div>
-
-    <div class="meteo-summary-grid">
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Acum</div><div class="meteo-summary-v">${fmtDec(s.currentTemp||0,0)}°</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Umiditate</div><div class="meteo-summary-v">${fmtDec(s.currentHumidity||0,0)}%</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Vânt</div><div class="meteo-summary-v">${fmtDec(s.currentWind||0,0)} km/h</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Ploaie acum</div><div class="meteo-summary-v">${fmtDec(s.currentPrecip||0,1)} mm</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Prognoză 7 zile</div><div class="meteo-summary-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 7 zile</div><div class="meteo-summary-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 30 zile</div><div class="meteo-summary-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">De la ultima ploaie</div><div class="meteo-summary-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
-
-      <div class="meteo-summary-box">
-        <div class="meteo-summary-l">Sol superficial</div>
-        <div class="meteo-summary-v">${fmtDec(s.soilSurface,3)}</div>
-        <div class="meteo-summary-s" style="color:${ss.color}">${ss.label}</div>
-      </div>
-      <div class="meteo-summary-box">
-        <div class="meteo-summary-l">Sol mediu</div>
-        <div class="meteo-summary-v">${fmtDec(s.soilMid,3)}</div>
-        <div class="meteo-summary-s" style="color:${sm.color}">${sm.label}</div>
-      </div>
-      <div class="meteo-summary-box">
-        <div class="meteo-summary-l">Sol adânc</div>
-        <div class="meteo-summary-v">${fmtDec(s.soilDeep,3)}</div>
-        <div class="meteo-summary-s" style="color:${sd.color}">${sd.label}</div>
-      </div>
-
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Minim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.minTemp7||0,0)}°</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Maxim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.maxTemp7||0,0)}°</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Vânt maxim 7 zile</div><div class="meteo-summary-v">${fmtDec(s.maxWind7||0,0)} km/h</div></div>
-      <div class="meteo-summary-box"><div class="meteo-summary-l">Riscuri</div><div class="meteo-summary-v" style="font-size:11px;line-height:1.4">${(s.risks||[]).map(escHtml).join(', ')}</div></div>
-    </div>
-
-    ${waterNeedHtml}
-
-    <div style="margin-top:16px;">
-      <div class="meteo-table-wrap">
-        <table class="meteo-table">
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Zi</th>
-              <th>Condiții</th>
-              <th>Temp</th>
-              <th>Precip.</th>
-              <th>Vânt max</th>
-              <th>Umid. medie</th>
-              <th>Sol sup.</th>
-              <th>Sol mediu</th>
-              <th>Sol adânc</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function selectWeatherPreset(idx){
-  weatherSelected=weatherPresets[idx];
-  renderWeatherDetail(weatherSelected);
-}
 async function loadWeatherPresets(force=false){
   const grid=document.getElementById('meteoPresetGrid');
   grid.innerHTML='<div class="meteo-empty">// se încarcă preseturile meteo...</div>';
@@ -2797,81 +3015,144 @@ async function loadWeatherPresets(force=false){
     weatherPresets=data.items||[];
     renderWeatherPresets();
     if(weatherPresets.length && !weatherSelected){
-      const firstOk = weatherPresets.find(x => !x.error && x.summary) || weatherPresets[0];
-      weatherSelected=firstOk;
+      weatherSelected=weatherPresets.find(x => !x.error && x.summary) || weatherPresets[0];
       renderWeatherDetail(weatherSelected);
     }
-    const badge=document.getElementById('meteoUpdatedBadge');
-    badge.textContent='METEO ' + new Date(data.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('meteoUpdatedBadge').textContent='METEO ' + new Date(data.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
   }catch(e){
-    console.error('Weather presets error:',e);
     grid.innerHTML='<div class="meteo-empty">// eroare la încărcarea meteo</div>';
   }
+}
+function renderWeatherPresets(){
+  const grid=document.getElementById('meteoPresetGrid');
+  if(!weatherPresets.length){
+    grid.innerHTML='<div class="meteo-empty">// nu există date meteo disponibile</div>';
+    return;
+  }
+  grid.innerHTML=weatherPresets.map((item,idx)=>{
+    const s=item.summary||{};
+    const risks=(s.risks||[]).map(r=>`<span class="meteo-risk">${escHtml(r)}</span>`).join('');
+    const days=(item.dailyForecast||[]).slice(0,7).map(d=>`
+      <div class="meteo-day">
+        <div class="meteo-day-date">${formatMeteoShortDay(d.date)}</div>
+        <div class="meteo-day-temp">${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</div>
+        <div class="meteo-day-rain">${fmtDec(d.precip||0,1)} mm</div>
+      </div>`).join('');
+    const ss=soilStatus(s.soilSurface);
+    const sm=soilStatus(s.soilMid);
+    const sd=soilStatus(s.soilDeep);
+    return `<div class="meteo-card" onclick="selectWeatherPreset(${idx})" style="cursor:pointer;">
+      <div class="meteo-top">
+        <div><div class="meteo-name">${escHtml(item.location.name)}</div><div class="meteo-country">${escHtml(item.location.country||'')}</div></div>
+        <div style="text-align:right;"><div class="meteo-temp">${fmtDec(s.currentTemp||0,0)}°</div><div class="meteo-cond">${escHtml(s.currentWeatherLabel||'—')}</div></div>
+      </div>
+      <div class="meteo-kpis">
+        <div class="meteo-kpi"><div class="meteo-kpi-l">Ploaie 7z prognoză</div><div class="meteo-kpi-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
+        <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 7 zile</div><div class="meteo-kpi-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
+        <div class="meteo-kpi"><div class="meteo-kpi-l">Ultimele 30 zile</div><div class="meteo-kpi-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
+        <div class="meteo-kpi"><div class="meteo-kpi-l">De la ultima ploaie</div><div class="meteo-kpi-v">${s.daysSinceRain===null?'n/a':s.daysSinceRain+' zile'}</div></div>
+      </div>
+      <div class="meteo-soil-grid">
+        <div class="meteo-soil-box"><div class="meteo-soil-l">Sol superficial</div><div class="meteo-soil-v">${fmtDec(s.soilSurface,3)}</div><div class="meteo-soil-s" style="color:${ss.color}">${ss.label}</div></div>
+        <div class="meteo-soil-box"><div class="meteo-soil-l">Sol mediu</div><div class="meteo-soil-v">${fmtDec(s.soilMid,3)}</div><div class="meteo-soil-s" style="color:${sm.color}">${sm.label}</div></div>
+        <div class="meteo-soil-box"><div class="meteo-soil-l">Sol adânc</div><div class="meteo-soil-v">${fmtDec(s.soilDeep,3)}</div><div class="meteo-soil-s" style="color:${sd.color}">${sd.label}</div></div>
+      </div>
+      <div class="meteo-risks">${risks}</div>
+      <div class="meteo-days">${days}</div>
+    </div>`;
+  }).join('');
+}
+function selectWeatherPreset(idx){
+  weatherSelected=weatherPresets[idx];
+  renderWeatherDetail(weatherSelected);
+}
+function renderWeatherDetail(item){
+  const box=document.getElementById('meteoDetail');
+  if(!item || item.error){
+    box.innerHTML='<div class="meteo-empty">// nu există detalii pentru această locație</div>';
+    return;
+  }
+  const s=item.summary||{};
+  const rows=(item.dailyForecast||[]).slice(0,7).map(d=>`
+    <tr>
+      <td>${formatMeteoDate(d.date)}</td>
+      <td>${formatMeteoShortDay(d.date)}</td>
+      <td>${escHtml(d.weatherLabel||'—')}</td>
+      <td>${fmtDec(d.tempMin,0)}° / ${fmtDec(d.tempMax,0)}°</td>
+      <td>${fmtDec(d.precip||0,1)} mm</td>
+      <td>${fmtDec(d.windMax||0,0)} km/h</td>
+      <td>${fmtDec(d.humidityMean||0,0)}%</td>
+      <td>${fmtDec(d.soilSurface,3)}</td>
+      <td>${fmtDec(d.soilMid,3)}</td>
+      <td>${fmtDec(d.soilDeep,3)}</td>
+    </tr>`).join('');
+  box.innerHTML=`
+    <div class="meteo-detail-top">
+      <div><div class="meteo-detail-title">${escHtml(item.location.name)}</div><div class="meteo-detail-sub">${escHtml(item.location.country||'')} · ${Number(item.location.latitude).toFixed(4)}, ${Number(item.location.longitude).toFixed(4)}</div></div>
+      <div class="meteo-badge">Actualizat: ${new Date(item.fetchedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+    <div class="meteo-summary-grid">
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Acum</div><div class="meteo-summary-v">${fmtDec(s.currentTemp||0,0)}°</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Prognoză 7 zile</div><div class="meteo-summary-v">${fmtDec(s.next7Precip||0,1)} mm</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 7 zile</div><div class="meteo-summary-v">${fmtDec(s.last7Precip||0,1)} mm</div></div>
+      <div class="meteo-summary-box"><div class="meteo-summary-l">Ultimele 30 zile</div><div class="meteo-summary-v">${fmtDec(s.last30Precip||0,1)} mm</div></div>
+    </div>
+    ${renderWaterNeedTable(s)}
+    <div style="margin-top:16px;">
+      <div class="meteo-table-wrap">
+        <table class="meteo-table">
+          <thead><tr><th>Data</th><th>Zi</th><th>Condiții</th><th>Temp</th><th>Precip.</th><th>Vânt max</th><th>Umid.</th><th>Sol sup.</th><th>Sol mediu</th><th>Sol adânc</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 function onWeatherSearchInput(){
   clearTimeout(weatherSearchTimer);
   const q=document.getElementById('meteoSearchInput').value.trim();
-  if(q.length<2){
-    hideWeatherSearchResults();
-    return;
-  }
+  if(q.length<2){hideWeatherSearchResults(); return;}
   weatherSearchTimer=setTimeout(()=>doWeatherSearch(),350);
 }
 async function doWeatherSearch(){
   const q=document.getElementById('meteoSearchInput').value.trim();
-  if(q.length<2){
-    hideWeatherSearchResults();
-    return;
-  }
+  if(q.length<2){hideWeatherSearchResults();return;}
   try{
     const res=await fetch('/api/weather/search?q='+encodeURIComponent(q));
     const data=await res.json();
-    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
     renderWeatherSearchResults(data.results||[]);
-  }catch(e){
-    console.error('Weather search error:',e);
-    renderWeatherSearchResults([]);
-  }
+  }catch(e){renderWeatherSearchResults([]);}
 }
 function renderWeatherSearchResults(results){
   const box=document.getElementById('meteoSearchResults');
   if(!results.length){
     box.innerHTML='<div class="meteo-search-item"><div class="meteo-search-name">Nicio locație găsită</div></div>';
-    box.style.display='block';
-    weatherSearchOpen=true;
-    return;
+    box.style.display='block'; weatherSearchOpen=true; return;
   }
-  box.innerHTML=results.map((r, idx)=>{
-    const serialized = encodeURIComponent(JSON.stringify(r));
-    return `
-      <div class="meteo-search-item" onclick="selectWeatherSearchResult('${serialized}')">
-        <div class="meteo-search-name">${escHtml(r.name)}</div>
-        <div class="meteo-search-meta">${escHtml([r.admin1,r.admin2,r.country].filter(Boolean).join(', '))} · ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</div>
-      </div>
-    `;
+  box.innerHTML=results.map(r=>{
+    const serialized=encodeURIComponent(JSON.stringify(r));
+    return `<div class="meteo-search-item" onclick="selectWeatherSearchResult('${serialized}')">
+      <div class="meteo-search-name">${escHtml(r.name)}</div>
+      <div class="meteo-search-meta">${escHtml([r.admin1,r.admin2,r.country].filter(Boolean).join(', '))} · ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</div>
+    </div>`;
   }).join('');
   box.style.display='block';
   weatherSearchOpen=true;
 }
 function hideWeatherSearchResults(){
   const box=document.getElementById('meteoSearchResults');
-  box.style.display='none';
-  box.innerHTML='';
-  weatherSearchOpen=false;
+  box.style.display='none'; box.innerHTML=''; weatherSearchOpen=false;
 }
 async function selectWeatherSearchResult(serialized){
   hideWeatherSearchResults();
-  const r = JSON.parse(decodeURIComponent(serialized));
+  const r=JSON.parse(decodeURIComponent(serialized));
   document.getElementById('meteoSearchInput').value=[r.name,r.country].filter(Boolean).join(', ');
   try{
     const url='/api/weather/location?lat='+encodeURIComponent(r.latitude)+'&lon='+encodeURIComponent(r.longitude)+'&name='+encodeURIComponent(r.name)+'&country='+encodeURIComponent(r.country||'')+'&timezone='+encodeURIComponent(r.timezone||'auto');
     const res=await fetch(url);
     const data=await res.json();
-    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
     weatherSelected=data;
     renderWeatherDetail(data);
   }catch(e){
-    console.error('Weather location error:',e);
     document.getElementById('meteoDetail').innerHTML='<div class="meteo-empty">// eroare la încărcarea locației</div>';
   }
 }
@@ -2880,666 +3161,25 @@ document.addEventListener('click', (e)=>{
   if(wrap && !wrap.contains(e.target) && weatherSearchOpen) hideWeatherSearchResults();
 });
 
-// ── LOGISTICS V1 ────────────────────────────────────────────────────────────
-function setLogisticsTab(){
-  closeAllSideTabs();
-  logisticsTabActive=true;
-  document.getElementById('tabLogistics').className='tab log-tab-active';
-  document.querySelector('.main').style.display='none';
-  document.getElementById('logisticsSection').style.display='flex';
-  populateLogisticsSourceTrades();
-  renderLogistics();
-}
-
-function closeLogisticsTab(){
-  logisticsTabActive=false;
-  document.getElementById('tabLogistics').className='tab';
-  document.getElementById('logisticsSection').style.display='none';
-  document.querySelector('.main').style.display='flex';
-}
-
-function getTradeLabel(t){
-  const p=products[t.product]||{name:t.product,emoji:'📦'};
-  const dir=t.dir==='long'?'CUMP':'VÂNZ';
-  const price=t.ptype==='fix'
-    ? (t.currency==='eur' && t.priceEur ? `${fmtDec(t.priceEur,2)} EUR/t` : `${fmtN(t.price||0)} RON/t`)
-    : `MATIF ${t.matif||''} ${(t.basis||0)>=0?'+':''}${t.basis||0}`;
-  return `#${t.id} · ${dir} · ${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty||'—'} · ${price}`;
-}
-
-function populateLogisticsSourceTrades(){
-  const sel=document.getElementById('logSourceTrade');
-  if(!sel) return;
-
-  const linkedIds=new Set(logisticsContracts.map(c=>Number(c.source_trade_id)).filter(Boolean));
-  const rows=trades
-    .slice()
-    .sort((a,b)=>b.id-a.id)
-    .map(t=>{
-      const linked=linkedIds.has(Number(t.id));
-      return `<option value="${t.id}">${linked?'✓ ':''}${getTradeLabel(t)}</option>`;
-    }).join('');
-
-  sel.innerHTML=rows || '<option value="">Nu există tranzacții</option>';
-}
-
-function findLogContract(id){
-  return logisticsContracts.find(c=>Number(c.id)===Number(id));
-}
-
-function findSourceTrade(contract){
-  return trades.find(t=>Number(t.id)===Number(contract.source_trade_id));
-}
-
-async function apiSaveLogisticsContract(contract){
-  const copy={...contract};
-  delete copy.created_at;
-  delete copy.updated_at;
-
-  if(copy.id){
-    await fetch(`/api/logistics/contracts/${copy.id}`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(copy)
-    });
-  } else {
-    const res=await fetch('/api/logistics/contracts',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(copy)
-    });
-    const data=await res.json();
-    copy.id=data.id;
-  }
-
-  await loadLogisticsContracts();
-  selectedLogisticsId=copy.id;
-  render();
-  renderLogistics();
-}
-
-async function loadLogisticsContracts(){
-  const res=await fetch('/api/logistics/contracts');
-  const data=await res.json();
-  logisticsContracts=Array.isArray(data)?data:[];
-  populateLogisticsSourceTrades();
-  const b=document.getElementById('bLogistics');
-  if(b) b.textContent=logisticsContracts.length;
-}
-
-async function createLogisticsFromTrade(){
-  const id=Number(document.getElementById('logSourceTrade').value);
-  const t=trades.find(x=>Number(x.id)===id);
-  if(!t){alert('Alege o tranzacție validă.');return;}
-
-  const existing=logisticsContracts.find(c=>Number(c.source_trade_id)===id);
-  if(existing){
-    selectedLogisticsId=existing.id;
-    renderLogistics();
-    return;
-  }
-
-  const c={
-    source_trade_id:t.id,
-    product:t.product,
-    crop:t.crop,
-    dir:t.dir,
-    qty:Number(t.qty)||0,
-    price:t.price||null,
-    priceEur:t.priceEur||null,
-    currency:t.currency||'ron',
-    parity:t.parity||'',
-    loc:t.loc||'',
-    cpty:t.cpty||'',
-    note:t.note||'',
-    contractNo:document.getElementById('logContractNo').value.trim(),
-    deliveryStart:document.getElementById('logDeliveryStart').value,
-    deliveryEnd:document.getElementById('logDeliveryEnd').value,
-    transportMode:document.getElementById('logTransportMode').value,
-    status:'open',
-    allocations:[],
-    deliveries:[],
-    cashflow:[]
-  };
-
-  await apiSaveLogisticsContract(c);
-
-  document.getElementById('logContractNo').value='';
-}
-
-function renderLogistics(){
-  const badge=document.getElementById('bLogistics');
-  if(badge) badge.textContent=logisticsContracts.length;
-  renderLogisticsList();
-
-  if(selectedLogisticsId && findLogContract(selectedLogisticsId)){
-    renderLogisticsDetail(selectedLogisticsId);
-  } else if(logisticsContracts.length){
-    selectedLogisticsId=logisticsContracts[0].id;
-    renderLogisticsDetail(selectedLogisticsId);
-  } else {
-    document.getElementById('logisticsDetail').innerHTML='<div class="log-empty">// nu există contracte logistice încă</div>';
-  }
-}
-
-function renderLogisticsList(){
-  const box=document.getElementById('logisticsList');
-  if(!box) return;
-
-  if(!logisticsContracts.length){
-    box.innerHTML='<div class="log-empty">// niciun contract logistic</div>';
-    return;
-  }
-
-  box.innerHTML=logisticsContracts.map(c=>{
-    const p=products[c.product]||{name:c.product,emoji:'📦'};
-    const delivered=sumDelivered(c);
-    const rem=(Number(c.qty)||0)-delivered;
-    const st=c.status||'open';
-    return `<div class="log-item ${Number(c.id)===Number(selectedLogisticsId)?'active':''}" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail(${c.id});renderLogisticsList();">
-      <div class="log-item-top">
-        <div class="log-item-name">${p.emoji} ${p.name} ${c.crop||''}</div>
-        <span class="log-badge ${st==='closed'?'done':st==='problem'?'problem':'open'}">${statusLogLabel(st)}</span>
-      </div>
-      <div class="log-muted">
-        ${c.contractNo?escHtml(c.contractNo)+' · ':''}${c.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(c.cpty||'—')}<br>
-        ${fmtN(c.qty||0)} t · livrat ${fmtN(delivered)} t · rămas ${fmtN(rem)} t
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function statusLogLabel(s){
-  if(s==='closed') return 'închis';
-  if(s==='problem') return 'problemă';
-  if(s==='partial') return 'parțial';
-  return 'deschis';
-}
-
-function sumDelivered(c){
-  return (c.deliveries||[]).reduce((s,d)=>s+(Number(d.receivedQty)||Number(d.loadedQty)||0),0);
-}
-
-function sumPlannedAlloc(c){
-  return (c.allocations||[]).reduce((s,a)=>s+(Number(a.qty)||0),0);
-}
-
-function sumPlannedDeliveries(c){
-  return (c.deliveries||[]).reduce((s,d)=>s+(Number(d.plannedQty)||0),0);
-}
-
-function renderLogisticsDetail(id){
-  const c=findLogContract(id);
-  if(!c) return;
-
-  const p=products[c.product]||{name:c.product,emoji:'📦'};
-  const delivered=sumDelivered(c);
-  const allocated=sumPlannedAlloc(c);
-  const remaining=(Number(c.qty)||0)-delivered;
-  const source=findSourceTrade(c);
-
-  document.getElementById('logisticsDetail').innerHTML=`
-    <div class="log-actions">
-      <div>
-        <div class="log-title">${p.emoji} ${p.name} ${c.crop||''} · ${c.dir==='long'?'Cumpărare':'Vânzare'}</div>
-        <div class="log-muted">
-          ${c.contractNo?`Contract: <span style="color:var(--bright)">${escHtml(c.contractNo)}</span> · `:''}
-          Sursă: ${source?`tranzacție #${source.id}`:'manual'} · ${escHtml(c.cpty||'—')} · ${escHtml(c.parity||'—')}
-        </div>
-      </div>
-      <select id="logStatus" onchange="updateLogField(${c.id},'status',this.value)" style="width:130px;margin-left:auto;">
-        <option value="open" ${c.status==='open'?'selected':''}>Deschis</option>
-        <option value="partial" ${c.status==='partial'?'selected':''}>Parțial</option>
-        <option value="closed" ${c.status==='closed'?'selected':''}>Închis</option>
-        <option value="problem" ${c.status==='problem'?'selected':''}>Problemă</option>
-      </select>
-      <button class="btn-sm" onclick="deleteLogisticsContract(${c.id})">Șterge</button>
-    </div>
-
-    <div class="log-kpis">
-      <div class="log-kpi"><div class="log-kpi-l">Contractat</div><div class="log-kpi-v">${fmtN(c.qty||0)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Alocat lunar</div><div class="log-kpi-v" style="color:${allocated===(Number(c.qty)||0)?'var(--long)':allocated>(Number(c.qty)||0)?'var(--short)':'var(--acc)'}">${fmtN(allocated)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Livrat</div><div class="log-kpi-v" style="color:var(--long)">${fmtN(delivered)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Rămas</div><div class="log-kpi-v" style="color:${remaining<0?'var(--short)':'var(--bright)'}">${fmtN(remaining)} t</div></div>
-    </div>
-
-    <div class="fr fr4" style="margin-top:4px;">
-      <div class="fg"><label class="fl">Nr. contract</label><input value="${escHtml(c.contractNo||'')}" onchange="updateLogField(${c.id},'contractNo',this.value)"></div>
-      <div class="fg"><label class="fl">Livrare de la</label><input type="date" value="${c.deliveryStart||''}" onchange="updateLogField(${c.id},'deliveryStart',this.value)"></div>
-      <div class="fg"><label class="fl">Livrare până la</label><input type="date" value="${c.deliveryEnd||''}" onchange="updateLogField(${c.id},'deliveryEnd',this.value)"></div>
-      <div class="fg"><label class="fl">Transport default</label>
-        <select onchange="updateLogField(${c.id},'transportMode',this.value)">
-          <option value="truck" ${c.transportMode==='truck'?'selected':''}>Camion</option>
-          <option value="train" ${c.transportMode==='train'?'selected':''}>Tren</option>
-          <option value="mixed" ${c.transportMode==='mixed'?'selected':''}>Mixt</option>
-        </select>
-      </div>
-    </div>
-
-    ${renderAllocations(c)}
-    ${renderDeliveries(c)}
-    ${renderCashflow(c)}
-  `;
-}
-
-function updateLogField(id,field,value){
-  const c=findLogContract(id);
-  if(!c) return;
-  c[field]=value;
-  apiSaveLogisticsContract(c);
-}
-
-function renderAllocations(c){
-  const rows=(c.allocations||[]).map((a,idx)=>{
-    const delivered=(c.deliveries||[])
-      .filter(d=>d.month===a.month)
-      .reduce((s,d)=>s+(Number(d.receivedQty)||Number(d.loadedQty)||0),0);
-    const rem=(Number(a.qty)||0)-delivered;
-    return `<tr>
-      <td><input type="month" value="${a.month||''}" onchange="updateAllocation(${c.id},${idx},'month',this.value)"></td>
-      <td><input type="number" step="0.001" value="${a.qty||''}" onchange="updateAllocation(${c.id},${idx},'qty',this.value)"></td>
-      <td style="color:var(--long)">${fmtN(delivered)}</td>
-      <td style="color:${rem<0?'var(--short)':'var(--bright)'}">${fmtN(rem)}</td>
-      <td><button class="btn-del" onclick="deleteAllocation(${c.id},${idx})">✕</button></td>
-    </tr>`;
-  }).join('');
-
-  return `
-    <div class="log-section-title">Alocare lunară</div>
-    <div class="log-table-wrap">
-      <table class="log-table">
-        <thead><tr><th>Luna</th><th>Planificat t</th><th>Livrat t</th><th>Rămas t</th><th></th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="5"><div class="empty">// fără alocări lunare</div></td></tr>'}</tbody>
-      </table>
-    </div>
-
-    <div class="log-mini-form">
-      <div class="fg"><label class="fl">Luna</label><input id="allocMonth" type="month"></div>
-      <div class="fg"><label class="fl">Cantitate t</label><input id="allocQty" type="number" step="0.001"></div>
-      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="addAllocation(${c.id})">+ Alocă lună</button></div>
-    </div>
-  `;
-}
-
-function addAllocation(id){
-  const c=findLogContract(id);
-  if(!c) return;
-  const month=document.getElementById('allocMonth').value;
-  const qty=Number(document.getElementById('allocQty').value)||0;
-  if(!month || qty<=0){alert('Completează luna și cantitatea.');return;}
-  c.allocations=c.allocations||[];
-  c.allocations.push({month,qty});
-  apiSaveLogisticsContract(c);
-}
-
-function updateAllocation(id,idx,field,value){
-  const c=findLogContract(id);
-  if(!c || !c.allocations[idx]) return;
-  c.allocations[idx][field]=field==='qty' ? Number(value)||0 : value;
-  apiSaveLogisticsContract(c);
-}
-
-function deleteAllocation(id,idx){
-  const c=findLogContract(id);
-  if(!c) return;
-  c.allocations.splice(idx,1);
-  apiSaveLogisticsContract(c);
-}
-
-function renderDeliveries(c){
-  const rows=(c.deliveries||[]).map((d,idx)=>{
-    const modeLabel=d.mode==='train'?'🚆 Tren':'🚚 Camion';
-    return `<tr>
-      <td>
-        <select onchange="updateDelivery(${c.id},${idx},'mode',this.value)">
-          <option value="truck" ${d.mode==='truck'?'selected':''}>Camion</option>
-          <option value="train" ${d.mode==='train'?'selected':''}>Tren</option>
-        </select>
-      </td>
-      <td><input value="${escHtml(d.unitLabel||'')}" onchange="updateDelivery(${c.id},${idx},'unitLabel',this.value)" placeholder="${modeLabel}"></td>
-      <td><input type="month" value="${d.month||''}" onchange="updateDelivery(${c.id},${idx},'month',this.value)"></td>
-      <td><input type="date" value="${d.loadingDate||''}" onchange="updateDelivery(${c.id},${idx},'loadingDate',this.value)"></td>
-      <td><input type="number" step="0.001" value="${d.plannedQty||''}" onchange="updateDelivery(${c.id},${idx},'plannedQty',this.value)"></td>
-      <td><input type="number" step="0.001" value="${d.loadedQty||''}" onchange="updateDelivery(${c.id},${idx},'loadedQty',this.value)"></td>
-      <td><input type="number" step="0.001" value="${d.receivedQty||''}" onchange="updateDelivery(${c.id},${idx},'receivedQty',this.value)"></td>
-      <td>
-        <select onchange="updateDelivery(${c.id},${idx},'status',this.value)">
-          <option value="planned" ${d.status==='planned'?'selected':''}>Planificat</option>
-          <option value="loading" ${d.status==='loading'?'selected':''}>La încărcare</option>
-          <option value="transit" ${d.status==='transit'?'selected':''}>În tranzit</option>
-          <option value="delivered" ${d.status==='delivered'?'selected':''}>Livrat</option>
-          <option value="problem" ${d.status==='problem'?'selected':''}>Problemă</option>
-        </select>
-      </td>
-      <td><input value="${escHtml(d.carrier||'')}" onchange="updateDelivery(${c.id},${idx},'carrier',this.value)" placeholder="transportator"></td>
-      <td><button class="btn-del" onclick="deleteDelivery(${c.id},${idx})">✕</button></td>
-    </tr>`;
-  }).join('');
-
-  return `
-    <div class="log-section-title">Livrări camion / tren</div>
-    <div class="log-table-wrap">
-      <table class="log-table">
-        <thead>
-          <tr>
-            <th>Tip</th><th>Unitate</th><th>Luna</th><th>Încărcare</th><th>Plan t</th><th>Încărcat t</th><th>Recepționat t</th><th>Status</th><th>Transportator</th><th></th>
-          </tr>
-        </thead>
-        <tbody>${rows || '<tr><td colspan="10"><div class="empty">// fără livrări</div></td></tr>'}</tbody>
-      </table>
-    </div>
-
-    <div class="log-mini-form">
-      <div class="fg"><label class="fl">Tip</label>
-        <select id="delMode">
-          <option value="truck">Camion</option>
-          <option value="train">Tren</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Unitate</label><input id="delUnit" placeholder="SM-00-XXX / Tren 1"></div>
-      <div class="fg"><label class="fl">Luna</label><input id="delMonth" type="month"></div>
-      <div class="fg"><label class="fl">Plan t</label><input id="delPlanned" type="number" step="0.001"></div>
-      <div class="fg"><label class="fl">Data încărcare</label><input id="delDate" type="date"></div>
-      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="addDelivery(${c.id})">+ Adaugă livrare</button></div>
-    </div>
-
-    <div class="log-mini-form" style="grid-template-columns:repeat(4,1fr);">
-      <div class="fg"><label class="fl">Nr. trenuri</label><input id="trainCount" type="number" min="1" placeholder="5"></div>
-      <div class="fg"><label class="fl">Luna start</label><input id="trainStartMonth" type="month"></div>
-      <div class="fg"><label class="fl">Greutate default t</label><input id="trainDefaultQty" type="number" step="0.001" placeholder="1800"></div>
-      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="generateTrains(${c.id})">+ Generează trenuri</button></div>
-    </div>
-  `;
-}
-
-function addDelivery(id){
-  const c=findLogContract(id);
-  if(!c) return;
-  const mode=document.getElementById('delMode').value;
-  const unitLabel=document.getElementById('delUnit').value.trim();
-  const month=document.getElementById('delMonth').value;
-  const plannedQty=Number(document.getElementById('delPlanned').value)||0;
-  const loadingDate=document.getElementById('delDate').value;
-  if(!unitLabel){alert('Completează unitatea: camion sau tren.');return;}
-  c.deliveries=c.deliveries||[];
-  c.deliveries.push({mode,unitLabel,month,plannedQty,loadingDate,loadedQty:0,receivedQty:0,status:'planned',carrier:''});
-  apiSaveLogisticsContract(c);
-}
-
-function generateTrains(id){
-  const c=findLogContract(id);
-  if(!c) return;
-  const count=Number(document.getElementById('trainCount').value)||0;
-  const startMonth=document.getElementById('trainStartMonth').value;
-  const defaultQty=Number(document.getElementById('trainDefaultQty').value)||0;
-  if(count<=0 || !startMonth || defaultQty<=0){alert('Completează numărul de trenuri, luna start și greutatea default.');return;}
-
-  c.deliveries=c.deliveries||[];
-
-  const [y,m]=startMonth.split('-').map(Number);
-  for(let i=0;i<count;i++){
-    const d=new Date(y, m-1+i, 1);
-    const month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    c.deliveries.push({
-      mode:'train',
-      unitLabel:`Tren ${i+1}`,
-      month,
-      plannedQty:defaultQty,
-      loadingDate:'',
-      loadedQty:0,
-      receivedQty:0,
-      status:'planned',
-      carrier:''
-    });
-  }
-
-  apiSaveLogisticsContract(c);
-}
-
-function updateDelivery(id,idx,field,value){
-  const c=findLogContract(id);
-  if(!c || !c.deliveries[idx]) return;
-  const numeric=['plannedQty','loadedQty','receivedQty'];
-  c.deliveries[idx][field]=numeric.includes(field) ? Number(value)||0 : value;
-  apiSaveLogisticsContract(c);
-}
-
-function deleteDelivery(id,idx){
-  const c=findLogContract(id);
-  if(!c) return;
-  c.deliveries.splice(idx,1);
-  apiSaveLogisticsContract(c);
-}
-
-function renderCashflow(c){
-  const rows=(c.cashflow||[]).map((x,idx)=>`
-    <tr>
-      <td>
-        <select onchange="updateCashflow(${c.id},${idx},'type',this.value)">
-          <option value="payable" ${x.type==='payable'?'selected':''}>De plătit</option>
-          <option value="receivable" ${x.type==='receivable'?'selected':''}>De încasat</option>
-        </select>
-      </td>
-      <td><input type="number" step="0.01" value="${x.amount||''}" onchange="updateCashflow(${c.id},${idx},'amount',this.value)"></td>
-      <td>
-        <select onchange="updateCashflow(${c.id},${idx},'currency',this.value)">
-          <option value="RON" ${x.currency==='RON'?'selected':''}>RON</option>
-          <option value="EUR" ${x.currency==='EUR'?'selected':''}>EUR</option>
-          <option value="HUF" ${x.currency==='HUF'?'selected':''}>HUF</option>
-        </select>
-      </td>
-      <td><input type="date" value="${x.dueDate||''}" onchange="updateCashflow(${c.id},${idx},'dueDate',this.value)"></td>
-      <td>
-        <select onchange="updateCashflow(${c.id},${idx},'status',this.value)">
-          <option value="open" ${x.status==='open'?'selected':''}>Deschis</option>
-          <option value="partial" ${x.status==='partial'?'selected':''}>Parțial</option>
-          <option value="done" ${x.status==='done'?'selected':''}>Închis</option>
-        </select>
-      </td>
-      <td><input value="${escHtml(x.note||'')}" onchange="updateCashflow(${c.id},${idx},'note',this.value)" placeholder="factură / observații"></td>
-      <td><button class="btn-del" onclick="deleteCashflow(${c.id},${idx})">✕</button></td>
-    </tr>
-  `).join('');
-
-  const pay=(c.cashflow||[]).filter(x=>x.type==='payable').reduce((s,x)=>s+(Number(x.amount)||0),0);
-  const rec=(c.cashflow||[]).filter(x=>x.type==='receivable').reduce((s,x)=>s+(Number(x.amount)||0),0);
-
-  return `
-    <div class="log-section-title">Cashflow simplu</div>
-    <div class="log-muted" style="margin-bottom:6px;">Total de plătit: <span style="color:var(--short)">${fmtN(pay)}</span> · Total de încasat: <span style="color:var(--long)">${fmtN(rec)}</span></div>
-    <div class="log-table-wrap">
-      <table class="log-table">
-        <thead><tr><th>Tip</th><th>Sumă</th><th>Monedă</th><th>Scadență</th><th>Status</th><th>Notă</th><th></th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7"><div class="empty">// fără cashflow</div></td></tr>'}</tbody>
-      </table>
-    </div>
-
-    <div class="log-mini-form">
-      <div class="fg"><label class="fl">Tip</label>
-        <select id="cfType">
-          <option value="payable">De plătit</option>
-          <option value="receivable">De încasat</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Sumă</label><input id="cfAmount" type="number" step="0.01"></div>
-      <div class="fg"><label class="fl">Monedă</label>
-        <select id="cfCurrency">
-          <option value="RON">RON</option>
-          <option value="EUR">EUR</option>
-          <option value="HUF">HUF</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Scadență</label><input id="cfDue" type="date"></div>
-      <div class="fg"><label class="fl">Notă</label><input id="cfNote" placeholder="factură / observații"></div>
-      <div class="fg" style="justify-content:flex-end;"><button class="btn-add" onclick="addCashflow(${c.id})">+ Adaugă cashflow</button></div>
-    </div>
-  `;
-}
-
-function addCashflow(id){
-  const c=findLogContract(id);
-  if(!c) return;
-  const type=document.getElementById('cfType').value;
-  const amount=Number(document.getElementById('cfAmount').value)||0;
-  const currency=document.getElementById('cfCurrency').value;
-  const dueDate=document.getElementById('cfDue').value;
-  const note=document.getElementById('cfNote').value.trim();
-  if(amount<=0){alert('Completează suma.');return;}
-  c.cashflow=c.cashflow||[];
-  c.cashflow.push({type,amount,currency,dueDate,status:'open',note});
-  apiSaveLogisticsContract(c);
-}
-
-function updateCashflow(id,idx,field,value){
-  const c=findLogContract(id);
-  if(!c || !c.cashflow[idx]) return;
-  c.cashflow[idx][field]=field==='amount' ? Number(value)||0 : value;
-  apiSaveLogisticsContract(c);
-}
-
-function deleteCashflow(id,idx){
-  const c=findLogContract(id);
-  if(!c) return;
-  c.cashflow.splice(idx,1);
-  apiSaveLogisticsContract(c);
-}
-
-async function deleteLogisticsContract(id){
-  if(!confirm('Ștergi contractul logistic? Poziția nu va fi afectată.')) return;
-  await fetch(`/api/logistics/contracts/${id}`,{method:'DELETE'});
-  if(Number(selectedLogisticsId)===Number(id)) selectedLogisticsId=null;
-  await loadLogisticsContracts();
-  render();
-  renderLogistics();
-}
-
-function tradeHasLogistics(tradeId){
-  return logisticsContracts.some(c=>Number(c.source_trade_id)===Number(tradeId));
-}
-
-function createLogisticsQuick(tradeId){
-  const t=trades.find(x=>Number(x.id)===Number(tradeId));
-  if(!t) return;
-
-  const existing=logisticsContracts.find(c=>Number(c.source_trade_id)===Number(tradeId));
-  if(existing){
-    selectedLogisticsId=existing.id;
-    setLogisticsTab();
-    return;
-  }
-
-  const c={
-    source_trade_id:t.id,
-    product:t.product,
-    crop:t.crop,
-    dir:t.dir,
-    qty:Number(t.qty)||0,
-    price:t.price||null,
-    priceEur:t.priceEur||null,
-    currency:t.currency||'ron',
-    parity:t.parity||'',
-    loc:t.loc||'',
-    cpty:t.cpty||'',
-    note:t.note||'',
-    contractNo:'',
-    deliveryStart:'',
-    deliveryEnd:'',
-    transportMode:'truck',
-    status:'open',
-    allocations:[],
-    deliveries:[],
-    cashflow:[]
-  };
-
-  apiSaveLogisticsContract(c).then(()=>setLogisticsTab());
-}
-
-function exportLogistics(){
-  if(!logisticsContracts.length){alert('Nu există contracte logistice.');return;}
-
-  const rows=[[
-    'id','source_trade_id','contract_no','produs','recolta','directie','contraparte','cantitate_contractata',
-    'alocat_lunar','livrat','ramas','transport','livrare_de_la','livrare_pana_la','status'
-  ]];
-
-  logisticsContracts.forEach(c=>{
-    const p=products[c.product]||{name:c.product};
-    const delivered=sumDelivered(c);
-    rows.push([
-      c.id,
-      c.source_trade_id||'',
-      c.contractNo||'',
-      p.name,
-      c.crop||'',
-      c.dir==='long'?'cumparare':'vanzare',
-      c.cpty||'',
-      c.qty||0,
-      sumPlannedAlloc(c),
-      delivered,
-      (Number(c.qty)||0)-delivered,
-      c.transportMode||'',
-      c.deliveryStart||'',
-      c.deliveryEnd||'',
-      c.status||''
-    ]);
-  });
-
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[8,14,16,18,10,12,24,18,14,12,12,12,14,14,12].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws,'Contracte Logistica');
-
-  const delRows=[['contract_id','contract_no','tip','unitate','luna','data_incarcare','plan_t','incarcat_t','receptionat_t','status','transportator']];
-  logisticsContracts.forEach(c=>{
-    (c.deliveries||[]).forEach(d=>{
-      delRows.push([c.id,c.contractNo||'',d.mode||'',d.unitLabel||'',d.month||'',d.loadingDate||'',d.plannedQty||0,d.loadedQty||0,d.receivedQty||0,d.status||'',d.carrier||'']);
-    });
-  });
-  const ws2=XLSX.utils.aoa_to_sheet(delRows);
-  ws2['!cols']=[10,16,10,18,10,14,12,12,14,12,18].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws2,'Livrari');
-
-  const dateStr=new Date().toISOString().slice(0,10);
-  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  const blob=new Blob([wbout],{type:'application/octet-stream'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`agrotex_logistica_${dateStr}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-}
-
+/* Sync */
 async function syncTrades(){
   const anyModalOpen=['modEdit','modProd','modImport','modCfo'].some(id=>{
     const el=document.getElementById(id);
     return el && (el.classList.contains('open') || el.style.display==='flex');
   });
   if(anyModalOpen) return;
-
   try{
-    const [tRes,pRes,lRes]=await Promise.all([
-      fetch('/api/trades'),
-      fetch('/api/products'),
-      fetch('/api/logistics/contracts')
-    ]);
-    if(!tRes.ok || !pRes.ok || !lRes.ok) return;
+    const [tRes,pRes]=await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
+    if(!tRes.ok || !pRes.ok) return;
     const newTrades=await tRes.json();
     const newProducts=await pRes.json();
-    const newLogistics=await lRes.json();
-
     const tradesChanged=JSON.stringify(newTrades)!==JSON.stringify(trades);
     const productsChanged=JSON.stringify(newProducts)!==JSON.stringify(products);
-    const logisticsChanged=JSON.stringify(newLogistics)!==JSON.stringify(logisticsContracts);
-
-    if(tradesChanged || productsChanged || logisticsChanged){
+    if(tradesChanged || productsChanged){
       trades=Array.isArray(newTrades)?newTrades:trades;
       products=newProducts || products;
-      logisticsContracts=Array.isArray(newLogistics)?newLogistics:logisticsContracts;
-      if(productsChanged){ populateProd(); populateFilterProd(); populateLogisticsSourceTrades(); }
+      if(productsChanged){ populateProd(); populateFilterProd(); }
       render();
-      if(logisticsTabActive) renderLogistics();
       const s=document.getElementById('syncStatus');
       if(s){
         s.textContent='● sync';
@@ -3549,7 +3189,6 @@ async function syncTrades(){
     }
   }catch(e){}
 }
-
 async function bootApp(){
   await loadAll();
   loadFxRates();
@@ -3566,6 +3205,8 @@ async function bootApp(){
 document.getElementById('fDate').value=today();
 document.getElementById('fDateB').value=today();
 document.getElementById('fDateEur').value=today();
+document.getElementById('logDeliveryStart').value=today();
+document.getElementById('logDeliveryEnd').value=today();
 
 fetch('/api/me').then(r=>r.json()).then(async d=>{
   if(d.authenticated){
@@ -3589,7 +3230,6 @@ document.addEventListener('visibilitychange', ()=>{
       window._lastFxLoad=Date.now();
     }
     if(meteoTabActive) loadWeatherPresets();
-    if(logisticsTabActive) loadLogisticsContracts();
   }
 });
 window.addEventListener('pageshow',(e)=>{
@@ -3597,7 +3237,6 @@ window.addEventListener('pageshow',(e)=>{
     loadMatif();
     loadFxRates();
     if(meteoTabActive) loadWeatherPresets();
-    if(logisticsTabActive) loadLogisticsContracts();
   }
 });
 </script>
