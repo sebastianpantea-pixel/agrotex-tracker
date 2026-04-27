@@ -19,11 +19,13 @@ db.exec(`
     data TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     data TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+
   CREATE TABLE IF NOT EXISTS target (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year INTEGER NOT NULL,
@@ -31,9 +33,18 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(year)
   );
+
   CREATE TABLE IF NOT EXISTS weather_cache (
     location_name TEXT PRIMARY KEY,
     data TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS logistics_contracts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_trade_id INTEGER,
+    data TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
 `);
@@ -98,6 +109,7 @@ app.post('/api/trades', requireAuth, (req, res) => {
 app.post('/api/trades/bulk', requireAuth, (req, res) => {
   const { trades } = req.body;
   if (!Array.isArray(trades)) return res.status(400).json({ error: 'Invalid' });
+
   const insert = db.prepare('INSERT INTO trades (data) VALUES (?)');
   const many = db.transaction((items) => {
     for (const t of items) {
@@ -106,6 +118,7 @@ app.post('/api/trades/bulk', requireAuth, (req, res) => {
       insert.run(JSON.stringify(copy));
     }
   });
+
   many(trades);
   res.json({ ok: true, count: trades.length });
 });
@@ -146,6 +159,7 @@ const MATIF_CONTRACTS = [
 async function fetchMatifContract(code) {
   const [symbol, mic] = code.split('-');
   const url = `https://live.euronext.com/en/ajax/getPricesFutures/commodities-futures/${symbol}/${mic}`;
+
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0',
@@ -156,6 +170,7 @@ async function fetchMatifContract(code) {
     },
     signal: AbortSignal.timeout(12000),
   });
+
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${code}`);
   const html = await res.text();
 
@@ -168,12 +183,14 @@ async function fetchMatifContract(code) {
     const cells = [];
     let tdMatch;
     const tdReg = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+
     while ((tdMatch = tdReg.exec(rowHtml)) !== null) {
       const text = tdMatch[1]
         .replace(/<[^>]+>/g, '')
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
         .trim();
+
       cells.push(text);
     }
 
@@ -182,6 +199,7 @@ async function fetchMatifContract(code) {
         const n = parseFloat((s || '').replace(',', '.'));
         return isNaN(n) ? null : n;
       };
+
       rows.push({
         delivery: cells[0],
         bid: parseNum(cells[1]),
@@ -200,8 +218,13 @@ async function fetchMatifContract(code) {
 app.get('/api/matif', requireAuth, async (req, res) => {
   try {
     const now = Date.now();
+
     if (matifCache.data && (now - matifCache.ts) < MATIF_TTL) {
-      return res.json({ ...matifCache.data, cached: true, age: Math.round((now - matifCache.ts) / 1000) });
+      return res.json({
+        ...matifCache.data,
+        cached: true,
+        age: Math.round((now - matifCache.ts) / 1000),
+      });
     }
 
     const results = {};
@@ -212,6 +235,7 @@ app.get('/api/matif', requireAuth, async (req, res) => {
         try {
           const rows = await fetchMatifContract(code);
           const front = rows.find(r => r.bid !== null || r.settl !== null) || rows[0] || null;
+
           results[key] = {
             name,
             code,
@@ -252,10 +276,111 @@ app.get('/api/target/:year', requireAuth, (req, res) => {
 app.put('/api/target/:year', requireAuth, (req, res) => {
   const year = parseInt(req.params.year, 10);
   const data = JSON.stringify(req.body);
+
   db.prepare(`
     INSERT INTO target (year, data, updated_at) VALUES (?, ?, datetime('now'))
     ON CONFLICT(year) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
   `).run(year, data);
+
+  res.json({ ok: true });
+});
+
+// ── LOGISTICS V1 — separate from position ────────────────────────────────────
+// Important:
+// - logistics reads / references trades
+// - logistics does NOT update trades
+// - logistics does NOT change position, long/short, margin or exposure
+
+function parseLogisticsRow(row) {
+  return {
+    ...JSON.parse(row.data),
+    id: row.id,
+    source_trade_id: row.source_trade_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+app.get('/api/logistics/contracts', requireAuth, (req, res) => {
+  const rows = db.prepare(`
+    SELECT id, source_trade_id, data, created_at, updated_at
+    FROM logistics_contracts
+    ORDER BY updated_at DESC, id DESC
+  `).all();
+
+  res.json(rows.map(parseLogisticsRow));
+});
+
+app.post('/api/logistics/contracts', requireAuth, (req, res) => {
+  const payload = req.body || {};
+  const sourceTradeId = payload.source_trade_id || null;
+
+  const data = {
+    source_trade_id: sourceTradeId,
+    product: payload.product || '',
+    crop: payload.crop || '',
+    dir: payload.dir || '',
+    qty: Number(payload.qty) || 0,
+    price: payload.price || null,
+    priceEur: payload.priceEur || null,
+    currency: payload.currency || 'ron',
+    parity: payload.parity || '',
+    loc: payload.loc || '',
+    cpty: payload.cpty || '',
+    note: payload.note || '',
+    contractNo: payload.contractNo || '',
+    deliveryStart: payload.deliveryStart || '',
+    deliveryEnd: payload.deliveryEnd || '',
+    transportMode: payload.transportMode || 'truck',
+    status: payload.status || 'open',
+    allocations: Array.isArray(payload.allocations) ? payload.allocations : [],
+    deliveries: Array.isArray(payload.deliveries) ? payload.deliveries : [],
+    cashflow: Array.isArray(payload.cashflow) ? payload.cashflow : [],
+  };
+
+  const info = db.prepare(`
+    INSERT INTO logistics_contracts (source_trade_id, data, created_at, updated_at)
+    VALUES (?, ?, datetime('now'), datetime('now'))
+  `).run(sourceTradeId, JSON.stringify(data));
+
+  res.json({ id: info.lastInsertRowid });
+});
+
+app.put('/api/logistics/contracts/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const existing = db.prepare('SELECT id FROM logistics_contracts WHERE id = ?').get(id);
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Contract logistic negasit' });
+  }
+
+  const payload = req.body || {};
+  const sourceTradeId = payload.source_trade_id || null;
+
+  const data = {
+    ...payload,
+    source_trade_id: sourceTradeId,
+    qty: Number(payload.qty) || 0,
+    allocations: Array.isArray(payload.allocations) ? payload.allocations : [],
+    deliveries: Array.isArray(payload.deliveries) ? payload.deliveries : [],
+    cashflow: Array.isArray(payload.cashflow) ? payload.cashflow : [],
+  };
+
+  delete data.id;
+  delete data.created_at;
+  delete data.updated_at;
+
+  db.prepare(`
+    UPDATE logistics_contracts
+    SET source_trade_id = ?, data = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `).run(sourceTradeId, JSON.stringify(data), id);
+
+  res.json({ ok: true });
+});
+
+app.delete('/api/logistics/contracts/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM logistics_contracts WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 
@@ -282,14 +407,29 @@ const USDA_GRAIN_KEYWORDS = [
   'cereale','porumb','grau','rapita'
 ];
 
-const KEYWORDS_HIGH = ['grâu','wheat','porumb','corn','rapiță','rapeseed','canola','cereale','grain','oleaginoase','oilseed','MATIF','CBOT','futures','recoltă','harvest','export','import','USDA','IGC','Euronext'];
-const KEYWORDS_MED = ['agricol','agricultură','agriculture','fermier','farmer','piață','market','preț','price','România','Romania','UE','EU','subvenț','subsid'];
+const KEYWORDS_HIGH = [
+  'grâu','wheat','porumb','corn','rapiță','rapeseed','canola','cereale',
+  'grain','oleaginoase','oilseed','MATIF','CBOT','futures','recoltă',
+  'harvest','export','import','USDA','IGC','Euronext'
+];
+
+const KEYWORDS_MED = [
+  'agricol','agricultură','agriculture','fermier','farmer','piață','market',
+  'preț','price','România','Romania','UE','EU','subvenț','subsid'
+];
 
 function scoreItem(title, desc) {
   const text = ((title || '') + ' ' + (desc || '')).toLowerCase();
   let score = 0;
-  KEYWORDS_HIGH.forEach(k => { if (text.includes(k.toLowerCase())) score += 3; });
-  KEYWORDS_MED.forEach(k => { if (text.includes(k.toLowerCase())) score += 1; });
+
+  KEYWORDS_HIGH.forEach(k => {
+    if (text.includes(k.toLowerCase())) score += 3;
+  });
+
+  KEYWORDS_MED.forEach(k => {
+    if (text.includes(k.toLowerCase())) score += 1;
+  });
+
   return score;
 }
 
@@ -301,6 +441,7 @@ async function fetchRSS(source) {
     },
     signal: AbortSignal.timeout(10000),
   });
+
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const xml = await res.text();
 
@@ -309,11 +450,14 @@ async function fetchRSS(source) {
 
   const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
   let m;
+
   while ((m = itemRegex.exec(xml)) !== null) {
     const block = m[1];
+
     const get = (tag) => {
       const r = new RegExp(`<${tag}[^>]*>(?:<!\$begin:math:display$CDATA\\\\\[\)\?\(\[\\\\s\\\\S\]\*\?\)\(\?\:\\$end:math:display$\\]>)?<\\/${tag}>`, 'i');
       const match = r.exec(block);
+
       return match
         ? match[1]
             .replace(/<[^>]+>/g, '')
@@ -352,14 +496,20 @@ async function fetchRSS(source) {
       score: scoreItem(title, desc),
     });
   }
+
   return items;
 }
 
 app.get('/api/news', requireAuth, async (req, res) => {
   try {
     const now = Date.now();
+
     if (newsCache.data && (now - newsCache.ts) < NEWS_TTL) {
-      return res.json({ ...newsCache.data, cached: true, age: Math.round((now - newsCache.ts) / 1000) });
+      return res.json({
+        ...newsCache.data,
+        cached: true,
+        age: Math.round((now - newsCache.ts) / 1000),
+      });
     }
 
     const allItems = [];
@@ -399,24 +549,47 @@ app.get('/api/news', requireAuth, async (req, res) => {
 
 app.get('/api/news/test', requireAuth, async (req, res) => {
   const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+
   const results = await Promise.allSettled(
     NEWS_SOURCES.map(async (s) => {
       const start = Date.now();
+
       try {
         const r = await fetch(s.url, {
           headers: { 'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader' },
           signal: AbortSignal.timeout(10000),
         });
+
         const text = await r.text();
         const totalItems = (text.match(/<item/gi) || []).length;
         const pubDates = [...text.matchAll(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/gi)].map(m => new Date(m[1]));
         const recent = pubDates.filter(d => d.getTime() > cutoff24h).length;
-        return { name: s.name, tag: s.tag, filter: s.filter || 'none', url: s.url, status: r.status, ok: r.ok, totalItems, recent24h: recent, ms: Date.now() - start };
+
+        return {
+          name: s.name,
+          tag: s.tag,
+          filter: s.filter || 'none',
+          url: s.url,
+          status: r.status,
+          ok: r.ok,
+          totalItems,
+          recent24h: recent,
+          ms: Date.now() - start,
+        };
       } catch (e) {
-        return { name: s.name, tag: s.tag, url: s.url, status: 0, ok: false, error: e.message, ms: Date.now() - start };
+        return {
+          name: s.name,
+          tag: s.tag,
+          url: s.url,
+          status: 0,
+          ok: false,
+          error: e.message,
+          ms: Date.now() - start,
+        };
       }
     })
   );
+
   res.json(results.map(r => r.value || r.reason));
 });
 
@@ -429,15 +602,15 @@ const WEATHER_PRESET_LOCATIONS = [
   { name: 'Săcueni', country: 'Romania', latitude: 47.3500, longitude: 22.1000, timezone: 'Europe/Bucharest' },
 ];
 
-// In-memory cache pentru presets — TTL 6 ore (fetch rar, nu la fiecare request)
-// Datele persistente sunt în DB — fallback dacă fetch eșuează
-const WEATHER_PRESET_TTL = 6 * 60 * 60 * 1000; // 6 ore
+// In-memory cache pentru presets — TTL 6 ore
+const WEATHER_PRESET_TTL = 6 * 60 * 60 * 1000;
 let weatherPresetMemCache = { ts: 0, items: null };
 
 // ── DB helpers pentru weather cache ──────────────────────────────────────────
 function dbGetWeatherCache(locationName) {
   const row = db.prepare('SELECT data, updated_at FROM weather_cache WHERE location_name = ?').get(locationName);
   if (!row) return null;
+
   try {
     return { ...JSON.parse(row.data), _dbUpdatedAt: row.updated_at };
   } catch {
@@ -508,6 +681,7 @@ function weatherCodeToLabel(code) {
     96: 'furtună cu grindină',
     99: 'furtună cu grindină',
   };
+
   return map[code] || 'necunoscut';
 }
 
@@ -522,26 +696,31 @@ function buildRiskFlags({ daily, current }) {
   if (Number.isFinite(maxWind) && maxWind >= 45) risks.push('vânt puternic');
   if (Number.isFinite(maxRain) && maxRain >= 20) risks.push('ploaie semnificativă');
   if (Number.isFinite(currentTemp) && currentTemp >= 32) risks.push('stress termic');
+
   return risks;
 }
 
 function daysSinceLastMeaningfulRain(pastDaily) {
   if (!pastDaily || !Array.isArray(pastDaily.precipitation_sum)) return null;
+
   for (let i = pastDaily.precipitation_sum.length - 1; i >= 0; i--) {
     const mm = Number(pastDaily.precipitation_sum[i] || 0);
     if (mm >= 0.5) {
       return pastDaily.precipitation_sum.length - 1 - i;
     }
   }
+
   return null;
 }
 
 function groupHourlySoilByDate(hourly) {
   const byDate = {};
   const times = hourly.time || [];
+
   for (let i = 0; i < times.length; i++) {
     const ts = times[i];
     const date = String(ts).slice(0, 10);
+
     if (!byDate[date]) {
       byDate[date] = {
         s01: [],
@@ -551,18 +730,21 @@ function groupHourlySoilByDate(hourly) {
         s2781: [],
       };
     }
+
     byDate[date].s01.push(hourly.soil_moisture_0_to_1cm?.[i]);
     byDate[date].s13.push(hourly.soil_moisture_1_to_3cm?.[i]);
     byDate[date].s39.push(hourly.soil_moisture_3_to_9cm?.[i]);
     byDate[date].s927.push(hourly.soil_moisture_9_to_27cm?.[i]);
     byDate[date].s2781.push(hourly.soil_moisture_27_to_81cm?.[i]);
   }
+
   return byDate;
 }
 
 function buildDailySoilMapFromHourly(hourly) {
   const grouped = groupHourlySoilByDate(hourly);
   const out = {};
+
   for (const [date, v] of Object.entries(grouped)) {
     const surface = averageOrNull(v.s01);
     const mid = averageOrNull([
@@ -573,12 +755,14 @@ function buildDailySoilMapFromHourly(hourly) {
     const deep = averageOrNull([
       averageOrNull(v.s2781),
     ]);
+
     out[date] = {
       soilSurface: round2(surface),
       soilMid: round2(mid),
       soilDeep: round2(deep),
     };
   }
+
   return out;
 }
 
@@ -593,6 +777,7 @@ function buildWeatherPayload(location, raw) {
   const dates = daily.time || [];
   const dailyForecast = dates.map((date, idx) => {
     const soil = dailySoilMap[date] || { soilSurface: null, soilMid: null, soilDeep: null };
+
     return {
       date,
       tempMin: Number.isFinite(daily.temperature_2m_min?.[idx]) ? daily.temperature_2m_min[idx] : null,
@@ -650,7 +835,7 @@ async function fetchWeatherForLocation(location) {
       'relative_humidity_2m',
       'precipitation',
       'weather_code',
-      'wind_speed_10m'
+      'wind_speed_10m',
     ].join(','),
     daily: [
       'weather_code',
@@ -658,24 +843,26 @@ async function fetchWeatherForLocation(location) {
       'temperature_2m_min',
       'precipitation_sum',
       'wind_speed_10m_max',
-      'relative_humidity_2m_mean'
+      'relative_humidity_2m_mean',
     ].join(','),
     hourly: [
       'soil_moisture_0_to_1cm',
       'soil_moisture_1_to_3cm',
       'soil_moisture_3_to_9cm',
       'soil_moisture_9_to_27cm',
-      'soil_moisture_27_to_81cm'
+      'soil_moisture_27_to_81cm',
     ].join(','),
     past_days: '30',
     forecast_days: '7',
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+
   const res = await fetch(url, {
     headers: { 'User-Agent': 'AgrotexTracker/1.0' },
     signal: AbortSignal.timeout(15000),
   });
+
   if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
   const raw = await res.json();
 
@@ -716,19 +903,11 @@ async function fetchWeatherForLocation(location) {
 }
 
 // ── /api/weather/presets — cu cache persistent în DB ─────────────────────────
-// Logică:
-//   1. Dacă memory cache e valid (< TTL 6h) și nu e forțat refresh → returnează din memorie
-//   2. Altfel: încearcă să fetch-uiască fiecare locație individual
-//      - Dacă fetch reușit → salvează în DB, actualizează memory cache
-//      - Dacă fetch eșuat  → ia datele din DB (ultima valoare bună)
-//   3. Răspunsul indică per-item dacă e "fresh" sau "cached_db"
-
 app.get('/api/weather/presets', requireAuth, async (req, res) => {
   try {
     const forceRefresh = req.query.refresh === '1';
     const now = Date.now();
 
-    // Servim din memory cache dacă e valid și nu e forced refresh
     if (!forceRefresh && weatherPresetMemCache.items && (now - weatherPresetMemCache.ts) < WEATHER_PRESET_TTL) {
       return res.json({
         items: weatherPresetMemCache.items,
@@ -738,22 +917,24 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
       });
     }
 
-    // Fetch fiecare locație individual — eșecul uneia nu afectează celelalte
     const results = await Promise.allSettled(
       WEATHER_PRESET_LOCATIONS.map(async (location) => {
         try {
           const fresh = await fetchWeatherForLocation(location);
-          // Salvează în DB pentru fallback viitor
           dbSetWeatherCache(location.name, fresh);
           return { ...fresh, _source: 'fresh' };
         } catch (err) {
           console.warn(`Weather fetch failed for ${location.name}: ${err.message}`);
-          // Încearcă fallback din DB
           const cached = dbGetWeatherCache(location.name);
+
           if (cached) {
-            return { ...cached, _source: 'cached_db', _cacheNote: `Date din ${cached._dbUpdatedAt || 'DB'}` };
+            return {
+              ...cached,
+              _source: 'cached_db',
+              _cacheNote: `Date din ${cached._dbUpdatedAt || 'DB'}`,
+            };
           }
-          // Nimic în DB — returnează structură minimă cu eroare
+
           return {
             location,
             summary: null,
@@ -767,17 +948,18 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
     );
 
     const items = results.map(r =>
-      r.status === 'fulfilled' ? r.value : {
-        location: { name: 'Necunoscut', country: '' },
-        summary: null,
-        dailyForecast: [],
-        fetchedAt: new Date().toISOString(),
-        _source: 'error',
-        _error: r.reason?.message || 'Unknown error',
-      }
+      r.status === 'fulfilled'
+        ? r.value
+        : {
+            location: { name: 'Necunoscut', country: '' },
+            summary: null,
+            dailyForecast: [],
+            fetchedAt: new Date().toISOString(),
+            _source: 'error',
+            _error: r.reason?.message || 'Unknown error',
+          }
     );
 
-    // Actualizează memory cache doar dacă cel puțin o locație a primit date fresh
     const hasFresh = items.some(i => i._source === 'fresh');
     if (hasFresh || !weatherPresetMemCache.items) {
       weatherPresetMemCache = { ts: now, items };
@@ -791,7 +973,7 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Weather presets error:', err);
-    // Ultimă șansă: returnează tot din DB
+
     try {
       const items = WEATHER_PRESET_LOCATIONS.map(loc => {
         const cached = dbGetWeatherCache(loc.name);
@@ -804,7 +986,13 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
           _error: 'Server error + no DB cache',
         };
       });
-      res.json({ items, fetchedAt: new Date().toISOString(), cached: true, age: -1 });
+
+      res.json({
+        items,
+        fetchedAt: new Date().toISOString(),
+        cached: true,
+        age: -1,
+      });
     } catch (dbErr) {
       res.status(500).json({ error: err.message });
     }
@@ -817,10 +1005,12 @@ app.get('/api/weather/search', requireAuth, async (req, res) => {
     if (!q || q.length < 2) return res.json({ results: [] });
 
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=ro&format=json`;
+
     const r = await fetch(url, {
       headers: { 'User-Agent': 'AgrotexTracker/1.0' },
       signal: AbortSignal.timeout(12000),
     });
+
     if (!r.ok) throw new Error(`Geocoding HTTP ${r.status}`);
     const data = await r.json();
 
@@ -870,6 +1060,7 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
 
 // ── STATIC ────────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
