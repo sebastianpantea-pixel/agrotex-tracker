@@ -8,16 +8,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg:#080b0e; --surface:#0f1318; --surface2:#161b22; --surface3:#1c2330;
-    --border:#1e2530; --border2:#2a3444;
-    --text:#b8c4d4; --dim:#4e5e72; --bright:#e0eaf8; --fg:#e0eaf8;
-    --long:#22c55e; --long-dim:#14432a; --long-bg:rgba(34,197,94,0.06);
-    --short:#ef4444; --short-dim:#4a1616; --short-bg:rgba(239,68,68,0.06);
-    --neutral:#3b82f6; --neutral-dim:#1a3060;
-    --acc:#f59e0b; --basis:#a78bfa; --transport:#f97316;
-    --old:#60a5fa; --new:#34d399;
-    --eur:#f59e0b;
-    --meteo:#38bdf8; --meteo2:#0ea5e9;
+    --bg:#111418;
+    --surface:#171b21;
+    --surface2:#1d232b;
+    --surface3:#242b35;
+    --border:#2a323d;
+    --border2:#384352;
+    --text:#c8d0da;
+    --dim:#7c8797;
+    --bright:#f0f4f8;
+    --fg:#f0f4f8;
+    --long:#4ade80;
+    --long-dim:#22543a;
+    --long-bg:rgba(74,222,128,0.08);
+    --short:#f87171;
+    --short-dim:#5c2626;
+    --short-bg:rgba(248,113,113,0.08);
+    --neutral:#60a5fa;
+    --neutral-dim:#243f6b;
+    --acc:#fbbf24;
+    --basis:#c4b5fd;
+    --transport:#fb923c;
+    --old:#93c5fd;
+    --new:#6ee7b7;
+    --eur:#fbbf24;
+    --meteo:#67e8f9;
+    --meteo2:#22d3ee;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
@@ -701,6 +717,11 @@
         <button class="nf-btn" id="logFilterDue" onclick="setLogisticsFilter('due')">Facturi scadente</button>
       </div>
 
+      <div class="fg" style="margin-top:8px;">
+        <label class="fl">Caută în logistică</label>
+        <input id="logisticsListSearch" type="text" placeholder="firmă, produs, camion, factură, locație..." oninput="renderLogisticsList()">
+      </div>
+
       <div class="log-section-title">Contracte logistice</div>
       <div class="log-list" id="logisticsList"></div>
     </div>
@@ -1056,6 +1077,7 @@ let logisticsTabActive = false;
 let logisticsContracts = [];
 let selectedLogisticsId = null;
 let logisticsMonthFilter = null;
+let logisticsListSearch = '';
 
 const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
 const TARGET_ROWS = [
@@ -1837,9 +1859,23 @@ function normalizeText(str){
   return String(str ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'')
-    .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ș/g,'s').replace(/ş/g,'s').replace(/ț/g,'t').replace(/ţ/g,'t')
+    .replace(/[ăâ]/g,'a')
+    .replace(/î/g,'i')
+    .replace(/[șş]/g,'s')
+    .replace(/[țţ]/g,'t')
     .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .replace(/\s+/g,' ')
     .trim();
+}
+function searchTokens(q){
+  return normalizeText(q).split(' ').filter(Boolean);
+}
+function matchesSearch(haystack, query){
+  const tokens=searchTokens(query);
+  if(!tokens.length) return true;
+  const h=normalizeText(haystack);
+  return tokens.every(tok=>h.includes(tok));
 }
 async function loadLogistics(){
   try{
@@ -1878,6 +1914,7 @@ function migrateLogisticsData(){
         qty:Number(d.qty)||0,
         carrier:d.carrier||'',
         station:d.station||'',
+        deliveryLocation:d.deliveryLocation||d.delivery_location||'',
         status:d.status||'planned',
         note:d.note||''
       })) : [];
@@ -2006,14 +2043,15 @@ function selectLogSourceTrade(id){
 function populateLogisticsSourceTrades(){
   const box=document.getElementById('logSourceResults');
   if(!box) return;
-  const q=normalizeText(document.getElementById('logSourceSearch')?.value || '');
+  const q=document.getElementById('logSourceSearch')?.value || '';
   const selected=document.getElementById('logSelectedTradeId')?.value || '';
   const filtered=trades.filter(t=>{
     if(hasLogisticsForTrade(t.id)) return false;
     const p=products[t.product] || {name:t.product,emoji:'📦'};
-    const hay=normalizeText([t.id,t.product,p.name,p.emoji,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note].join(' '));
-    return !q || hay.includes(q);
-  }).slice(0,40);
+    const flow=t.dir==='long'?'de ridicat achizitie cumparare':'de livrat vanzare';
+    const hay=[t.id,t.product,p.name,p.emoji,t.crop,t.dir,flow,t.qty,t.cpty,t.loc,t.parity,t.date,t.note,t.matif,t.basis,t.price,t.priceEur].join(' ');
+    return matchesSearch(hay,q);
+  }).slice(0,80);
 
   if(!filtered.length){
     box.innerHTML='<div class="log-empty">// nicio tranzacție disponibilă pentru criteriul căutat</div>';
@@ -2155,7 +2193,20 @@ function monthHasLogActivity(c, month){
   if(!month) return true;
   const allocMatch=(c.allocations||[]).some(a=>a.month===month && Number(a.qty)>0);
   const invoiceMatch=(c.invoices||[]).some(inv=>ymFromDate(inv.dueDate || inv.invoiceDate)===month);
-  return allocMatch || invoiceMatch;
+  const movementMatch=(c.movements||[]).some(m=>ymFromDate(m.date)===month);
+  return allocMatch || invoiceMatch || movementMatch;
+}
+function logisticsSearchHaystack(c){
+  const t=getLogTrade(c) || {};
+  const p=products[t.product] || {name:t.product||'',emoji:''};
+  const allocations=(c.allocations||[]).flatMap(a=>[a.month,monthLabel(a.month),a.qty]);
+  const movements=(c.movements||[]).flatMap(m=>[m.date,ymFromDate(m.date),monthLabel(ymFromDate(m.date)),m.qty,m.carrier,m.station,m.deliveryLocation,m.status,m.note]);
+  const invoices=(c.invoices||[]).flatMap(inv=>[inv.invoiceNo,inv.invoiceDate,inv.dueDate,ymFromDate(inv.dueDate||inv.invoiceDate),monthLabel(ymFromDate(inv.dueDate||inv.invoiceDate)),inv.amount,inv.currency,inv.rate,inv.paid?'incasata platita':'neincasata',inv.paidDate,inv.note]);
+  return [
+    c.id,c.tradeId,c.source_trade_id,c.flow,logFlowLabel(c),c.transportMode,c.problem?'problema':'',c.deliveryStartMonth,c.deliveryEndMonth,c.note,
+    t.id,t.product,p.name,p.emoji,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note,t.matif,t.basis,t.price,t.priceEur,
+    ...allocations,...movements,...invoices
+  ].join(' ');
 }
 function setLogisticsMonthFilter(month){
   logisticsMonthFilter = month || null;
@@ -2244,6 +2295,8 @@ function renderLogisticsList(){
   if(f==='problem') items=items.filter(c=>c.problem);
   if(f==='due') items=items.filter(c=>hasDueInvoice(c));
   if(logisticsMonthFilter) items=items.filter(c=>monthHasLogActivity(c, logisticsMonthFilter));
+  logisticsListSearch = document.getElementById('logisticsListSearch')?.value || '';
+  if(searchTokens(logisticsListSearch).length) items=items.filter(c=>matchesSearch(logisticsSearchHaystack(c), logisticsListSearch));
 
   if(!items.length){
     box.innerHTML='<div class="log-empty">// nu există contracte pentru filtrul selectat</div>';
@@ -2369,6 +2422,7 @@ function renderLogisticsDetail(){
       <div class="fg"><label class="fl">Cantitate zi ${c.transportMode==='train'?'/ tren':'/ camion'} t</label><input id="logMovementQty" type="number" step="0.01"></div>
       <div class="fg"><label class="fl">${c.transportMode==='train'?'Tren':'Transportator / camion'}</label><input id="logCarrier" type="text"></div>
       ${c.transportMode==='train' ? `<div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStation" type="text"></div>` : ''}
+      <div class="fg"><label class="fl">Locație livrare</label><input id="logDeliveryLocation" type="text"></div>
       <div class="fg"><label class="fl">Status</label>
         <select id="logMovementStatus">
           <option value="planned">Programat</option>
@@ -2437,13 +2491,14 @@ function renderMovementsTable(c){
   if(!rows.length) return '<div class="log-empty">// nicio mișcare introdusă</div>';
   const isTrain=c.transportMode==='train';
   return `<div class="log-table-wrap"><table class="log-table">
-    <thead><tr><th>Data</th><th>Cantitate t</th><th>${isTrain?'Tren':'Transportator / camion'}</th>${isTrain?'<th>Gara încărcare</th>':''}<th>Status</th><th>Observații</th><th></th></tr></thead>
+    <thead><tr><th>Data</th><th>Cantitate t</th><th>${isTrain?'Tren':'Transportator / camion'}</th>${isTrain?'<th>Gara încărcare</th>':''}<th>Locație livrare</th><th>Status</th><th>Observații</th><th></th></tr></thead>
     <tbody>${rows.map((d,i)=>`
       <tr>
         <td><input type="date" value="${d.date||''}" onchange="updateMovement(${i},'date',this.value)"></td>
         <td><input type="number" step="0.01" value="${d.qty||0}" onchange="updateMovement(${i},'qty',this.value)"></td>
         <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateMovement(${i},'carrier',this.value)"></td>
         ${isTrain?`<td><input type="text" value="${escHtml(d.station||'')}" onchange="updateMovement(${i},'station',this.value)"></td>`:''}
+        <td><input type="text" value="${escHtml(d.deliveryLocation||'')}" onchange="updateMovement(${i},'deliveryLocation',this.value)"></td>
         <td>
           <select onchange="updateMovement(${i},'status',this.value)">
             <option value="planned" ${d.status==='planned'?'selected':''}>Programat</option>
@@ -2547,6 +2602,7 @@ function addMovement(){
     qty,
     carrier:document.getElementById('logCarrier').value.trim(),
     station:document.getElementById('logTrainStation') ? document.getElementById('logTrainStation').value.trim() : '',
+    deliveryLocation:document.getElementById('logDeliveryLocation') ? document.getElementById('logDeliveryLocation').value.trim() : '',
     status:document.getElementById('logMovementStatus').value,
     note:document.getElementById('logMovementNote').value.trim()
   });
@@ -2584,6 +2640,7 @@ function generateTrains(){
       qty:weight,
       carrier:`Tren ${i+1}`,
       station,
+      deliveryLocation:'',
       status:'planned',
       note:''
     });
@@ -2685,10 +2742,10 @@ function exportLogistics(){
   ws2['!cols']=[12,10,12,12].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws2,'Alocari');
 
-  const movements=[['contractId','tradeId','date','qty','carrier','station','status','note']];
-  logisticsContracts.forEach(c=>(c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,d.date,d.qty,d.carrier,d.station||'',d.status,d.note])));
+  const movements=[['contractId','tradeId','date','qty','carrier','station','deliveryLocation','status','note']];
+  logisticsContracts.forEach(c=>(c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,d.date,d.qty,d.carrier,d.station||'',d.deliveryLocation||'',d.status,d.note])));
   const ws3=XLSX.utils.aoa_to_sheet(movements);
-  ws3['!cols']=[12,10,12,12,20,18,12,30].map(w=>({wch:w}));
+  ws3['!cols']=[12,10,12,12,20,18,24,12,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws3,'Miscari');
 
   const invoices=[['contractId','tradeId','invoiceNo','invoiceDate','dueDate','dueMonth','amount','currency','rate','valueRon','paid','paidDate','note']];
@@ -2754,6 +2811,7 @@ function importLogistics(event){
           qty:Number(r.qty)||0,
           carrier:r.carrier||'',
           station:r.station||'',
+          deliveryLocation:r.deliveryLocation||r.delivery_location||'',
           status:r.status||'planned',
           note:r.note||''
         });
