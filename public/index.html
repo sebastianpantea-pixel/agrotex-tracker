@@ -2137,22 +2137,70 @@ function hasLogisticsForTrade(tradeId){
 function getLogContract(id){
   return logisticsContracts.find(c=>String(c.id)===String(id));
 }
+function normImportText(v){
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+}
+function closeEnoughQty(a,b){
+  const x=Number(a)||0;
+  const y=Number(b)||0;
+  if(x===0 || y===0) return true;
+  return Math.abs(x-y) <= Math.max(1, Math.abs(y)*0.03);
+}
+function logisticsSnapshotFromTrade(t){
+  if(!t) return null;
+  const p=products[t.product] || {name:t.product,emoji:'📦'};
+  return {
+    productKey:t.product || '',
+    productName:p.name || t.product || '',
+    productEmoji:p.emoji || '📦',
+    crop:t.crop || '',
+    qty:Number(t.qty)||0,
+    counterparty:t.cpty || '',
+    dir:t.dir || '',
+    parity:t.parity || '',
+    loc:t.loc || ''
+  };
+}
+function logisticsSnapshotFromContract(c){
+  if(c && c.tradeSnapshot) return c.tradeSnapshot;
+  const t=trades.find(t=>String(t.id)===String(c?.tradeId));
+  return logisticsSnapshotFromTrade(t);
+}
+function snapshotMatchesTrade(snap,t){
+  if(!snap || !t) return false;
+  const p=products[t.product] || {name:t.product,emoji:'📦'};
+  const prodOk=!snap.productName || normImportText(snap.productName)===normImportText(p.name) || normImportText(snap.productKey)===normImportText(t.product);
+  const cropOk=!snap.crop || String(snap.crop)===String(t.crop);
+  const qtyOk=closeEnoughQty(snap.qty,t.qty);
+  const cptyOk=!snap.counterparty || normImportText(snap.counterparty)===normImportText(t.cpty);
+  return prodOk && cropOk && qtyOk && cptyOk;
+}
 function getLogTrade(c){
-  return trades.find(t=>String(t.id)===String(c.tradeId));
+  const t=trades.find(t=>String(t.id)===String(c?.tradeId));
+  if(!t) return null;
+  if(c?.tradeSnapshot && !snapshotMatchesTrade(c.tradeSnapshot,t)) return null;
+  return t;
 }
 function logFlow(c){
   if(c.flow) return c.flow;
   const t=getLogTrade(c);
-  return t && t.dir==='long' ? 'pickup' : 'delivery';
+  if(t) return t.dir==='long' ? 'pickup' : 'delivery';
+  const snap=logisticsSnapshotFromContract(c);
+  return snap && snap.dir==='long' ? 'pickup' : 'delivery';
 }
 function logFlowLabel(c){
   return logFlow(c)==='pickup' ? 'DE RIDICAT' : 'DE LIVRAT';
 }
 function logContractName(c){
   const t=getLogTrade(c);
-  if(!t) return 'Tranzacție lipsă';
-  const p=products[t.product] || {name:t.product,emoji:'📦'};
-  return `${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}`;
+  const snap=t ? logisticsSnapshotFromTrade(t) : logisticsSnapshotFromContract(c);
+  if(!snap) return 'Tranzacție lipsă';
+  return `${snap.productEmoji || '📦'} ${snap.productName || snap.productKey || 'Produs'} ${snap.crop || ''} · ${fmtN(snap.qty)} t · ${snap.counterparty || '—'}`;
 }
 function movementQty(c){
   return (c.movements||c.deliveries||[]).reduce((s,d)=>s+(Number(d.qty)||0),0);
@@ -2192,7 +2240,8 @@ function hasDueInvoice(c){
 function computedLogStatus(c){
   if(c.problem) return {key:'problem',label:'Problemă',cls:'problem'};
   const t=getLogTrade(c);
-  const qty=t ? Number(t.qty)||0 : 0;
+  const snap=logisticsSnapshotFromContract(c);
+  const qty=snap ? Number(snap.qty)||0 : 0;
   const moved=movementQty(c);
   if(qty>0 && moved>=qty) return {key:'closed',label:'Finalizat',cls:'done'};
   if(moved>0) return {key:'partial',label:'În derulare',cls:'open'};
@@ -2207,6 +2256,7 @@ function monthHasLogActivity(c, month){
 }
 function logisticsSearchHaystack(c){
   const t=getLogTrade(c) || {};
+  const snap=logisticsSnapshotFromContract(c) || {};
   const p=products[t.product] || {name:t.product||'',emoji:''};
   const allocations=(c.allocations||[]).flatMap(a=>[a.month,monthLabel(a.month),a.qty]);
   const movements=(c.movements||[]).flatMap(m=>[m.date,ymFromDate(m.date),monthLabel(ymFromDate(m.date)),m.qty,m.carrier,m.station,m.deliveryLocation,m.status,m.note]);
@@ -2214,6 +2264,7 @@ function logisticsSearchHaystack(c){
   return [
     c.id,c.tradeId,c.source_trade_id,c.flow,logFlowLabel(c),c.transportMode,c.problem?'problema':'',c.deliveryStartMonth,c.deliveryEndMonth,c.note,
     t.id,t.product,p.name,p.emoji,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note,t.matif,t.basis,t.price,t.priceEur,
+    snap.productKey,snap.productName,snap.productEmoji,snap.crop,snap.qty,snap.counterparty,snap.dir,snap.parity,snap.loc,
     ...allocations,...movements,...invoices
   ].join(' ');
 }
@@ -2312,8 +2363,8 @@ function renderLogisticsList(){
     return;
   }
   box.innerHTML=items.map(c=>{
-    const t=getLogTrade(c);
-    const qty=t ? Number(t.qty)||0 : 0;
+    const snap=logisticsSnapshotFromContract(c);
+    const qty=snap ? Number(snap.qty)||0 : 0;
     const moved=movementQty(c);
     const left=Math.max(0, qty-moved);
     const st=computedLogStatus(c);
@@ -2332,8 +2383,8 @@ function renderLogisticsList(){
   }).join('');
 }
 function renderWarnings(c){
-  const t=getLogTrade(c);
-  const qty=t ? Number(t.qty)||0 : 0;
+  const snap=logisticsSnapshotFromContract(c);
+  const qty=snap ? Number(snap.qty)||0 : 0;
   const moved=movementQty(c);
   const warnings=[];
   if(qty>0 && moved>qty){
@@ -2358,7 +2409,8 @@ function renderLogisticsDetail(){
   }
 
   const t=getLogTrade(c);
-  const qty=t ? Number(t.qty)||0 : 0;
+  const snap=logisticsSnapshotFromContract(c);
+  const qty=snap ? Number(snap.qty)||0 : 0;
   const moved=movementQty(c);
   const left=Math.max(0, qty-moved);
   const invTotal=invoicesTotalRon(c);
@@ -2377,7 +2429,7 @@ function renderLogisticsDetail(){
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
         <div class="log-title">${flowBadge} ${logContractName(c)}</div>
-        <div class="log-muted">Tranzacție sursă #${c.tradeId} · ${t ? (t.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${t ? escHtml(t.parity||'—') : '—'} · ${t ? escHtml(t.loc||'—') : '—'}</div>
+        <div class="log-muted">Tranzacție sursă #${c.tradeId || 'snapshot'} · ${snap ? (snap.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${snap ? escHtml(snap.parity||'—') : '—'} · ${snap ? escHtml(snap.loc||'—') : '—'}${!t && snap ? ' · date din import' : ''}</div>
       </div>
       <div class="log-actions">
         <span class="log-badge ${st.cls}">${st.label}</span>
@@ -2389,10 +2441,10 @@ function renderLogisticsDetail(){
     <div class="log-subpanel ${flow==='pickup'?'pickup':'delivery'}" style="display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:center;background:rgba(255,255,255,.025);margin-top:10px;">
       <div>
         <div class="log-kpi-l">LUCREZI PE CLIENTUL</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:900;color:var(--bright);letter-spacing:1.2px;margin-top:4px;">${escHtml(t ? (t.cpty||'—') : '—')}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:900;color:var(--bright);letter-spacing:1.2px;margin-top:4px;">${escHtml(snap ? (snap.counterparty||'—') : '—')}</div>
       </div>
       <div class="log-muted" style="font-size:11px;line-height:1.6;">
-        ${flowBadge} · ${t ? escHtml((products[t.product]||{name:t.product}).name) : '—'} ${t ? escHtml(t.crop||'') : ''} · Contract ${t ? fmtN(t.qty||0) : '0'} t · ${t ? escHtml(t.loc||'—') : '—'}
+        ${flowBadge} · ${snap ? escHtml(snap.productName || snap.productKey || '—') : '—'} ${snap ? escHtml(snap.crop||'') : ''} · Contract ${snap ? fmtN(snap.qty||0) : '0'} t · ${snap ? escHtml(snap.loc||'—') : '—'}
       </div>
     </div>
 
@@ -2725,9 +2777,8 @@ function exportLogistics(){
 
   const contracts=[['id','tradeId','flow','transport','problem','deliveryStartMonth','deliveryEndMonth','tradeProduct','tradeCrop','tradeQty','counterparty','allocatedQty','executedQty','invoicesRon','paidRon']];
   logisticsContracts.forEach(c=>{
-    const t=getLogTrade(c);
-    const p=t ? (products[t.product]||{name:t.product}) : {name:''};
-    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),movementQty(c),Math.round(invoicesTotalRon(c)*100)/100,Math.round(invoicesPaidRon(c)*100)/100]);
+    const snap=logisticsSnapshotFromContract(c) || {productName:'',crop:'',qty:'',counterparty:''};
+    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',snap.productName||snap.productKey||'',snap.crop||'',snap.qty||'',snap.counterparty||'',allocatedQty(c),movementQty(c),Math.round(invoicesTotalRon(c)*100)/100,Math.round(invoicesPaidRon(c)*100)/100]);
   });
   const ws1=XLSX.utils.aoa_to_sheet(contracts);
   ws1['!cols']=[12,10,12,12,10,16,16,18,10,12,22,12,12,14,14].map(w=>({wch:w}));
@@ -2802,19 +2853,71 @@ function importLogistics(event){
         if(!ws) return [];
         return XLSX.utils.sheet_to_json(ws,{defval:''});
       };
-      const findTradeForImport = (tradeId) => trades.find(t=>String(t.id)===String(tradeId));
-      const flowFromTradeOrRow = (r) => {
+      const productKeyFromName = (name) => {
+        const n=normImportText(name);
+        const found=Object.entries(products).find(([k,p]) => normImportText(p.name)===n || normImportText(k)===n || n.includes(normImportText(p.name)) || normImportText(p.name).includes(n));
+        return found ? found[0] : '';
+      };
+      const makeSnapshotFromRow = (r) => {
+        const productName=String(firstNonEmpty(r.tradeProduct, r.product, r.produs, r.marfa, r.cultura) || '').trim();
+        const productKey=productKeyFromName(productName);
+        const p=productKey ? products[productKey] : null;
+        return {
+          productKey,
+          productName: productName || (p ? p.name : ''),
+          productEmoji: p ? p.emoji : '📦',
+          crop: String(firstNonEmpty(r.tradeCrop, r.crop, r.recolta) || '').trim(),
+          qty: toNumber(firstNonEmpty(r.tradeQty, r.qty, r.cantitate, r.quantity)),
+          counterparty: String(firstNonEmpty(r.counterparty, r.cpty, r.contraparte, r.client, r.firma) || '').trim(),
+          dir:'',
+          parity: String(firstNonEmpty(r.parity, r.paritate) || '').trim(),
+          loc: String(firstNonEmpty(r.location, r.locatie, r.loc, r.baza) || '').trim()
+        };
+      };
+      const scoreTradeAgainstSnapshot = (t,snap) => {
+        if(!t || !snap) return -999;
+        const p=products[t.product] || {name:t.product};
+        let score=0;
+        if(snap.productName && (normImportText(snap.productName)===normImportText(p.name) || normImportText(snap.productKey)===normImportText(t.product))) score+=4;
+        if(snap.crop && String(snap.crop)===String(t.crop)) score+=3;
+        if(snap.qty && closeEnoughQty(snap.qty,t.qty)) score+=3;
+        if(snap.counterparty && normImportText(snap.counterparty)===normImportText(t.cpty)) score+=6;
+        if(snap.counterparty && normImportText(t.cpty).includes(normImportText(snap.counterparty))) score+=3;
+        return score;
+      };
+      const resolveTradeForImport = (row, snap) => {
+        const rawTradeId=firstNonEmpty(row.tradeId, row.trade_id, row.tranzactieId, row.tranzactie);
+        const byId=trades.find(t=>String(t.id)===String(rawTradeId));
+        if(byId && snapshotMatchesTrade(snap,byId)) return byId;
+        const candidates=trades
+          .map(t=>({t,score:scoreTradeAgainstSnapshot(t,snap)}))
+          .filter(x=>x.score>=9)
+          .sort((a,b)=>b.score-a.score);
+        return candidates[0]?.t || null;
+      };
+      const flowFromTradeOrRow = (r, snap, resolvedTrade) => {
         const raw = String(firstNonEmpty(r.flow, r.flux, r.type, r.tip) || '').toLowerCase();
         if(raw.includes('pickup') || raw.includes('ridicat') || raw.includes('ridicare')) return 'pickup';
         if(raw.includes('delivery') || raw.includes('livrat') || raw.includes('livrare')) return 'delivery';
-        const t = findTradeForImport(firstNonEmpty(r.tradeId, r.trade_id, r.tranzactieId));
-        return t && t.dir === 'long' ? 'pickup' : 'delivery';
+        if(resolvedTrade) return resolvedTrade.dir === 'long' ? 'pickup' : 'delivery';
+        if(snap && snap.dir) return snap.dir === 'long' ? 'pickup' : 'delivery';
+        return 'delivery';
       };
 
       const rows=normSheetRows('Contracte');
       const imported=rows.map(r=>{
         const id = Number(firstNonEmpty(r.id, r.contractId, r.contract_id)) || Date.now()+Math.floor(Math.random()*100000);
-        const tradeId = firstNonEmpty(r.tradeId, r.trade_id, r.tranzactieId, r.tranzactie);
+        const snap = makeSnapshotFromRow(r);
+        const resolvedTrade = resolveTradeForImport(r, snap);
+        if(resolvedTrade){
+          const tradeSnap=logisticsSnapshotFromTrade(resolvedTrade);
+          snap.productKey=tradeSnap.productKey;
+          snap.productEmoji=tradeSnap.productEmoji;
+          snap.dir=tradeSnap.dir;
+          snap.parity=snap.parity || tradeSnap.parity;
+          snap.loc=snap.loc || tradeSnap.loc;
+        }
+        const tradeId = resolvedTrade ? resolvedTrade.id : '';
         const startMonth = toMonth(firstNonEmpty(r.deliveryStartMonth, r.deliveryStart, r.startMonth, r.start, r.livrareDeLa));
         const endMonth = toMonth(firstNonEmpty(r.deliveryEndMonth, r.deliveryEnd, r.endMonth, r.end, r.livrarePanaLa));
         const oldStatus = String(firstNonEmpty(r.status, r.stare) || '').toLowerCase();
@@ -2823,7 +2926,9 @@ function importLogistics(event){
         return {
           id,
           tradeId,
-          flow: flowFromTradeOrRow({ ...r, tradeId }),
+          source_trade_id:tradeId,
+          tradeSnapshot:snap,
+          flow: flowFromTradeOrRow(r, snap, resolvedTrade),
           transportMode: transportRaw.includes('train') || transportRaw.includes('tren') ? 'train' : 'truck',
           problem: oldProblem==='DA' || oldStatus.includes('problem'),
           deliveryStartMonth: startMonth,
@@ -2916,268 +3021,13 @@ function importLogistics(event){
       selectedLogisticsId=logisticsContracts[0]?.id || null;
       renderLogistics();
       render();
-      alert('Import logistică reușit: '+logisticsContracts.length+' contracte. Format vechi/nou acceptat.');
+      alert('Import logistică reușit: '+logisticsContracts.length+' contracte. Legăturile cu tranzacțiile au fost validate.');
     }catch(err){
       alert('Eroare import logistică: '+err.message);
     }
     event.target.value='';
   };
   reader.readAsArrayBuffer(file);
-}
-
-/* Notes */
-function loadNotes(){
-  try{ notes=JSON.parse(localStorage.getItem('agrotex_notes') || '[]'); }catch(e){notes=[];}
-  renderNotes();
-}
-function saveNotes(){ localStorage.setItem('agrotex_notes', JSON.stringify(notes)); }
-function addNote(){
-  const input=document.getElementById('noteInput');
-  const tag=document.getElementById('noteTag').value;
-  const text=input.value.trim();
-  if(!text) return;
-  notes.unshift({id:Date.now(),text,tag,done:false,date:today()});
-  input.value='';
-  saveNotes();
-  renderNotes();
-}
-function toggleNote(id){
-  const n=notes.find(x=>x.id===id);
-  if(!n) return;
-  n.done=!n.done;
-  if(n.done) n.doneAt=today(); else delete n.doneAt;
-  saveNotes();
-  renderNotes();
-}
-function deleteNote(id){
-  notes=notes.filter(x=>x.id!==id);
-  saveNotes();
-  renderNotes();
-}
-function setNoteFilter(f){
-  noteFilter=f;
-  ['nfAll','nfTodo','nfWaiting','nfBid','nfOffer','nfOpen','nfLogbook'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
-  const map={all:'nfAll',todo:'nfTodo',waiting:'nfWaiting',bid:'nfBid',offer:'nfOffer',open:'nfOpen',logbook:'nfLogbook'};
-  if(map[f]) document.getElementById(map[f]).classList.add('active');
-  renderNotes();
-}
-function renderNotes(){
-  const total=notes.length;
-  const done=notes.filter(n=>n.done).length;
-  const open=total-done;
-  document.getElementById('notesPanelStats').innerHTML =
-    `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim)"><span style="color:var(--acc)">${open}</span> deschise · <span style="color:var(--long)">${done}</span> rezolvate</span>`;
-
-  const tagColors={todo:'var(--acc)',waiting:'var(--basis)',bid:'var(--long)',offer:'var(--short)'};
-  const tagLabels={todo:'TO-DO',waiting:'WAITING FOR',bid:'BID',offer:'OFERTĂ'};
-  let filtered=notes;
-  if(noteFilter==='open') filtered=notes.filter(n=>!n.done);
-  else if(noteFilter==='logbook') filtered=notes.filter(n=>n.done);
-  else if(noteFilter!=='all') filtered=notes.filter(n=>n.tag===noteFilter);
-
-  if(!filtered.length){
-    document.getElementById('notesList').innerHTML=`<div class="notes-empty">// nicio notiță</div>`;
-    return;
-  }
-  document.getElementById('notesList').innerHTML=filtered.map(n=>`
-    <div class="note-item${n.done?' done':''}" id="note_${n.id}">
-      <div class="note-check${n.done?' checked':''}" onclick="toggleNote(${n.id})"></div>
-      <div style="flex:1;min-width:0;">
-        <div class="note-text">${escHtml(n.text)}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-          <span class="note-tag ${n.tag}" style="color:${tagColors[n.tag]||'var(--dim)'}">${tagLabels[n.tag]||n.tag}</span>
-          <span class="note-date">${n.doneAt || n.date || ''}</span>
-        </div>
-      </div>
-      <button class="note-del" onclick="deleteNote(${n.id})">✕</button>
-    </div>
-  `).join('');
-}
-
-/* Import / Export tranzacții */
-function openImport(){
-  importBuffer=[];
-  document.getElementById('importStatus').style.display='none';
-  document.getElementById('importPreview').innerHTML='';
-  document.getElementById('btnConfirmImport').style.display='none';
-  document.getElementById('fileInput').value='';
-  document.getElementById('modImport').classList.add('open');
-}
-function onDrop(e){
-  e.preventDefault();
-  document.getElementById('dropZone').classList.remove('drag');
-  const file=e.dataTransfer.files[0];
-  if(file) parseFile(file);
-}
-function onFileSelect(e){
-  const file=e.target.files[0];
-  if(file) parseFile(file);
-}
-function parseFile(file){
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const data=new Uint8Array(e.target.result);
-      const wb=XLSX.read(data,{type:'array',cellDates:true});
-      let sheetName=wb.SheetNames.find(s=>s!=='Produse'&&s!=='Valori Valide'&&s!=='Info')||wb.SheetNames[0];
-      const ws=wb.Sheets[sheetName];
-      let rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
-      let headerIdx=rows.findIndex(r=>r.some(c=>String(c||'').toLowerCase().includes('produs')));
-      if(headerIdx<0) headerIdx=0;
-      const headers=rows[headerIdx].map(c=>String(c||'').toLowerCase().trim().replace(/\s+/g,'_').replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a').replace(/ț/g,'t').replace(/ș/g,'s'));
-      const dataRows=rows.slice(headerIdx+1).filter(r=>r.some(c=>c!==null&&c!==undefined&&c!==''));
-
-      importBuffer=[];
-      let skipped=0;
-
-      dataRows.forEach((row)=>{
-        const get=(keys)=>{
-          for(const k of keys){
-            const idx=headers.findIndex(h=>h.includes(k));
-            if(idx>=0&&row[idx]!==undefined&&row[idx]!==null&&row[idx]!=='') return String(row[idx]).trim();
-          }
-          return '';
-        };
-
-        const qty=parseFloat(get(['cantitate','qty','quantity','tone','cant']));
-        if(!qty||qty<=0){skipped++;return;}
-
-        const productRaw=get(['produs','product']);
-        const product=productRaw.toLowerCase()
-          .replace(/\s+/g,'_')
-          .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ț/g,'t').replace(/ș/g,'s')
-          .replace(/grau/,'wheat').replace(/porumb/,'corn').replace(/rapita/,'rapeseed')
-          .replace(/floarea.soarelui/,'sunflower').replace(/soia/,'soy')
-          .replace(/orz/,'barley').replace(/triticale/,'triticale') || 'wheat';
-
-        const cr=get(['recolta','crop','an','harvest'])||'2025';
-        const dirRaw=get(['directie','dir','direction']).toLowerCase();
-        const dir=(dirRaw.includes('short')||dirRaw.includes('vanz')||dirRaw.includes('sell'))?'short':'long';
-        const ptypeRaw=get(['tip_pret','tip','price_type','type']).toLowerCase();
-        const ptype=ptypeRaw.includes('basis')?'basis':'fix';
-        const monedaRaw=get(['moneda','currency','valuta']).toUpperCase();
-        const currency=(monedaRaw==='EUR')?'eur':'ron';
-        const parityRaw=get(['paritate','parity']).toUpperCase();
-        const pretVal=parseFloat(get(['pret_basis','pret','basis','price','valoare','pret_ron','pret_eur']));
-        const matif=get(['contract_matif','matif','contract']);
-        const cursEur=parseFloat(get(['curs_eur','curs','eur_ron','rate']))||null;
-        const transpVal=parseFloat(get(['cost_transport','transport','transp']))||0;
-        const loc=get(['locatie','locatia','baza','location','loc']);
-        const cpty=get(['contraparte','counterparty','partener','cpty']);
-        const dateRaw=get(['data','date','zi']);
-        const noteRaw=get(['nota','note','obs']);
-        const bonif=parseFloat(get(['bonif','bonificatie','bonus','quality_bonus']))||0;
-
-        let parity=parityRaw;
-        if(parity==='DAP'&&dir==='short') parity='DAP-V';
-        if(parity==='FCA'&&dir==='short') parity='FCA-V';
-        if(!parity) parity=PARITY_RULES[dir][0].val;
-
-        let t={product,crop:cr,dir,qty,parity,loc,cpty,note:noteRaw||'',ptype,currency,bonif,incomplete:false};
-
-        if(ptype==='fix'){
-          let price=pretVal||0;
-          if(currency==='eur' && price>0){
-            const rate=cursEur || fxRates.eurRon || 5;
-            t.priceEur=price;
-            t.cursEur=rate;
-            price=price*rate;
-          }
-          t.price=price;
-          t.date=dateRaw||today();
-          t.transport=currency==='eur' ? transpVal*(cursEur||fxRates.eurRon||5) : transpVal;
-          if(currency==='eur'&&transpVal>0) t.transportEur=transpVal;
-          if(!price || !dateRaw) t.incomplete=true;
-        } else {
-          t.basis=isNaN(pretVal)?0:pretVal;
-          t.matif=matif||'';
-          t.date=dateRaw||today();
-          t.transport=transpVal;
-          if(isNaN(pretVal) || !dateRaw) t.incomplete=true;
-        }
-        importBuffer.push(t);
-      });
-
-      showImportPreview(importBuffer, skipped);
-    }catch(err){
-      const st=document.getElementById('importStatus');
-      st.style.display='';
-      st.className='import-status err';
-      st.textContent=`Eroare parsare: ${err.message}`;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-function showImportPreview(rows, skipped){
-  const st=document.getElementById('importStatus');
-  st.style.display='';
-  if(rows.length===0){
-    st.className='import-status err';
-    st.textContent=`Nicio tranzacție cu cantitate validă găsită. Rânduri ignorate: ${skipped}.`;
-    return;
-  }
-  const incomplete=rows.filter(t=>t.incomplete).length;
-  st.className='import-status ok';
-  st.textContent=`✓ ${rows.length} tranzacții pregătite${skipped>0?` · ${skipped} rânduri ignorate`:''}${incomplete>0?` · ${incomplete} incomplete`:''}`;
-  const preview=rows.slice(0,8);
-  document.getElementById('importPreview').innerHTML=`
-    <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>Preț/Basis</th><th>Monedă</th><th>Paritate</th><th>Status</th></tr></thead>
-    <tbody>${preview.map(t=>`<tr>
-      <td>${(products[t.product]?.emoji||'📦')} ${products[t.product]?.name||t.product}</td>
-      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
-      <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲':'▼'}</td>
-      <td>${fmtN(t.qty)}</td>
-      <td>${t.ptype==='fix'?(t.price?`${fmtN(t.price)} RON/t`:'—'):`MATIF ${t.matif||'—'} ${t.basis>=0?'+':''}${t.basis} €/t`}</td>
-      <td class="teur">${(t.currency||'ron').toUpperCase()}</td>
-      <td class="tpar">${t.parity}</td>
-      <td>${t.incomplete?'<span style="color:var(--short);font-size:9px">⚠ incomplet</span>':'<span style="color:var(--long);font-size:9px">✓</span>'}</td>
-    </tr>`).join('')}</tbody></table>
-    ${rows.length>8?`<div style="text-align:center;padding:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim)">...și încă ${rows.length-8} rânduri</div>`:''}`;
-  document.getElementById('btnConfirmImport').style.display='';
-}
-async function confirmImport(){
-  document.getElementById('btnConfirmImport').disabled=true;
-  document.getElementById('btnConfirmImport').textContent='Se importă...';
-  await apiBulkImport(importBuffer);
-  await loadAll();
-  closeModal('modImport');
-  importBuffer=[];
-}
-function exportDB(){
-  if(!Array.isArray(trades)||trades.length===0){alert('Nu există tranzacții de exportat.');return;}
-  const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','data','nota','bonif','incomplet']];
-  trades.forEach(t=>{
-    const pretExport=t.ptype==='fix' ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||'')) : (t.basis!==undefined ? t.basis : '');
-    rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,t.cursEur||'',t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),t.loc||'',t.cpty||'',t.date||'',t.note||'',t.bonif||0,t.incomplete?'DA':'']);
-  });
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[6,14,10,12,12,10,8,10,14,12,14,14,20,22,12,20,8,10].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
-  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  const blob=new Blob([wbout],{type:'application/octet-stream'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=`agrotex_export_${today()}.xlsx`;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
-}
-function downloadTemplate(){
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet([
-    ['produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','contract_matif','curs_eur','cost_transport','locatie','contraparte','data','nota'],
-    ['wheat','2025','long','1000','fix','ron','DAP','1050','','','','Carei','Fermier X','2025-09-15',''],
-    ['corn','2025','short','500','fix','eur','FOR','195','','4.97','','Valea lui Mihai','Trader Y','2025-10-01','vanzare EUR']
-  ]);
-  ws['!cols']=[18,10,12,14,12,10,10,14,16,10,16,20,22,14,24].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws,'Import Tranzactii');
-  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  const blob=new Blob([wbout],{type:'application/octet-stream'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download='agrotex_import_template.xlsx';
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 
 /* Target */
