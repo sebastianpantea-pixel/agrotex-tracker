@@ -2772,60 +2772,142 @@ function importLogistics(event){
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
       const sheetContracts=wb.Sheets['Contracte'];
       if(!sheetContracts) throw new Error('Lipsește sheet-ul Contracte');
-      const rows=XLSX.utils.sheet_to_json(sheetContracts,{defval:''});
-      const imported=rows.map(r=>({
-        id:Number(r.id)||Date.now()+Math.floor(Math.random()*100000),
-        tradeId:Number(r.tradeId)||r.tradeId,
-        flow:r.flow==='pickup'?'pickup':'delivery',
-        transportMode:r.transport==='train'?'train':'truck',
-        problem:String(r.problem||'').toUpperCase()==='DA',
-        deliveryStartMonth:r.deliveryStartMonth||'',
-        deliveryEndMonth:r.deliveryEndMonth||'',
-        allocations:[],
-        movements:[],
-        invoices:[],
-        note:'',
-        createdAt:new Date().toISOString()
-      }));
+
+      const firstNonEmpty = (...vals) => {
+        for(const v of vals){
+          if(v !== undefined && v !== null && String(v).trim() !== '') return v;
+        }
+        return '';
+      };
+      const toNumber = (v) => {
+        const n = Number(String(v ?? '').replace(',', '.'));
+        return Number.isFinite(n) ? n : 0;
+      };
+      const toMonth = (v) => {
+        if(!v) return '';
+        const s = String(v).trim();
+        if(/^\d{4}-\d{2}$/.test(s)) return s;
+        if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0,7);
+        if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){
+          const [d,m,y]=s.split('/');
+          return `${y}-${String(m).padStart(2,'0')}`;
+        }
+        const d = new Date(s);
+        if(!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        return '';
+      };
+      const monthToDate = (m) => /^\d{4}-\d{2}$/.test(String(m||'')) ? `${m}-01` : '';
+      const normSheetRows = (sheetName) => {
+        const ws = wb.Sheets[sheetName];
+        if(!ws) return [];
+        return XLSX.utils.sheet_to_json(ws,{defval:''});
+      };
+      const findTradeForImport = (tradeId) => trades.find(t=>String(t.id)===String(tradeId));
+      const flowFromTradeOrRow = (r) => {
+        const raw = String(firstNonEmpty(r.flow, r.flux, r.type, r.tip) || '').toLowerCase();
+        if(raw.includes('pickup') || raw.includes('ridicat') || raw.includes('ridicare')) return 'pickup';
+        if(raw.includes('delivery') || raw.includes('livrat') || raw.includes('livrare')) return 'delivery';
+        const t = findTradeForImport(firstNonEmpty(r.tradeId, r.trade_id, r.tranzactieId));
+        return t && t.dir === 'long' ? 'pickup' : 'delivery';
+      };
+
+      const rows=normSheetRows('Contracte');
+      const imported=rows.map(r=>{
+        const id = Number(firstNonEmpty(r.id, r.contractId, r.contract_id)) || Date.now()+Math.floor(Math.random()*100000);
+        const tradeId = firstNonEmpty(r.tradeId, r.trade_id, r.tranzactieId, r.tranzactie);
+        const startMonth = toMonth(firstNonEmpty(r.deliveryStartMonth, r.deliveryStart, r.startMonth, r.start, r.livrareDeLa));
+        const endMonth = toMonth(firstNonEmpty(r.deliveryEndMonth, r.deliveryEnd, r.endMonth, r.end, r.livrarePanaLa));
+        const oldStatus = String(firstNonEmpty(r.status, r.stare) || '').toLowerCase();
+        const oldProblem = String(firstNonEmpty(r.problem, r.problema) || '').toUpperCase();
+        const transportRaw = String(firstNonEmpty(r.transport, r.transportMode, r.modTransport) || '').toLowerCase();
+        return {
+          id,
+          tradeId,
+          flow: flowFromTradeOrRow({ ...r, tradeId }),
+          transportMode: transportRaw.includes('train') || transportRaw.includes('tren') ? 'train' : 'truck',
+          problem: oldProblem==='DA' || oldStatus.includes('problem'),
+          deliveryStartMonth: startMonth,
+          deliveryEndMonth: endMonth || startMonth,
+          allocations:[],
+          movements:[],
+          invoices:[],
+          note:firstNonEmpty(r.note, r.observatii, r.observații),
+          createdAt:new Date().toISOString()
+        };
+      });
 
       const byId={};
       imported.forEach(c=>byId[String(c.id)]=c);
+      const findContract = (r) => byId[String(firstNonEmpty(r.contractId, r.contract_id, r.id))] || imported.find(c=>String(c.tradeId)===String(firstNonEmpty(r.tradeId, r.trade_id, r.tranzactieId)));
 
-      const addRows=(sheet, cb)=>{
-        const ws=wb.Sheets[sheet];
-        if(!ws) return;
-        XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(cb);
-      };
-
-      addRows('Alocari', r=>{
-        const c=byId[String(r.contractId)];
-        if(c) c.allocations.push({month:r.month, qty:Number(r.qty)||0});
+      normSheetRows('Alocari').forEach(r=>{
+        const c=findContract(r);
+        if(!c) return;
+        const month = toMonth(firstNonEmpty(r.month, r.luna, r.deliveryMonth, r.delivery_month));
+        const qty = toNumber(firstNonEmpty(r.qty, r.cantitate, r.quantity));
+        if(month || qty) c.allocations.push({month, qty});
       });
-      addRows('Miscari', r=>{
-        const c=byId[String(r.contractId)];
-        if(c) c.movements.push({
-          date:r.date,
-          qty:Number(r.qty)||0,
-          carrier:r.carrier||'',
-          station:r.station||'',
-          deliveryLocation:r.deliveryLocation||r.delivery_location||'',
+
+      const miscariRows = normSheetRows('Miscari');
+      const movementRows = miscariRows.length ? miscariRows : normSheetRows('Livrari');
+      movementRows.forEach(r=>{
+        const c=findContract(r);
+        if(!c) return;
+        const date = firstNonEmpty(r.date, r.data, r.deliveryDate, r.delivery_date);
+        const qty = toNumber(firstNonEmpty(r.qty, r.cantitate, r.quantity));
+        const carrier = firstNonEmpty(r.carrier, r.transportator, r.camion, r['transportator / camion']);
+        const station = firstNonEmpty(r.station, r.gara, r.garaIncarcare, r.loadingStation);
+        const deliveryLocation = firstNonEmpty(r.deliveryLocation, r.delivery_location, r.locatieLivrare, r.livrareLa, r.destinatie, r.locationDelivery);
+        if(!date && !qty && !carrier && !station && !deliveryLocation) return;
+        c.movements.push({
+          date,
+          qty,
+          carrier,
+          station,
+          deliveryLocation,
           status:'delivered',
-          note:r.note||''
+          note:firstNonEmpty(r.note, r.observatii, r.observații)
         });
       });
-      addRows('Facturi', r=>{
-        const c=byId[String(r.contractId)];
-        if(c) c.invoices.push({
-          invoiceNo:r.invoiceNo||'',
-          invoiceDate:r.invoiceDate||'',
-          dueDate:r.dueDate||'',
-          month:ymFromDate(r.dueDate||r.invoiceDate)||r.month||'',
-          amount:Number(r.amount)||0,
-          currency:r.currency==='EUR'?'EUR':'RON',
-          rate:Number(r.rate)||1,
-          paid:String(r.paid||'').toUpperCase()==='DA',
-          paidDate:r.paidDate||'',
-          note:r.note||''
+
+      normSheetRows('Facturi').forEach(r=>{
+        const c=findContract(r);
+        if(!c) return;
+        const invoiceDate = firstNonEmpty(r.invoiceDate, r.invoice_date, r.dataFactura, r.data_factura);
+        const dueDate = firstNonEmpty(r.dueDate, r.due_date, r.scadenta, r.dataScadenta, r.data_scadenta);
+        const amount = toNumber(firstNonEmpty(r.amount, r.suma, r.value, r.valoare));
+        if(!invoiceDate && !dueDate && !amount && !firstNonEmpty(r.invoiceNo, r.invoice_no, r.nrFactura)) return;
+        c.invoices.push({
+          invoiceNo:firstNonEmpty(r.invoiceNo, r.invoice_no, r.nrFactura, r.numarFactura),
+          invoiceDate,
+          dueDate,
+          month:ymFromDate(dueDate||invoiceDate)||toMonth(firstNonEmpty(r.month, r.luna, r.dueMonth)),
+          amount,
+          currency:String(firstNonEmpty(r.currency, r.moneda) || 'RON').toUpperCase()==='EUR'?'EUR':'RON',
+          rate:toNumber(r.rate || r.curs) || 1,
+          paid:String(firstNonEmpty(r.paid, r.incasat) || '').toUpperCase()==='DA',
+          paidDate:firstNonEmpty(r.paidDate, r.dataIncasare),
+          note:firstNonEmpty(r.note, r.observatii, r.observații)
+        });
+      });
+
+      normSheetRows('Incasari').forEach(r=>{
+        const c=findContract(r);
+        if(!c) return;
+        const month = toMonth(firstNonEmpty(r.month, r.luna));
+        const amount = toNumber(firstNonEmpty(r.amount, r.suma, r.value, r.valoare));
+        if(!month && !amount) return;
+        c.invoices.push({
+          invoiceNo:firstNonEmpty(r.invoiceNo, r.nrFactura, r.numarFactura),
+          invoiceDate:'',
+          dueDate:monthToDate(month),
+          month,
+          amount,
+          currency:String(firstNonEmpty(r.currency, r.moneda) || 'RON').toUpperCase()==='EUR'?'EUR':'RON',
+          rate:toNumber(r.rate || r.curs) || 1,
+          paid:String(firstNonEmpty(r.paid, r.incasat) || '').toUpperCase()==='DA',
+          paidDate:firstNonEmpty(r.paidDate, r.dataIncasare),
+          note:firstNonEmpty(r.note, r.observatii, r.observații)
         });
       });
 
@@ -2834,7 +2916,7 @@ function importLogistics(event){
       selectedLogisticsId=logisticsContracts[0]?.id || null;
       renderLogistics();
       render();
-      alert('Import logistică reușit: '+logisticsContracts.length+' contracte.');
+      alert('Import logistică reușit: '+logisticsContracts.length+' contracte. Format vechi/nou acceptat.');
     }catch(err){
       alert('Eroare import logistică: '+err.message);
     }
