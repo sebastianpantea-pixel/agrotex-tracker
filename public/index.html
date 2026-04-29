@@ -2332,9 +2332,15 @@ function snapshotToTrade(c){
   };
 }
 function getLogTrade(c){
+  // Pentru logistică, snapshot-ul salvat în contract este sursa sigură.
+  // După reimport, ID-urile din poziție pot fi refolosite și pot indica altă tranzacție.
+  // De aceea folosim întâi snapshot-ul contractului logistic, apoi fallback pe tranzacția reală.
+  const snapTrade=snapshotToTrade(c);
+  if(snapTrade) return snapTrade;
+
   const realTrade=trades.find(t=>String(t.id)===String(c?.tradeId));
-  if(realTrade && snapshotMatchesTrade(c?.tradeSnapshot, realTrade)) return realTrade;
-  return snapshotToTrade(c) || realTrade || null;
+  if(realTrade) return realTrade;
+  return null;
 }
 function logFlow(c){
   if(c.flow) return c.flow;
@@ -2549,6 +2555,34 @@ function renderWarnings(c){
 function makeMovementId(){
   return 'mv_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 }
+function logProductComparable(t){
+  const raw=String(t?.product || '');
+  const name=String(getTradeProductName(t) || '');
+  const symbol=String(products[raw]?.symbol || '');
+  const all=normalizeTextLoose([raw,name,symbol].join(' '));
+  if(/\b(rapita|rapeseed|canola|rap|eco)\b/.test(all)) return 'rapeseed';
+  if(/\b(grau|wheat|wht|ebm)\b/.test(all)) return 'wheat';
+  if(/\b(porumb|corn|crn|ema)\b/.test(all)) return 'corn';
+  if(/\b(floarea|floare|sunflower|soarelui|sfw)\b/.test(all)) return 'sunflower';
+  return all;
+}
+function logCropComparable(t){
+  const raw=String(t?.crop || '').trim();
+  const year=raw.match(/20\d{2}/);
+  return year ? year[0] : normalizeTextLoose(raw);
+}
+function sameLogProduct(a,b){
+  const pa=logProductComparable(a);
+  const pb=logProductComparable(b);
+  if(!pa || !pb) return false;
+  return pa===pb || pa.includes(pb) || pb.includes(pa);
+}
+function sameLogCrop(a,b){
+  const ca=logCropComparable(a);
+  const cb=logCropComparable(b);
+  if(!ca || !cb) return false;
+  return ca===cb;
+}
 function getCompatibleDeliveryContracts(pickupContract){
   const t=getLogTrade(pickupContract);
   if(!t) return [];
@@ -2558,9 +2592,7 @@ function getCompatibleDeliveryContracts(pickupContract){
       if(logFlow(c)!=='delivery') return false;
       const dt=getLogTrade(c);
       if(!dt) return false;
-      const sameProduct=String(dt.product||'')===String(t.product||'');
-      const sameCrop=String(dt.crop||'')===String(t.crop||'');
-      return sameProduct && sameCrop;
+      return sameLogProduct(dt,t) && sameLogCrop(dt,t);
     })
     .sort((a,b)=>{
       const ta=getLogTrade(a);
@@ -2568,18 +2600,88 @@ function getCompatibleDeliveryContracts(pickupContract){
       return String(ta?.cpty||'').localeCompare(String(tb?.cpty||''),'ro');
     });
 }
+function getCompatibleDeliveryTargets(pickupContract){
+  const t=getLogTrade(pickupContract);
+  if(!t) return [];
+
+  const contractTargets=getCompatibleDeliveryContracts(pickupContract)
+    .map(c=>({type:'contract', id:String(c.id), contract:c, trade:getLogTrade(c)}));
+
+  const existingTradeIds=new Set(contractTargets
+    .map(x=>String(x.contract?.tradeId || x.trade?.id || ''))
+    .filter(Boolean));
+
+  const tradeTargets=trades
+    .filter(tr=>{
+      if(tr.dir!=='short') return false;
+      if(existingTradeIds.has(String(tr.id))) return false;
+      return sameLogProduct(tr,t) && sameLogCrop(tr,t);
+    })
+    .map(tr=>({type:'trade', id:'trade:'+tr.id, trade:tr}));
+
+  return [...contractTargets, ...tradeTargets].sort((a,b)=>
+    String(a.trade?.cpty||'').localeCompare(String(b.trade?.cpty||''),'ro')
+  );
+}
 function renderDirectDeliverySelect(c, selected=''){
-  const opts=getCompatibleDeliveryContracts(c);
-  if(!opts.length) return '<option value="">Fără livrare directă · nu există contract DE LIVRAT pentru produs/recoltă</option>';
-  return '<option value="">Fără livrare directă</option>' + opts.map(dc=>{
-    const t=getLogTrade(dc);
+  const opts=getCompatibleDeliveryTargets(c);
+  if(!opts.length) return '<option value="">Fără livrare directă · nu există contract/vânzare pentru produs/recoltă</option>';
+  return '<option value="">Fără livrare directă</option>' + opts.map(item=>{
+    const t=item.trade;
     const p=products[t?.product] || {name:t?.product||'Produs',emoji:'📦'};
-    const qty=Number(t?.qty)||0;
-    const moved=movementQty(dc);
-    const left=Math.max(0,qty-moved);
-    const status=left>0 ? `rămas ${fmtN(left)} t` : `executat ${fmtN(moved)} / ${fmtN(qty)} t`;
-    return `<option value="${dc.id}" ${String(dc.id)===String(selected)?'selected':''}>${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
+    let status='din poziție, se creează logistic automat';
+    if(item.type==='contract'){
+      const qty=Number(t?.qty)||0;
+      const moved=movementQty(item.contract);
+      const left=Math.max(0,qty-moved);
+      status=left>0 ? `rămas ${fmtN(left)} t` : `executat ${fmtN(moved)} / ${fmtN(qty)} t`;
+    }
+    return `<option value="${item.id}" ${String(item.id)===String(selected)?'selected':''}>${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
   }).join('');
+}
+async function createDeliveryLogisticsFromTradeId(tradeId, pickupContract=null){
+  const t=trades.find(x=>String(x.id)===String(tradeId));
+  if(!t || t.dir!=='short') return null;
+
+  const existing=logisticsContracts.find(c=>String(c.tradeId)===String(t.id) && logFlow(c)==='delivery');
+  if(existing) return existing;
+
+  const sourceStart=pickupContract?.deliveryStartMonth || today().slice(0,7);
+  const sourceEnd=pickupContract?.deliveryEndMonth || sourceStart;
+  const startMonth=sourceStart;
+  const endMonth=sourceEnd;
+  const months=monthRange(startMonth+'-01', endMonth+'-01');
+  const qty=Number(t.qty)||0;
+  const perMonth=months.length ? Math.round((qty/months.length)*100)/100 : qty;
+
+  const contract={
+    id:Date.now(),
+    tradeId:t.id,
+    source_trade_id:t.id,
+    flow:'delivery',
+    transportMode:'truck',
+    problem:false,
+    deliveryStartMonth:startMonth,
+    deliveryEndMonth:endMonth,
+    allocations:months.map((m,idx)=>({month:m, qty: idx===months.length-1 ? Math.round((qty-perMonth*(months.length-1))*100)/100 : perMonth})),
+    movements:[],
+    invoices:[],
+    note:'Creat automat din livrare directă furnizor → client',
+    createdAt:new Date().toISOString()
+  };
+
+  const newId=await apiCreateLogisticsContract(contract);
+  contract.id=newId;
+  logisticsContracts.unshift(contract);
+  return contract;
+}
+async function resolveDirectDeliveryContract(targetId, pickupContract=null){
+  if(!targetId) return null;
+  if(String(targetId).startsWith('trade:')){
+    const tradeId=String(targetId).slice(6);
+    return await createDeliveryLogisticsFromTradeId(tradeId, pickupContract);
+  }
+  return getLogContract(targetId) || null;
 }
 
 function buildAutoDeliveryFromPickup(pickupContract, pickupMovement, deliveryContract){
@@ -2603,8 +2705,9 @@ function buildAutoDeliveryFromPickup(pickupContract, pickupMovement, deliveryCon
 async function upsertLinkedDeliveryMovement(pickupContract, pickupMovement){
   const targetId=pickupMovement.directDeliveryContractId;
   if(!targetId) return;
-  const deliveryContract=getLogContract(targetId);
+  const deliveryContract=await resolveDirectDeliveryContract(targetId, pickupContract);
   if(!deliveryContract) return;
+  if(String(targetId).startsWith('trade:')) pickupMovement.directDeliveryContractId=String(deliveryContract.id);
   deliveryContract.movements=deliveryContract.movements||[];
   if(!pickupMovement.id) pickupMovement.id=makeMovementId();
   if(!pickupMovement.linkedDeliveryMovementId) pickupMovement.linkedDeliveryMovementId=makeMovementId();
