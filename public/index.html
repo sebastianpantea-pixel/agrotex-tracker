@@ -2552,28 +2552,36 @@ function makeMovementId(){
 function getCompatibleDeliveryContracts(pickupContract){
   const t=getLogTrade(pickupContract);
   if(!t) return [];
-  return logisticsContracts.filter(c=>{
-    if(String(c.id)===String(pickupContract.id)) return false;
-    if(logFlow(c)!=='delivery') return false;
-    const dt=getLogTrade(c);
-    if(!dt) return false;
-    const sameProduct=String(dt.product||'')===String(t.product||'');
-    const sameCrop=String(dt.crop||'')===String(t.crop||'');
-    const qty=Number(dt.qty)||0;
-    const left=Math.max(0, qty-movementQty(c));
-    return sameProduct && sameCrop && left>0;
-  });
+  return logisticsContracts
+    .filter(c=>{
+      if(String(c.id)===String(pickupContract.id)) return false;
+      if(logFlow(c)!=='delivery') return false;
+      const dt=getLogTrade(c);
+      if(!dt) return false;
+      const sameProduct=String(dt.product||'')===String(t.product||'');
+      const sameCrop=String(dt.crop||'')===String(t.crop||'');
+      return sameProduct && sameCrop;
+    })
+    .sort((a,b)=>{
+      const ta=getLogTrade(a);
+      const tb=getLogTrade(b);
+      return String(ta?.cpty||'').localeCompare(String(tb?.cpty||''),'ro');
+    });
 }
 function renderDirectDeliverySelect(c, selected=''){
   const opts=getCompatibleDeliveryContracts(c);
-  if(!opts.length) return '<option value="">Fără livrare directă</option>';
+  if(!opts.length) return '<option value="">Fără livrare directă · nu există contract DE LIVRAT pentru produs/recoltă</option>';
   return '<option value="">Fără livrare directă</option>' + opts.map(dc=>{
     const t=getLogTrade(dc);
     const p=products[t?.product] || {name:t?.product||'Produs',emoji:'📦'};
-    const left=Math.max(0,(Number(t?.qty)||0)-movementQty(dc));
-    return `<option value="${dc.id}" ${String(dc.id)===String(selected)?'selected':''}>${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · rămas ${fmtN(left)} t</option>`;
+    const qty=Number(t?.qty)||0;
+    const moved=movementQty(dc);
+    const left=Math.max(0,qty-moved);
+    const status=left>0 ? `rămas ${fmtN(left)} t` : `executat ${fmtN(moved)} / ${fmtN(qty)} t`;
+    return `<option value="${dc.id}" ${String(dc.id)===String(selected)?'selected':''}>${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
   }).join('');
 }
+
 function buildAutoDeliveryFromPickup(pickupContract, pickupMovement, deliveryContract){
   const supplierTrade=getLogTrade(pickupContract);
   const deliveryTrade=getLogTrade(deliveryContract);
