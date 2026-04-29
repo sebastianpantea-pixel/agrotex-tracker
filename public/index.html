@@ -2069,7 +2069,15 @@ function migrateLogisticsData(){
         note:d.note||''
       })) : [];
     }
-    (c.movements||[]).forEach(m=>{ if(m.status!=='problem') m.status='delivered'; });
+    (c.movements||[]).forEach((m,idx)=>{
+      if(!m.id) m.id = 'mv_' + (c.id || c.tradeId || 'c') + '_' + idx + '_' + Math.random().toString(36).slice(2,8);
+      if(m.status!=='problem') m.status='delivered';
+      if(m.directDeliveryContractId===undefined) m.directDeliveryContractId = '';
+      if(m.linkedDeliveryMovementId===undefined) m.linkedDeliveryMovementId = '';
+      if(m.linkedPickupContractId===undefined) m.linkedPickupContractId = '';
+      if(m.linkedPickupMovementId===undefined) m.linkedPickupMovementId = '';
+      if(m.autoFromPickup===undefined) m.autoFromPickup = false;
+    });
     if(!Array.isArray(c.invoices)){
       c.invoices = Array.isArray(c.receipts) ? c.receipts.map(r=>({
         invoiceNo:r.invoiceNo || '',
@@ -2375,6 +2383,7 @@ function invoiceAlert(inv){
   return '';
 }
 function hasDueInvoice(c){
+  if(logFlow(c)!=='delivery') return false;
   return (c.invoices||[]).some(inv=>invoiceAlert(inv));
 }
 function computedLogStatus(c){
@@ -2389,7 +2398,7 @@ function computedLogStatus(c){
 function monthHasLogActivity(c, month){
   if(!month) return true;
   const allocMatch=(c.allocations||[]).some(a=>a.month===month && Number(a.qty)>0);
-  const invoiceMatch=(c.invoices||[]).some(inv=>ymFromDate(inv.dueDate || inv.invoiceDate)===month);
+  const invoiceMatch=logFlow(c)==='delivery' && (c.invoices||[]).some(inv=>ymFromDate(inv.dueDate || inv.invoiceDate)===month);
   const movementMatch=(c.movements||[]).some(m=>ymFromDate(m.date)===month);
   return allocMatch || invoiceMatch || movementMatch;
 }
@@ -2398,7 +2407,7 @@ function logisticsSearchHaystack(c){
   const p=products[t.product] || {name:t.product||'',emoji:''};
   const allocations=(c.allocations||[]).flatMap(a=>[a.month,monthLabel(a.month),a.qty]);
   const movements=(c.movements||[]).flatMap(m=>[m.date,ymFromDate(m.date),monthLabel(ymFromDate(m.date)),m.qty,m.carrier,m.station,m.deliveryLocation,m.status,m.note]);
-  const invoices=(c.invoices||[]).flatMap(inv=>[inv.invoiceNo,inv.invoiceDate,inv.dueDate,ymFromDate(inv.dueDate||inv.invoiceDate),monthLabel(ymFromDate(inv.dueDate||inv.invoiceDate)),inv.amount,inv.currency,inv.rate,inv.paid?'incasata platita':'neincasata',inv.paidDate,inv.note]);
+  const invoices=logFlow(c)==='delivery' ? (c.invoices||[]).flatMap(inv=>[inv.invoiceNo,inv.invoiceDate,inv.dueDate,ymFromDate(inv.dueDate||inv.invoiceDate),monthLabel(ymFromDate(inv.dueDate||inv.invoiceDate)),inv.amount,inv.currency,inv.rate,inv.paid?'incasata platita':'neincasata',inv.paidDate,inv.note]) : [];
   return [
     c.id,c.tradeId,c.source_trade_id,c.flow,logFlowLabel(c),c.transportMode,c.problem?'problema':'',c.deliveryStartMonth,c.deliveryEndMonth,c.note,
     t.id,t.product,p.name,p.emoji,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note,t.matif,t.basis,t.price,t.priceEur,
@@ -2426,7 +2435,7 @@ function renderLogisticsMonthFilterStrip(){
     return;
   }
   strip.className='log-filter-strip';
-  strip.innerHTML=`<span class="log-badge open">Filtru lună: ${monthLabel(logisticsMonthFilter)}</span><span class="log-muted">Se afișează contractele cu alocări sau facturi scadente în această lună.</span><button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button>`;
+  strip.innerHTML=`<span class="log-badge open">Filtru lună: ${monthLabel(logisticsMonthFilter)}</span><span class="log-muted">Se afișează contractele cu alocări, mișcări sau facturi scadente în această lună.</span><button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button>`;
 }
 function renderLogistics(){
   renderLogisticsDashboard();
@@ -2448,7 +2457,7 @@ function renderLogisticsDashboard(){
       if(flow==='pickup') agg[a.month].pickup += Number(a.qty)||0;
       else agg[a.month].delivery += Number(a.qty)||0;
     });
-    (c.invoices||[]).forEach(inv=>{
+    if(flow==='delivery') (c.invoices||[]).forEach(inv=>{
       const m=ymFromDate(inv.dueDate || inv.invoiceDate);
       if(!agg[m]) return;
       const val=invoiceValueRon(inv);
@@ -2527,7 +2536,7 @@ function renderWarnings(c){
   if(qty>0 && moved>qty){
     warnings.push(`Cantitatea executată depășește contractul cu ${fmtN(moved-qty)} t.`);
   }
-  const due=(c.invoices||[]).filter(inv=>invoiceAlert(inv));
+  const due=logFlow(c)==='delivery' ? (c.invoices||[]).filter(inv=>invoiceAlert(inv)) : [];
   due.forEach(inv=>{
     const d=daysUntil(inv.dueDate);
     if(d<0) warnings.push(`Factura ${inv.invoiceNo||'fără număr'} este depășită cu ${Math.abs(d)} zile.`);
@@ -2536,6 +2545,77 @@ function renderWarnings(c){
   if(!warnings.length) return '<div class="log-ok-line">Nu sunt avertismente active pe contract.</div>';
   return warnings.map(w=>`<div class="log-warning-line">${escHtml(w)}</div>`).join('');
 }
+
+function makeMovementId(){
+  return 'mv_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+}
+function getCompatibleDeliveryContracts(pickupContract){
+  const t=getLogTrade(pickupContract);
+  if(!t) return [];
+  return logisticsContracts.filter(c=>{
+    if(String(c.id)===String(pickupContract.id)) return false;
+    if(logFlow(c)!=='delivery') return false;
+    const dt=getLogTrade(c);
+    if(!dt) return false;
+    const sameProduct=String(dt.product||'')===String(t.product||'');
+    const sameCrop=String(dt.crop||'')===String(t.crop||'');
+    const qty=Number(dt.qty)||0;
+    const left=Math.max(0, qty-movementQty(c));
+    return sameProduct && sameCrop && left>0;
+  });
+}
+function renderDirectDeliverySelect(c, selected=''){
+  const opts=getCompatibleDeliveryContracts(c);
+  if(!opts.length) return '<option value="">Fără livrare directă</option>';
+  return '<option value="">Fără livrare directă</option>' + opts.map(dc=>{
+    const t=getLogTrade(dc);
+    const p=products[t?.product] || {name:t?.product||'Produs',emoji:'📦'};
+    const left=Math.max(0,(Number(t?.qty)||0)-movementQty(dc));
+    return `<option value="${dc.id}" ${String(dc.id)===String(selected)?'selected':''}>${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · rămas ${fmtN(left)} t</option>`;
+  }).join('');
+}
+function buildAutoDeliveryFromPickup(pickupContract, pickupMovement, deliveryContract){
+  const supplierTrade=getLogTrade(pickupContract);
+  const deliveryTrade=getLogTrade(deliveryContract);
+  const supplier=supplierTrade?.cpty || '';
+  return {
+    id: pickupMovement.linkedDeliveryMovementId || makeMovementId(),
+    date: pickupMovement.date || today(),
+    qty: Number(pickupMovement.qty)||0,
+    carrier: pickupMovement.carrier || '',
+    station: pickupMovement.station || '',
+    deliveryLocation: pickupMovement.deliveryLocation || deliveryTrade?.loc || '',
+    status:'delivered',
+    note: pickupMovement.note ? `Auto din ridicare de la ${supplier}. ${pickupMovement.note}` : `Auto din ridicare de la ${supplier}`,
+    autoFromPickup:true,
+    linkedPickupContractId: pickupContract.id,
+    linkedPickupMovementId: pickupMovement.id
+  };
+}
+async function upsertLinkedDeliveryMovement(pickupContract, pickupMovement){
+  const targetId=pickupMovement.directDeliveryContractId;
+  if(!targetId) return;
+  const deliveryContract=getLogContract(targetId);
+  if(!deliveryContract) return;
+  deliveryContract.movements=deliveryContract.movements||[];
+  if(!pickupMovement.id) pickupMovement.id=makeMovementId();
+  if(!pickupMovement.linkedDeliveryMovementId) pickupMovement.linkedDeliveryMovementId=makeMovementId();
+  const auto=buildAutoDeliveryFromPickup(pickupContract,pickupMovement,deliveryContract);
+  const idx=deliveryContract.movements.findIndex(m=>String(m.id)===String(pickupMovement.linkedDeliveryMovementId) || (String(m.linkedPickupContractId)===String(pickupContract.id) && String(m.linkedPickupMovementId)===String(pickupMovement.id)));
+  if(idx>=0) deliveryContract.movements[idx]={...deliveryContract.movements[idx],...auto};
+  else deliveryContract.movements.push(auto);
+  await saveLogistics(deliveryContract);
+}
+async function removeLinkedDeliveryMovement(pickupContract, pickupMovement){
+  const targetId=pickupMovement.directDeliveryContractId;
+  const linkedId=pickupMovement.linkedDeliveryMovementId;
+  const deliveryContract=targetId ? getLogContract(targetId) : logisticsContracts.find(dc=>(dc.movements||[]).some(m=>String(m.id)===String(linkedId) || (String(m.linkedPickupContractId)===String(pickupContract.id) && String(m.linkedPickupMovementId)===String(pickupMovement.id))));
+  if(!deliveryContract || !Array.isArray(deliveryContract.movements)) return;
+  const before=deliveryContract.movements.length;
+  deliveryContract.movements=deliveryContract.movements.filter(m=>String(m.id)!==String(linkedId) && !(String(m.linkedPickupContractId)===String(pickupContract.id) && String(m.linkedPickupMovementId)===String(pickupMovement.id)));
+  if(deliveryContract.movements.length!==before) await saveLogistics(deliveryContract);
+}
+
 function renderLogisticsDetail(){
   const detail=document.getElementById('logisticsDetail');
   const c=getLogContract(selectedLogisticsId);
@@ -2581,11 +2661,11 @@ function renderLogisticsDetail(){
       </div>
     </div>
 
-    <div class="log-kpis" style="margin-top:10px;">
+    <div class="log-kpis" style="margin-top:10px;grid-template-columns:${flow==='delivery'?'repeat(4,1fr)':'repeat(3,1fr)'};">
       <div class="log-kpi"><div class="log-kpi-l">Cantitate contract</div><div class="log-kpi-v">${fmtN(qty)} t</div></div>
       <div class="log-kpi"><div class="log-kpi-l">Executat</div><div class="log-kpi-v">${fmtN(moved)} t</div></div>
       <div class="log-kpi"><div class="log-kpi-l">Rămas marfă</div><div class="log-kpi-v">${fmtN(left)} t</div></div>
-      <div class="log-kpi"><div class="log-kpi-l">Rest încasări</div><div class="log-kpi-v">${fmtN(invRest)} RON</div></div>
+      ${flow==='delivery' ? `<div class="log-kpi"><div class="log-kpi-l">Rest încasări</div><div class="log-kpi-v">${fmtN(invRest)} RON</div></div>` : ''}
     </div>
     <div class="log-progress"><div class="log-progress-inner" style="width:${pct}%"></div></div>
 
@@ -2620,7 +2700,8 @@ function renderLogisticsDetail(){
       <div class="fg"><label class="fl">Cantitate zi ${c.transportMode==='train'?'/ tren':'/ camion'} t</label><input id="logMovementQty" type="number" step="0.01"></div>
       <div class="fg"><label class="fl">${c.transportMode==='train'?'Tren':'Transportator / camion'}</label><input id="logCarrier" type="text"></div>
       ${c.transportMode==='train' ? `<div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStation" type="text"></div>` : ''}
-      <div class="fg"><label class="fl">Locație livrare</label><input id="logDeliveryLocation" type="text"></div>
+      <div class="fg"><label class="fl">${flow==='pickup'?'Locație / destinație':'Locație livrare'}</label><input id="logDeliveryLocation" type="text"></div>
+      ${flow==='pickup' ? `<div class="fg"><label class="fl">Livrare directă către</label><select id="logDirectDeliveryContract">${renderDirectDeliverySelect(c)}</select></div>` : ''}
       <div class="fg"><label class="fl">Observații</label><input id="logMovementNote" type="text"></div>
       <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addMovement()">+ ${movementBtn}</button></div>
     </div>
@@ -2635,24 +2716,26 @@ function renderLogisticsDetail(){
       </div>
     ` : ''}
 
-    <div class="log-section-title">Facturi și încasări manuale</div>
-    <div class="log-muted" style="margin-bottom:7px;">Factura se introduce manual. Poate fi diferită de perioada de livrare sau de cantitatea executată.</div>
-    ${renderInvoicesTable(c)}
+    ${flow==='delivery' ? `
+      <div class="log-section-title">Facturi și încasări manuale</div>
+      <div class="log-muted" style="margin-bottom:7px;">Factura se introduce manual. Poate fi diferită de perioada de livrare sau de cantitatea executată.</div>
+      ${renderInvoicesTable(c)}
 
-    <div class="log-mini-form">
-      <div class="fg"><label class="fl">Nr. factură</label><input id="logInvNo" type="text"></div>
-      <div class="fg"><label class="fl">Data facturii</label><input id="logInvDate" type="date" value="${today()}"></div>
-      <div class="fg"><label class="fl">Scadență</label><input id="logInvDue" type="date"></div>
-      <div class="fg"><label class="fl">Sumă</label><input id="logInvAmount" type="number" step="0.01"></div>
-      <div class="fg"><label class="fl">Monedă</label>
-        <select id="logInvCurrency" onchange="document.getElementById('logInvRateWrap').style.display=this.value==='EUR'?'flex':'none'">
-          <option value="RON">RON</option>
-          <option value="EUR">EUR</option>
-        </select>
+      <div class="log-mini-form">
+        <div class="fg"><label class="fl">Nr. factură</label><input id="logInvNo" type="text"></div>
+        <div class="fg"><label class="fl">Data facturii</label><input id="logInvDate" type="date" value="${today()}"></div>
+        <div class="fg"><label class="fl">Scadență</label><input id="logInvDue" type="date"></div>
+        <div class="fg"><label class="fl">Sumă</label><input id="logInvAmount" type="number" step="0.01"></div>
+        <div class="fg"><label class="fl">Monedă</label>
+          <select id="logInvCurrency" onchange="document.getElementById('logInvRateWrap').style.display=this.value==='EUR'?'flex':'none'">
+            <option value="RON">RON</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+        <div class="fg" id="logInvRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logInvRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
+        <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addInvoice()">+ Adaugă factură</button></div>
       </div>
-      <div class="fg" id="logInvRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logInvRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
-      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addInvoice()">+ Adaugă factură</button></div>
-    </div>
+    ` : ''}
   `;
 
   fillLogMonthSelect('logEditStartMonth', c.deliveryStartMonth || '');
@@ -2680,19 +2763,26 @@ function renderMovementsTable(c){
   const rows=c.movements || c.deliveries || [];
   if(!rows.length) return '<div class="log-empty">// nicio mișcare introdusă</div>';
   const isTrain=c.transportMode==='train';
+  const flow=logFlow(c);
+  const locTitle=flow==='pickup'?'Locație / destinație':'Locație livrare';
+  const directTitle=flow==='pickup'?'<th>Livrare directă</th>':'';
   return `<div class="log-table-wrap"><table class="log-table">
-    <thead><tr><th>Data</th><th>Cantitate t</th><th>${isTrain?'Tren':'Transportator / camion'}</th>${isTrain?'<th>Gara încărcare</th>':''}<th>Locație livrare</th><th>Observații</th><th></th></tr></thead>
-    <tbody>${rows.map((d,i)=>`
-      <tr>
+    <thead><tr><th>Data</th><th>Cantitate t</th><th>${isTrain?'Tren':'Transportator / camion'}</th>${isTrain?'<th>Gara încărcare</th>':''}<th>${locTitle}</th>${directTitle}<th>Observații</th><th></th></tr></thead>
+    <tbody>${rows.map((d,i)=>{
+      const linkedContract=d.directDeliveryContractId ? getLogContract(d.directDeliveryContractId) : null;
+      const linkedTrade=linkedContract ? getLogTrade(linkedContract) : null;
+      const autoInfo=d.autoFromPickup ? '<span class="log-badge info">Auto din ridicare</span>' : '';
+      return `<tr>
         <td><input type="date" value="${d.date||''}" onchange="updateMovement(${i},'date',this.value)"></td>
         <td><input type="number" step="0.01" value="${d.qty||0}" onchange="updateMovement(${i},'qty',this.value)"></td>
-        <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateMovement(${i},'carrier',this.value)"></td>
-        ${isTrain?`<td><input type="text" value="${escHtml(d.station||'')}" onchange="updateMovement(${i},'station',this.value)"></td>`:''}
-        <td><input type="text" value="${escHtml(d.deliveryLocation||'')}" onchange="updateMovement(${i},'deliveryLocation',this.value)"></td>
-        <td><input type="text" value="${escHtml(d.note||'')}" onchange="updateMovement(${i},'note',this.value)"></td>
-        <td><button class="btn-del" onclick="deleteMovement(${i})">✕</button></td>
-      </tr>
-    `).join('')}</tbody>
+        <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateMovement(${i},'carrier',this.value)" ${d.autoFromPickup?'disabled':''}></td>
+        ${isTrain?`<td><input type="text" value="${escHtml(d.station||'')}" onchange="updateMovement(${i},'station',this.value)" ${d.autoFromPickup?'disabled':''}></td>`:''}
+        <td><input type="text" value="${escHtml(d.deliveryLocation||'')}" onchange="updateMovement(${i},'deliveryLocation',this.value)" ${d.autoFromPickup?'disabled':''}></td>
+        ${flow==='pickup'?`<td><select onchange="updateMovement(${i},'directDeliveryContractId',this.value)">${renderDirectDeliverySelect(c,d.directDeliveryContractId||'')}</select>${linkedTrade?`<div class="log-muted">→ ${escHtml(linkedTrade.cpty||'Client')}</div>`:''}</td>`:''}
+        <td><input type="text" value="${escHtml(d.note||'')}" onchange="updateMovement(${i},'note',this.value)" ${d.autoFromPickup?'disabled':''}>${autoInfo}</td>
+        <td>${d.autoFromPickup ? '<span class="tdim">auto</span>' : `<button class="btn-del" onclick="deleteMovement(${i})">✕</button>`}</td>
+      </tr>`;
+    }).join('')}</tbody>
   </table></div>`;
 }
 function renderInvoicesTable(c){
@@ -2772,37 +2862,64 @@ function deleteAllocation(i){
   saveLogistics();
   renderLogistics();
 }
-function addMovement(){
+async function addMovement(){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
   const date=document.getElementById('logMovementDate').value;
   const qty=parseFloat(document.getElementById('logMovementQty').value);
   if(!date || !qty){alert('Completează data și cantitatea.');return;}
-  c.movements=c.movements||[];
-  c.movements.push({
+  const m={
+    id:makeMovementId(),
     date,
     qty,
     carrier:document.getElementById('logCarrier').value.trim(),
     station:document.getElementById('logTrainStation') ? document.getElementById('logTrainStation').value.trim() : '',
     deliveryLocation:document.getElementById('logDeliveryLocation') ? document.getElementById('logDeliveryLocation').value.trim() : '',
     status:'delivered',
-    note:document.getElementById('logMovementNote').value.trim()
-  });
-  saveLogistics();
+    note:document.getElementById('logMovementNote').value.trim(),
+    directDeliveryContractId:document.getElementById('logDirectDeliveryContract') ? document.getElementById('logDirectDeliveryContract').value : '',
+    linkedDeliveryMovementId:'',
+    linkedPickupContractId:'',
+    linkedPickupMovementId:'',
+    autoFromPickup:false
+  };
+  if(m.directDeliveryContractId) m.linkedDeliveryMovementId=makeMovementId();
+  c.movements=c.movements||[];
+  c.movements.push(m);
+  if(logFlow(c)==='pickup' && m.directDeliveryContractId) await upsertLinkedDeliveryMovement(c,m);
+  await saveLogistics(c);
   renderLogistics();
 }
-function updateMovement(i,field,value){
+async function updateMovement(i,field,value){
   const c=getLogContract(selectedLogisticsId);
   if(!c || !c.movements[i]) return;
-  c.movements[i][field]=field==='qty'?Number(value)||0:value;
-  saveLogistics();
+  const m=c.movements[i];
+  const oldDirect=m.directDeliveryContractId || '';
+  if(field==='qty') m[field]=Number(value)||0;
+  else m[field]=value;
+  if(!m.id) m.id=makeMovementId();
+
+  if(logFlow(c)==='pickup'){
+    if(field==='directDeliveryContractId' && oldDirect && oldDirect!==value){
+      const oldM={...m,directDeliveryContractId:oldDirect};
+      await removeLinkedDeliveryMovement(c,oldM);
+      m.linkedDeliveryMovementId=value ? makeMovementId() : '';
+    }
+    if(m.directDeliveryContractId) await upsertLinkedDeliveryMovement(c,m);
+    else if(oldDirect) await removeLinkedDeliveryMovement(c,{...m,directDeliveryContractId:oldDirect});
+  }
+
+  await saveLogistics(c);
   renderLogistics();
 }
-function deleteMovement(i){
+async function deleteMovement(i){
   const c=getLogContract(selectedLogisticsId);
-  if(!c) return;
+  if(!c || !c.movements || !c.movements[i]) return;
+  const m=c.movements[i];
+  if(m.autoFromPickup){alert('Această livrare a fost generată automat dintr-o ridicare. Șterge ridicarea sursă.');return;}
+  if(logFlow(c)==='pickup') await removeLinkedDeliveryMovement(c,m);
   c.movements.splice(i,1);
-  saveLogistics();
+  await saveLogistics(c);
   renderLogistics();
 }
 function generateTrains(){
@@ -2818,6 +2935,7 @@ function generateTrains(){
     const d=new Date(startDate);
     d.setDate(d.getDate()+i*7);
     c.movements.push({
+      id:makeMovementId(),
       date:d.toISOString().slice(0,10),
       qty:weight,
       carrier:`Tren ${i+1}`,
@@ -2833,6 +2951,7 @@ function generateTrains(){
 function addInvoice(){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
+  if(logFlow(c)!=='delivery'){alert('Facturile se urmăresc doar la contractele DE LIVRAT.');return;}
   const amount=parseFloat(document.getElementById('logInvAmount').value);
   const currency=document.getElementById('logInvCurrency').value;
   const rate=parseFloat(document.getElementById('logInvRate').value)||fxRates.eurRon||5;
@@ -2912,7 +3031,7 @@ function exportLogistics(){
   logisticsContracts.forEach(c=>{
     const t=getLogTrade(c);
     const p=t ? (products[t.product]||{name:t.product}) : {name:''};
-    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),movementQty(c),Math.round(invoicesTotalRon(c)*100)/100,Math.round(invoicesPaidRon(c)*100)/100]);
+    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),movementQty(c),logFlow(c)==='delivery'?Math.round(invoicesTotalRon(c)*100)/100:0,logFlow(c)==='delivery'?Math.round(invoicesPaidRon(c)*100)/100:0]);
   });
   const ws1=XLSX.utils.aoa_to_sheet(contracts);
   ws1['!cols']=[12,10,12,12,10,16,16,18,10,12,22,12,12,14,14].map(w=>({wch:w}));
@@ -2924,14 +3043,17 @@ function exportLogistics(){
   ws2['!cols']=[12,10,12,12].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws2,'Alocari');
 
-  const movements=[['contractId','tradeId','date','qty','carrier','station','deliveryLocation','note']];
-  logisticsContracts.forEach(c=>(c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,d.date,d.qty,d.carrier,d.station||'',d.deliveryLocation||'',d.note||''])));
+  const movements=[['contractId','tradeId','flow','partner','date','qty','carrier','station','deliveryLocation','directDeliveryContractId','linkedMovementId','autoFromPickup','note']];
+  logisticsContracts.forEach(c=>{
+    const t=getLogTrade(c);
+    (c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,logFlow(c),t?.cpty||'',d.date,d.qty,d.carrier,d.station||'',d.deliveryLocation||'',d.directDeliveryContractId||'',d.linkedDeliveryMovementId||d.linkedPickupMovementId||'',d.autoFromPickup?'DA':'',d.note||'']));
+  });
   const ws3=XLSX.utils.aoa_to_sheet(movements);
   ws3['!cols']=[12,10,12,12,20,18,24,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws3,'Miscari');
 
   const invoices=[['contractId','tradeId','invoiceNo','invoiceDate','dueDate','dueMonth','amount','currency','rate','valueRon','paid','paidDate','note']];
-  logisticsContracts.forEach(c=>(c.invoices||[]).forEach(r=>{
+  logisticsContracts.filter(c=>logFlow(c)==='delivery').forEach(c=>(c.invoices||[]).forEach(r=>{
     invoices.push([c.id,c.tradeId,r.invoiceNo,r.invoiceDate,r.dueDate,ymFromDate(r.dueDate || r.invoiceDate),r.amount,r.currency,r.rate,Math.round(invoiceValueRon(r)*100)/100,r.paid?'DA':'',r.paidDate||'',r.note||'']);
   }));
   const ws4=XLSX.utils.aoa_to_sheet(invoices);
