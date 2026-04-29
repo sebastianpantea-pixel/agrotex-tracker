@@ -42,6 +42,12 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS stock_locations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    data TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
@@ -233,6 +239,78 @@ app.post('/api/logistics/contracts/bulk', requireAuth, (req, res) => {
     res.json({ ok: true, count: contracts.length, mode: mode === 'replace' ? 'replace' : 'append' });
   } catch (err) {
     console.error('Logistics BULK error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── STOCK LOCATIONS — SERVER STORAGE / SQLITE ───────────────────────────────
+app.get('/api/stock/locations', requireAuth, (req, res) => {
+  try {
+    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM stock_locations ORDER BY id DESC').all();
+    const locations = rows.map(r => {
+      const parsed = JSON.parse(r.data || '{}');
+      return {
+        ...parsed,
+        id: r.id,
+        _createdAt: r.created_at,
+        _updatedAt: r.updated_at,
+      };
+    });
+    res.json(locations);
+  } catch (err) {
+    console.error('Stock locations GET error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/stock/locations', requireAuth, (req, res) => {
+  try {
+    const location = { ...req.body };
+    delete location.id;
+    delete location._createdAt;
+    delete location._updatedAt;
+
+    const info = db.prepare('INSERT INTO stock_locations (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))')
+      .run(JSON.stringify(location));
+
+    res.json({ ok: true, id: info.lastInsertRowid });
+  } catch (err) {
+    console.error('Stock locations POST error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/stock/locations/:id', requireAuth, (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+
+    const location = { ...req.body };
+    delete location.id;
+    delete location._createdAt;
+    delete location._updatedAt;
+
+    const info = db.prepare('UPDATE stock_locations SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
+      .run(JSON.stringify(location), id);
+
+    if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Stock locations PUT error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/stock/locations/:id', requireAuth, (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+
+    const info = db.prepare('DELETE FROM stock_locations WHERE id = ?').run(id);
+    if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Stock locations DELETE error:', err);
     res.status(500).json({ error: err.message });
   }
 });
