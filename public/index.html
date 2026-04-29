@@ -2414,6 +2414,7 @@ function hasDueInvoice(c){
 }
 function computedLogStatus(c){
   if(c.problem) return {key:'problem',label:'Problemă',cls:'problem'};
+  if(c.manualClosed) return {key:'closed_manual',label:'Finalizat manual',cls:'done'};
   const t=getLogTrade(c);
   const qty=t ? Number(t.qty)||0 : 0;
   const moved=movementQty(c);
@@ -2435,7 +2436,7 @@ function logisticsSearchHaystack(c){
   const movements=(c.movements||[]).flatMap(m=>[m.date,ymFromDate(m.date),monthLabel(ymFromDate(m.date)),m.qty,m.carrier,m.station,m.deliveryLocation,m.status,m.note]);
   const invoices=logFlow(c)==='delivery' ? (c.invoices||[]).flatMap(inv=>[inv.invoiceNo,inv.invoiceDate,inv.dueDate,ymFromDate(inv.dueDate||inv.invoiceDate),monthLabel(ymFromDate(inv.dueDate||inv.invoiceDate)),inv.amount,inv.currency,inv.rate,inv.paid?'incasata platita':'neincasata',inv.paidDate,inv.note]) : [];
   return [
-    c.id,c.tradeId,c.source_trade_id,c.flow,logFlowLabel(c),c.transportMode,c.problem?'problema':'',c.deliveryStartMonth,c.deliveryEndMonth,c.note,
+    c.id,c.tradeId,c.source_trade_id,c.flow,logFlowLabel(c),c.transportMode,c.problem?'problema':'',c.manualClosed?'finalizat manual inchis':'',c.deliveryStartMonth,c.deliveryEndMonth,c.note,
     t.id,t.product,p.name,p.emoji,t.crop,t.dir,t.qty,t.cpty,t.loc,t.parity,t.date,t.note,t.matif,t.basis,t.price,t.priceEur,
     ...allocations,...movements,...invoices
   ].join(' ');
@@ -2779,6 +2780,7 @@ function renderLogisticsDetail(){
       </div>
       <div class="log-actions">
         <span class="log-badge ${st.cls}">${st.label}</span>
+        <button class="btn-log ${c.manualClosed?'btn-log-green':'btn-log'}" onclick="toggleLogManualClosed()">${c.manualClosed?'Redeschide ctr':'Finalizează ctr'}</button>
         <button class="btn-log ${c.problem?'btn-log-green':'btn-log-red'}" onclick="toggleLogProblem()">${c.problem?'Scoate problema':'Marchează problemă'}</button>
         <button class="btn-log btn-log-red" onclick="deleteSelectedLogistics()">Șterge</button>
       </div>
@@ -2965,6 +2967,15 @@ function toggleLogProblem(){
   const c=getLogContract(selectedLogisticsId);
   if(!c) return;
   c.problem=!c.problem;
+  saveLogistics();
+  renderLogistics();
+}
+function toggleLogManualClosed(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c) return;
+  c.manualClosed=!c.manualClosed;
+  if(c.manualClosed) c.manualClosedAt=new Date().toISOString();
+  else c.manualClosedAt='';
   saveLogistics();
   renderLogistics();
 }
