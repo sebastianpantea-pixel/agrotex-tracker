@@ -820,7 +820,7 @@
 
       <div class="fg">
         <label class="fl">Caută contract / tranzacție</label>
-        <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, ID, locație..." oninput="populateLogisticsSourceTrades()">
+        <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
       </div>
       <div class="log-search-results" id="logSourceResults"></div>
       <input type="hidden" id="logSelectedTradeId">
@@ -988,7 +988,7 @@
 
         <div class="fr fr2">
           <div class="fg"><label class="fl">Contraparte</label><input id="fCpty" type="text"></div>
-          <div class="fg"><label class="fl">Notă</label><input id="fNote" type="text"></div>
+          <div class="fg"><label class="fl">Număr contract</label><input id="fNote" type="text"></div>
           <div class="fg" id="grpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="fBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
         </div>
 
@@ -1150,7 +1150,7 @@
 
     <div class="fr fr2">
       <div class="fg"><label class="fl">Contraparte</label><input id="eCpty" type="text"></div>
-      <div class="fg"><label class="fl">Notă</label><input id="eNote" type="text"></div>
+      <div class="fg"><label class="fl">Număr contract</label><input id="eNote" type="text"></div>
       <div class="fg" id="eGrpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="eBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
     </div>
 
@@ -2225,7 +2225,7 @@ function populateLogisticsSourceTrades(){
       : '<span class="log-badge delivery">DE LIVRAT</span>';
     return `<div class="log-source-item ${String(selected)===String(t.id)?'selected':''}" id="log_source_${t.id}" onclick="selectLogSourceTrade(${t.id})">
       <div class="log-source-title">${badge} ${p.emoji} ${escHtml(p.name)} ${t.crop} · ${fmtN(t.qty)} t</div>
-      <div class="log-source-meta">#${t.id} · ${t.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(t.cpty||'—')} · ${escHtml(t.loc||'—')} · ${t.date||'—'}</div>
+      <div class="log-source-meta">#${t.id} · ${t.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(t.cpty||'—')} · ${t.note ? 'Ctr ' + escHtml(t.note) + ' · ' : ''}${escHtml(t.loc||'—')} · ${t.date||'—'}</div>
     </div>`;
   }).join('');
 }
@@ -2253,6 +2253,21 @@ async function createLogisticsFromTrade(){
   const contract={
     id:Date.now(),
     tradeId:t.id,
+    source_trade_id:t.id,
+    tradeSnapshot:{
+      productKey:t.product,
+      product:t.product,
+      crop:t.crop,
+      qty:t.qty,
+      counterparty:t.cpty || '',
+      cpty:t.cpty || '',
+      dir:t.dir,
+      parity:t.parity || '',
+      loc:t.loc || '',
+      date:t.date || '',
+      note:t.note || ''
+    },
+    contractNo:t.note || '',
     flow,
     transportMode:mode,
     problem:false,
@@ -2350,11 +2365,16 @@ function logFlow(c){
 function logFlowLabel(c){
   return logFlow(c)==='pickup' ? 'DE RIDICAT' : 'DE LIVRAT';
 }
+function logContractNo(c){
+  const t=getLogTrade(c) || {};
+  return String(c?.contractNo || c?.contractNumber || c?.note || t.note || '').trim();
+}
 function logContractName(c){
   const t=getLogTrade(c);
   if(!t) return 'Tranzacție lipsă';
   const p=products[t.product] || {name:getTradeProductName(t),emoji:'📦'};
-  return `${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}`;
+  const ctr=logContractNo(c);
+  return `${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}${ctr ? ' · ' + ctr : ''}`;
 }
 function movementQty(c){
   return (c.movements||c.deliveries||[]).reduce((s,d)=>s+(Number(d.qty)||0),0);
@@ -2766,7 +2786,7 @@ function renderLogisticsDetail(){
 
     <div class="log-client-focus">
       <div class="log-client-focus-label">Lucrezi pe clientul</div>
-      <div class="log-client-focus-name">${escHtml(t ? (t.cpty||'—') : '—')}</div>
+      <div class="log-client-focus-name">${escHtml(t ? (t.cpty||'—') : '—')}${logContractNo(c) ? ` <span style="font-size:14px;color:var(--acc);font-weight:800;letter-spacing:.5px;">· CTR ${escHtml(logContractNo(c))}</span>` : ''}</div>
       <div class="log-client-focus-meta">
         ${flowBadge} · ${t ? escHtml((products[t.product]||{name:t.product}).name) : '—'} ${t ? escHtml(t.crop||'') : ''} · Contract ${t ? fmtN(t.qty||0) : '0'} t · ${t ? escHtml(t.loc||'—') : '—'}
       </div>
