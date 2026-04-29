@@ -538,6 +538,34 @@
     border-color:#556070 !important;
   }
 
+
+  /* Stock locations */
+  #stockSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
+  .stock-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+  .stock-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;}
+  .stock-card-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;}
+  .stock-card-v{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:900;color:var(--bright);margin-top:4px;}
+  .stock-grid{display:grid;grid-template-columns:390px 1fr;gap:14px;align-items:start;}
+  @media(max-width:1100px){.stock-grid{grid-template-columns:1fr;}}
+  .stock-panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .stock-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.5px;}
+  .stock-muted{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.5;}
+  .stock-filter-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;}
+  .stock-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:4px;}
+  .stock-table th{background:var(--surface2);}
+  .stock-table td{vertical-align:middle;}
+  .stock-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);white-space:nowrap;}
+  .stock-badge.magazie{color:var(--old);border-color:rgba(147,188,232,.4);background:rgba(147,188,232,.08);}
+  .stock-badge.siloz{color:var(--new);border-color:rgba(126,214,165,.4);background:rgba(126,214,165,.08);}
+  .stock-row-click{cursor:pointer;}
+  .stock-row-click:hover td{background:rgba(229,185,92,.05) !important;}
+  .stock-positive{color:var(--long);font-weight:900;}
+  .stock-negative{color:var(--short);font-weight:900;}
+  .stock-neutral{color:var(--dim);font-weight:700;}
+  .stock-progress{height:5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-top:4px;min-width:80px;}
+  .stock-progress-inner{height:100%;background:var(--acc);}
+  .stock-form-actions{display:flex;gap:8px;align-items:center;}
+
 </style>
 </head>
 <body>
@@ -648,7 +676,7 @@
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
   <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
-  <div class="tab" id="tabTarget" onclick="setTargetTab()" style="margin-left:auto;">🎯 Target</div>
+  <div class="tab" id="tabStock" onclick="setStockTab()" style="margin-left:auto;">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
 </div>
@@ -671,26 +699,51 @@
   </div>
 </div>
 
-<div id="targetSection" style="display:none;padding:14px 22px;flex-direction:column;gap:14px;">
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <button class="news-back-btn" onclick="closeTargetTab()">← Înapoi</button>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);">An:</div>
-    <select id="targetYear" onchange="loadTarget()" style="width:80px;padding:4px 8px;font-size:11px;">
-      <option value="2025">2025</option>
-      <option value="2026" selected>2026</option>
-      <option value="2027">2027</option>
-    </select>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-left:4px;" id="targetSaveStatus"></div>
-    <button class="btn-sm" onclick="saveTarget()" style="margin-left:auto;">💾 Salvează</button>
-    <button class="btn-import" onclick="exportTarget()">⬇ Export Excel</button>
-    <button class="btn-import" onclick="document.getElementById('targetFileInput').click()">⬆ Import Excel</button>
-    <input type="file" id="targetFileInput" accept=".xlsx,.xls" style="display:none" onchange="importTarget(event)">
+<div id="stockSection">
+  <div class="meteo-toolbar">
+    <button class="news-back-btn" onclick="closeStockTab()">← Înapoi</button>
+    <span class="meteo-badge" style="color:var(--acc);border-color:rgba(229,185,92,.35);background:rgba(229,185,92,.08);">STOCURI PE BAZE</span>
+    <span class="stock-muted">Stoc calculat din Registru Tranzacții, pe câmpul Locație / Bază.</span>
+    <button class="btn-import" style="margin-left:auto;" onclick="exportStockReport()">⬇ Export Stocuri</button>
   </div>
-  <div style="overflow-x:auto;">
-    <table id="targetTable" style="border-collapse:collapse;min-width:900px;width:100%;">
-      <thead><tr id="targetHeaderRow"></tr></thead>
-      <tbody id="targetBody"></tbody>
-    </table>
+
+  <div class="stock-dashboard" id="stockDashboard"></div>
+
+  <div class="stock-grid">
+    <div class="stock-panel">
+      <div class="stock-title">Configurare baze</div>
+      <div class="stock-muted">Adaugă fiecare bază/depozit ca să vezi tipul, capacitatea și calitatea asociată.</div>
+      <input type="hidden" id="stockLocId">
+      <div class="fr fr2">
+        <div class="fg"><label class="fl">Bază / locație</label><input id="stockLocName" type="text" placeholder="Carei, Marțfu, Săcueni..."></div>
+        <div class="fg"><label class="fl">Tip</label><select id="stockLocType"><option value="Magazie">Magazie</option><option value="Siloz">Siloz</option></select></div>
+      </div>
+      <div class="fr fr2">
+        <div class="fg"><label class="fl">Capacitate (t)</label><input id="stockLocCapacity" type="number" step="0.01" min="0"></div>
+        <div class="fg"><label class="fl">Calitate</label><input id="stockLocQuality" type="text" placeholder="ex: grâu panificație, porumb furaj..."></div>
+      </div>
+      <div class="fg"><label class="fl">Observații</label><input id="stockLocNote" type="text" placeholder="opțional"></div>
+      <div class="stock-form-actions">
+        <button class="btn-add" style="margin-top:0;" onclick="saveStockLocationForm()">+ Salvează bază</button>
+        <button class="btn-sm" onclick="resetStockLocationForm()">Reset</button>
+      </div>
+
+      <div class="log-section-title">Baze configurate</div>
+      <div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>Bază</th><th>Tip</th><th>Cap.</th><th>Calitate</th><th></th></tr></thead><tbody id="stockLocationsBody"></tbody></table></div>
+    </div>
+
+    <div class="stock-panel">
+      <div class="stock-title">Stocuri calculate</div>
+      <div class="stock-filter-strip">
+        <select id="stockFilterBase" onchange="renderStock()"><option value="">Toate bazele</option></select>
+        <select id="stockFilterProduct" onchange="renderStock()"><option value="">Toate produsele</option></select>
+        <select id="stockFilterCrop" onchange="renderStock()"><option value="">Toate recoltele</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+        <label style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);white-space:nowrap;"><input id="stockOnlyPositive" type="checkbox" checked onchange="renderStock()" style="width:auto;"> doar stoc &gt; 0</label>
+        <button class="btn-sm" onclick="resetStockFilters()">Reset filtre</button>
+      </div>
+      <div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>Bază</th><th>Tip</th><th>Cap.</th><th>Calitate</th><th>Produs</th><th>Rec.</th><th>Cumpărat</th><th>Vândut</th><th>Stoc net</th><th>Ocupare bază</th></tr></thead><tbody id="stockRowsBody"></tbody></table></div>
+      <div id="stockDetails" class="stock-muted"></div>
+    </div>
   </div>
 </div>
 
@@ -1140,8 +1193,8 @@ let noteFilter = 'all';
 let newsData = [];
 let newsFilter = 'all';
 let newsTabActive = false;
-let targetData = {};
-let targetTabActive = false;
+let stockLocations = [];
+let stockTabActive = false;
 let meteoTabActive = false;
 let weatherPresets = [];
 let weatherSelected = null;
@@ -1237,10 +1290,10 @@ function closeAllSideTabs(){
     tn.style.borderColor='var(--border2)';
     document.getElementById('newsSection').style.display='none';
   }
-  if(targetTabActive){
-    targetTabActive=false;
-    document.getElementById('tabTarget').className='tab';
-    document.getElementById('targetSection').style.display='none';
+  if(stockTabActive){
+    stockTabActive=false;
+    document.getElementById('tabStock').className='tab';
+    document.getElementById('stockSection').style.display='none';
   }
   if(meteoTabActive){
     meteoTabActive=false;
@@ -1340,6 +1393,7 @@ async function loadAll(){
   onFormChange();
   loadNotes();
   await loadLogistics();
+  await loadStockLocations();
   render();
 }
 
@@ -1655,6 +1709,8 @@ function render(){
   document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
   document.getElementById('b26').textContent=trades.filter(t=>t.crop==='2026').length;
   document.getElementById('bLogistics').textContent=logisticsContracts.length;
+  const bStock=document.getElementById('bStock');
+  if(bStock) bStock.textContent=stockLocations.length;
 
   const pos=getPos(crop);
   const posAll=getPos(null);
@@ -1722,6 +1778,9 @@ function render(){
   if(logisticsTabActive){
     populateLogisticsSourceTrades();
     renderLogistics();
+  }
+  if(stockTabActive){
+    renderStock();
   }
 }
 
@@ -3330,130 +3389,240 @@ function downloadTemplate(){
   setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 
-/* Target */
-function setTargetTab(){
-  closeAllSideTabs();
-  targetTabActive=true;
-  document.getElementById('tabTarget').className='tab news-tab-active';
-  document.querySelector('.main').style.display='none';
-  document.getElementById('targetSection').style.display='flex';
-  loadTarget();
+/* Stock locations */
+async function loadStockLocations(){
+  try{
+    const res=await fetch('/api/stock/locations');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    stockLocations=Array.isArray(data)?data:[];
+  }catch(e){
+    console.warn('Stock locations load failed', e);
+    stockLocations=[];
+  }
 }
-function closeTargetTab(){
-  targetTabActive=false;
-  document.getElementById('tabTarget').className='tab';
-  document.getElementById('targetSection').style.display='none';
+function setStockTab(){
+  closeAllSideTabs();
+  stockTabActive=true;
+  document.getElementById('tabStock').className='tab news-tab-active';
+  document.querySelector('.main').style.display='none';
+  document.getElementById('stockSection').style.display='flex';
+  renderStock();
+}
+function closeStockTab(){
+  stockTabActive=false;
+  document.getElementById('tabStock').className='tab';
+  document.getElementById('stockSection').style.display='none';
   document.querySelector('.main').style.display='flex';
 }
-async function loadTarget(){
-  const year=document.getElementById('targetYear').value;
-  if(!targetData[year]){
-    try{
-      const res=await fetch(`/api/target/${year}`);
-      const data=await res.json();
-      targetData[year]=data || { plan:Array(12).fill(''), realizat:Array(12).fill(''), adaos:Array(12).fill(''), marja:Array(12).fill('') };
-    }catch(e){
-      targetData[year]={ plan:Array(12).fill(''), realizat:Array(12).fill(''), adaos:Array(12).fill(''), marja:Array(12).fill('') };
-    }
-  }
-  renderTarget();
+function stockBaseKey(name){
+  return normalizeTextLoose(name || 'Bază necunoscută');
 }
-async function saveTarget(){
-  const year=document.getElementById('targetYear').value;
-  TARGET_ROWS.filter(r=>r.editable).forEach(row=>{
-    targetData[year][row.key]=TARGET_MONTHS.map((_,mi)=>{
-      const el=document.getElementById(`tgt_${row.key}_${mi}`);
-      return el ? el.value : '';
-    });
+function stockBaseNameFromTrade(t){
+  return String(t.loc || '').trim() || 'Bază necunoscută';
+}
+function getStockLocationByName(name){
+  const key=stockBaseKey(name);
+  return stockLocations.find(l=>stockBaseKey(l.name)===key) || null;
+}
+function getStockRows(){
+  const map={};
+  trades.forEach(t=>{
+    const base=stockBaseNameFromTrade(t);
+    const product=t.product || 'unknown';
+    const cr=String(t.crop || '—');
+    const key=[stockBaseKey(base),product,cr].join('|');
+    if(!map[key]) map[key]={base,product,crop:cr,bought:0,sold:0,stock:0};
+    const qty=Number(t.qty)||0;
+    if(t.dir==='long') map[key].bought+=qty;
+    else map[key].sold+=qty;
   });
-  try{
-    await fetch(`/api/target/${year}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(targetData[year])});
-    const s=document.getElementById('targetSaveStatus');
-    s.textContent='✓ Salvat'; s.style.color='var(--long)';
-    setTimeout(()=>{s.textContent='';},2000);
-  }catch(e){
-    const s=document.getElementById('targetSaveStatus');
-    s.textContent='✗ Eroare'; s.style.color='var(--short)';
+  Object.values(map).forEach(r=>{ r.stock=(Number(r.bought)||0)-(Number(r.sold)||0); });
+  return Object.values(map).sort((a,b)=>a.base.localeCompare(b.base,'ro')||a.product.localeCompare(b.product,'ro')||String(a.crop).localeCompare(String(b.crop)));
+}
+function getBaseTotals(rows){
+  const totals={};
+  rows.forEach(r=>{
+    const key=stockBaseKey(r.base);
+    if(!totals[key]) totals[key]={base:r.base,stock:0,bought:0,sold:0};
+    totals[key].stock += Number(r.stock)||0;
+    totals[key].bought += Number(r.bought)||0;
+    totals[key].sold += Number(r.sold)||0;
+  });
+  return totals;
+}
+function populateStockFilters(rows){
+  const baseSel=document.getElementById('stockFilterBase');
+  const prodSel=document.getElementById('stockFilterProduct');
+  const cropSel=document.getElementById('stockFilterCrop');
+  if(!baseSel || !prodSel || !cropSel) return;
+  const curBase=baseSel.value, curProd=prodSel.value, curCrop=cropSel.value;
+  const bases=[...new Set([...stockLocations.map(l=>l.name), ...rows.map(r=>r.base)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro'));
+  baseSel.innerHTML='<option value="">Toate bazele</option>'+bases.map(b=>`<option value="${escHtml(b)}">${escHtml(b)}</option>`).join('');
+  if([...baseSel.options].some(o=>o.value===curBase)) baseSel.value=curBase;
+  prodSel.innerHTML='<option value="">Toate produsele</option>'+Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji} ${p.name}</option>`).join('');
+  if([...prodSel.options].some(o=>o.value===curProd)) prodSel.value=curProd;
+  if([...cropSel.options].some(o=>o.value===curCrop)) cropSel.value=curCrop;
+}
+function renderStock(){
+  const allRows=getStockRows();
+  populateStockFilters(allRows);
+  const baseFilter=document.getElementById('stockFilterBase')?.value || '';
+  const productFilter=document.getElementById('stockFilterProduct')?.value || '';
+  const cropFilter=document.getElementById('stockFilterCrop')?.value || '';
+  const onlyPositive=document.getElementById('stockOnlyPositive')?.checked ?? true;
+  const baseTotals=getBaseTotals(allRows);
+
+  const totalCapacity=stockLocations.reduce((s,l)=>s+(Number(l.capacity)||0),0);
+  const totalStock=Object.values(baseTotals).reduce((s,b)=>s+Math.max(Number(b.stock)||0,0),0);
+  const free=totalCapacity-totalStock;
+  const occupancy=totalCapacity>0?Math.round((totalStock/totalCapacity)*100):0;
+  const basesWithStock=Object.values(baseTotals).filter(b=>(Number(b.stock)||0)>0).length;
+
+  const dash=document.getElementById('stockDashboard');
+  if(dash){
+    dash.innerHTML=`
+      <div class="stock-card"><div class="stock-card-l">Capacitate totală</div><div class="stock-card-v">${fmtN(totalCapacity)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Stoc fizic pozitiv</div><div class="stock-card-v" style="color:var(--long)">${fmtN(totalStock)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Spațiu liber</div><div class="stock-card-v" style="color:${free>=0?'var(--old)':'var(--short)'}">${fmtN(free)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Grad ocupare</div><div class="stock-card-v">${occupancy}%</div></div>
+      <div class="stock-card"><div class="stock-card-l">Baze cu stoc</div><div class="stock-card-v">${basesWithStock}</div></div>`;
+  }
+
+  renderStockLocationsTable();
+
+  let rows=allRows;
+  if(baseFilter) rows=rows.filter(r=>stockBaseKey(r.base)===stockBaseKey(baseFilter));
+  if(productFilter) rows=rows.filter(r=>r.product===productFilter);
+  if(cropFilter) rows=rows.filter(r=>String(r.crop)===String(cropFilter));
+  if(onlyPositive) rows=rows.filter(r=>(Number(r.stock)||0)>0);
+
+  const body=document.getElementById('stockRowsBody');
+  if(!body) return;
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="10"><div class="empty">// niciun stoc pentru filtrele selectate</div></td></tr>';
+  } else {
+    body.innerHTML=rows.map(r=>{
+      const loc=getStockLocationByName(r.base) || {};
+      const prod=products[r.product] || {name:r.product,emoji:'📦'};
+      const cap=Number(loc.capacity)||0;
+      const totalForBase=baseTotals[stockBaseKey(r.base)]?.stock || 0;
+      const occ=cap>0?Math.max(0,Math.min(100,Math.round((Math.max(totalForBase,0)/cap)*100))):0;
+      const type=loc.type || '—';
+      const typeClass=normalizeTextLoose(type).includes('siloz')?'siloz':'magazie';
+      const stockCls=r.stock>0?'stock-positive':r.stock<0?'stock-negative':'stock-neutral';
+      const safeBase=escHtml(r.base).replace(/'/g,'&#39;');
+      return `<tr class="stock-row-click" onclick="showStockDetails('${safeBase}','${r.product}','${r.crop}')">
+        <td style="color:var(--bright);font-weight:800">${escHtml(r.base)}</td>
+        <td><span class="stock-badge ${typeClass}">${escHtml(type)}</span></td>
+        <td>${cap?fmtN(cap)+' t':'—'}</td>
+        <td class="tdim">${escHtml(loc.quality||'—')}</td>
+        <td>${prod.emoji} ${prod.name}</td>
+        <td class="${r.crop==='2025'?'told':'tnew'}">${escHtml(r.crop)}</td>
+        <td class="tl">${fmtN(r.bought)} t</td>
+        <td class="ts2">${fmtN(r.sold)} t</td>
+        <td class="${stockCls}">${fmtNet(r.stock)} t</td>
+        <td>${cap?`<div>${occ}%</div><div class="stock-progress"><div class="stock-progress-inner" style="width:${occ}%"></div></div>`:'—'}</td>
+      </tr>`;
+    }).join('');
   }
 }
-function renderTarget(){
-  const year=document.getElementById('targetYear').value;
-  const d=targetData[year] || {};
-  document.getElementById('targetHeaderRow').innerHTML =
-    `<th class="tgt-th" style="text-align:left;min-width:130px;"></th>` +
-    TARGET_MONTHS.map(m=>`<th class="tgt-th">${m}</th>`).join('') +
-    `<th class="tgt-th total">Total</th>`;
-
-  document.getElementById('targetBody').innerHTML=TARGET_ROWS.map(row=>{
-    const vals=d[row.key] || Array(12).fill('');
-    let cells, total;
-    if(row.key==='diff'){
-      const plan=d.plan || Array(12).fill('');
-      const realizat=d.realizat || Array(12).fill('');
-      const diffs=TARGET_MONTHS.map((_,mi)=>{
-        const p=parseFloat(plan[mi])||0;
-        const r=parseFloat(realizat[mi])||0;
-        return p||r ? r-p : null;
-      });
-      const totalPlan=(d.plan||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const totalReal=(d.realizat||[]).reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const totalDiff=totalReal-totalPlan;
-      cells=diffs.map(v=>{
-        if(v===null) return `<td class="tgt-cell ${row.cls}"></td>`;
-        const cls=v>=0?'tgt-diff-pos':'tgt-diff-neg';
-        const sign=v>0?'+':'';
-        return `<td class="tgt-cell ${row.cls}"><span class="${cls}">${sign}${fmtN(v)}</span></td>`;
-      }).join('');
-      const tcls=totalDiff>=0?'tgt-diff-pos':'tgt-diff-neg';
-      const tsign=totalDiff>0?'+':'';
-      total=`<td class="tgt-total"><span class="${tcls}">${totalPlan||totalReal ? tsign+fmtN(totalDiff) : ''}</span></td>`;
-    } else {
-      cells=TARGET_MONTHS.map((_,mi)=>{
-        const v=vals[mi] || '';
-        return `<td class="tgt-cell ${row.cls}">
-          <input class="tgt-input" id="tgt_${row.key}_${mi}" value="${v}" onchange="onTargetChange('${year}','${row.key}',${mi},this.value)">
-        </td>`;
-      }).join('');
-      const sum=vals.reduce((s,v)=>s+(parseFloat(v)||0),0);
-      const sumFmt=sum ? (row.fmt==='ron' ? fmtN(sum)+' RON' : fmtN(sum)) : '';
-      total=`<td class="tgt-total">${sumFmt}</td>`;
-    }
-    return `<tr><td class="tgt-label">${row.label}</td>${cells}${total}</tr>`;
+function renderStockLocationsTable(){
+  const body=document.getElementById('stockLocationsBody');
+  if(!body) return;
+  if(!stockLocations.length){
+    body.innerHTML='<tr><td colspan="5"><div class="empty">// nicio bază configurată</div></td></tr>';
+    return;
+  }
+  body.innerHTML=stockLocations.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'ro')).map(l=>{
+    const typeClass=normalizeTextLoose(l.type).includes('siloz')?'siloz':'magazie';
+    return `<tr>
+      <td style="color:var(--bright);font-weight:800">${escHtml(l.name)}</td>
+      <td><span class="stock-badge ${typeClass}">${escHtml(l.type||'—')}</span></td>
+      <td>${l.capacity?fmtN(l.capacity)+' t':'—'}</td>
+      <td class="tdim">${escHtml(l.quality||'—')}</td>
+      <td style="display:flex;gap:5px"><button class="btn-sm" onclick="editStockLocation(${l.id})">Edit</button><button class="btn-del" onclick="deleteStockLocation(${l.id})">✕</button></td>
+    </tr>`;
   }).join('');
 }
-function onTargetChange(year,key,mi,val){
-  if(!targetData[year]) return;
-  if(!targetData[year][key]) targetData[year][key]=Array(12).fill('');
-  targetData[year][key][mi]=val;
-  renderTarget();
-  clearTimeout(window._targetSaveTimer);
-  window._targetSaveTimer=setTimeout(()=>saveTarget(),2000);
+function resetStockLocationForm(){
+  ['stockLocId','stockLocName','stockLocCapacity','stockLocQuality','stockLocNote'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const type=document.getElementById('stockLocType');
+  if(type) type.value='Magazie';
 }
-function exportTarget(){
-  const year=document.getElementById('targetYear').value;
-  const d=targetData[year] || {};
-  const plan=d.plan || Array(12).fill('');
-  const realizat=d.realizat || Array(12).fill('');
-  const adaos=d.adaos || Array(12).fill('');
-  const marja=d.marja || Array(12).fill('');
-  const header=['', ...TARGET_MONTHS, 'Total'];
-  const mk=(label, arr)=>[label, ...arr.map(v=>parseFloat(v)||''), arr.reduce((s,v)=>s+(parseFloat(v)||0),0) || ''];
-  const rowDiff=['Diferență (tone)', ...TARGET_MONTHS.map((_,mi)=>{const p=parseFloat(plan[mi])||0; const r=parseFloat(realizat[mi])||0; return (p||r)?r-p:'';}), (()=>{const tp=plan.reduce((s,v)=>s+(parseFloat(v)||0),0); const tr=realizat.reduce((s,v)=>s+(parseFloat(v)||0),0); return (tp||tr)?tr-tp:'';})()];
+function editStockLocation(id){
+  const l=stockLocations.find(x=>String(x.id)===String(id));
+  if(!l) return;
+  document.getElementById('stockLocId').value=l.id;
+  document.getElementById('stockLocName').value=l.name||'';
+  document.getElementById('stockLocType').value=l.type||'Magazie';
+  document.getElementById('stockLocCapacity').value=l.capacity||'';
+  document.getElementById('stockLocQuality').value=l.quality||'';
+  document.getElementById('stockLocNote').value=l.note||'';
+}
+async function saveStockLocationForm(){
+  const id=document.getElementById('stockLocId').value;
+  const item={
+    name:document.getElementById('stockLocName').value.trim(),
+    type:document.getElementById('stockLocType').value,
+    capacity:parseFloat(document.getElementById('stockLocCapacity').value)||0,
+    quality:document.getElementById('stockLocQuality').value.trim(),
+    note:document.getElementById('stockLocNote').value.trim(),
+  };
+  if(!item.name){alert('Completează numele bazei.');return;}
+  try{
+    const url=id?`/api/stock/locations/${id}`:'/api/stock/locations';
+    const method=id?'PUT':'POST';
+    const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    resetStockLocationForm();
+    await loadStockLocations();
+    renderStock();
+  }catch(e){alert('Eroare la salvare bază: '+e.message);}
+}
+async function deleteStockLocation(id){
+  if(!confirm('Ștergi baza configurată? Stocurile calculate din tranzacții nu se șterg.')) return;
+  try{
+    const res=await fetch('/api/stock/locations/'+id,{method:'DELETE'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    await loadStockLocations();
+    renderStock();
+  }catch(e){alert('Eroare la ștergere bază: '+e.message);}
+}
+function resetStockFilters(){
+  document.getElementById('stockFilterBase').value='';
+  document.getElementById('stockFilterProduct').value='';
+  document.getElementById('stockFilterCrop').value='';
+  document.getElementById('stockOnlyPositive').checked=true;
+  renderStock();
+}
+function showStockDetails(base,product,cropVal){
+  const prod=products[product] || {name:product,emoji:'📦'};
+  const matching=trades.filter(t=>stockBaseKey(stockBaseNameFromTrade(t))===stockBaseKey(base) && t.product===product && String(t.crop)===String(cropVal));
+  const rows=matching.slice(0,20).map(t=>`<tr><td>#${t.id}</td><td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'Cumpărare':'Vânzare'}</td><td>${fmtN(t.qty)} t</td><td class="tdim">${escHtml(t.cpty||'—')}</td><td class="tdim">${t.date||'—'}</td></tr>`).join('');
+  document.getElementById('stockDetails').innerHTML=`<div class="log-section-title">Detaliu ${escHtml(base)} · ${prod.emoji} ${prod.name} ${escHtml(cropVal)}</div><div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>ID</th><th>Direcție</th><th>Cantitate</th><th>Contraparte</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function exportStockReport(){
+  const rows=getStockRows();
+  const baseTotals=getBaseTotals(rows);
+  const data=[['baza','tip','capacitate','calitate','produs','recolta','cumparat_t','vandut_t','stoc_net_t','ocupare_baza_%']];
+  rows.forEach(r=>{
+    const loc=getStockLocationByName(r.base) || {};
+    const cap=Number(loc.capacity)||0;
+    const occ=cap>0?Math.round((Math.max(baseTotals[stockBaseKey(r.base)]?.stock||0,0)/cap)*100):'';
+    data.push([r.base,loc.type||'',cap||'',loc.quality||'',products[r.product]?.name||r.product,r.crop,r.bought,r.sold,r.stock,occ]);
+  });
   const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet([header,mk('Plan (tone)',plan),mk('Realizat (tone)',realizat),mk('Adaos (RON)',adaos),mk('Marjă / tonă',marja),rowDiff]);
-  ws['!cols']=[{wch:18}, ...Array(12).fill({wch:12}), {wch:14}];
-  XLSX.utils.book_append_sheet(wb,ws,`Target ${year}`);
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[20,12,12,24,18,10,12,12,12,14].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Stocuri');
   const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   const blob=new Blob([wbout],{type:'application/octet-stream'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`agrotex_target_${year}.xlsx`;
+  a.href=url; a.download=`agrotex_stocuri_${today()}.xlsx`;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
-}
-function importTarget(event){
-  alert('Import Target păstrat simplu în această versiune. Folosește editarea directă sau export/import tranzacții.');
-  event.target.value='';
 }
 
 /* News */
