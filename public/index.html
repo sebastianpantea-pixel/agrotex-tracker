@@ -210,6 +210,15 @@
   .log-month-value.rest{color:var(--short);}
   .log-grid{display:grid;grid-template-columns:430px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
+  .log-left-stack{display:flex;flex-direction:column;gap:12px;}
+  .log-card-create{border-left:3px solid var(--acc);}
+  .log-card-existing{border-left:3px solid var(--meteo);}
+  .log-card-create .log-title,.log-card-existing .log-title{display:flex;align-items:center;gap:7px;}
+  .log-card-create .log-title::before{content:'+';display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(229,185,92,.14);border:1px solid rgba(229,185,92,.45);color:var(--acc);font-size:10px;}
+  .log-card-existing .log-title::before{content:'≡';display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(117,199,217,.12);border:1px solid rgba(117,199,217,.4);color:var(--meteo);font-size:10px;}
+  .log-create-results{max-height:220px;}
+  .log-existing-tools{display:flex;flex-direction:column;gap:10px;}
+  .log-existing-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
   .log-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
   .log-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
   .log-muted{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.5;}
@@ -842,60 +851,69 @@
   <div class="log-filter-strip hidden" id="logisticsMonthFilterStrip"></div>
 
   <div class="log-grid">
-    <div class="log-card">
-      <div class="log-title">Creează contract logistic</div>
-      <div class="log-muted">Caută tranzacția sursă. Sistemul detectează automat dacă este marfă de ridicat sau de livrat.</div>
+    <div class="log-left-stack">
+      <div class="log-card log-card-create">
+        <div class="log-title">Creează contract logistic</div>
+        <div class="log-muted">Caută tranzacția sursă. Sistemul detectează automat dacă este marfă de ridicat sau de livrat.</div>
 
-      <div class="fg">
-        <label class="fl">Caută contract / tranzacție</label>
-        <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
-      </div>
-      <div class="log-search-results" id="logSourceResults"></div>
-      <input type="hidden" id="logSelectedTradeId">
-
-      <div class="fr fr2" id="logCreateTransportRow" style="display:none;">
-        <div class="fg" id="logTransportModeWrap">
-          <label class="fl">Transport pentru vânzare</label>
-          <select id="logTransportMode">
-            <option value="truck">Camion</option>
-            <option value="train">Tren</option>
-          </select>
-        </div>
-        <div class="fg" id="logDetectedFlowWrap">
-          <label class="fl">Flux detectat</label>
-          <input id="logDetectedFlow" type="text" readonly>
-        </div>
-      </div>
-
-      <div class="fr fr2">
         <div class="fg">
-          <label class="fl">Perioadă de la</label>
-          <select id="logCreateStartMonth"></select>
+          <label class="fl">Caută contract / tranzacție</label>
+          <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
         </div>
-        <div class="fg">
-          <label class="fl">Perioadă până la</label>
-          <select id="logCreateEndMonth"></select>
+        <div class="log-search-results log-create-results" id="logSourceResults"></div>
+        <input type="hidden" id="logSelectedTradeId">
+
+        <div class="fr fr2" id="logCreateTransportRow" style="display:none;">
+          <div class="fg" id="logTransportModeWrap">
+            <label class="fl">Transport pentru vânzare</label>
+            <select id="logTransportMode">
+              <option value="truck">Camion</option>
+              <option value="train">Tren</option>
+            </select>
+          </div>
+          <div class="fg" id="logDetectedFlowWrap">
+            <label class="fl">Flux detectat</label>
+            <input id="logDetectedFlow" type="text" readonly>
+          </div>
         </div>
+
+        <div class="fr fr2">
+          <div class="fg">
+            <label class="fl">Perioadă de la</label>
+            <select id="logCreateStartMonth"></select>
+          </div>
+          <div class="fg">
+            <label class="fl">Perioadă până la</label>
+            <select id="logCreateEndMonth"></select>
+          </div>
+        </div>
+
+        <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
       </div>
 
-      <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
+      <div class="log-card log-card-existing">
+        <div class="log-existing-title-row">
+          <div class="log-title">Contracte logistice</div>
+          <span class="log-badge info" id="logContractsCountMini">listă</span>
+        </div>
 
-      <div class="log-section-title">Filtre</div>
-      <div class="note-filter-row" style="padding:0;background:transparent;border-bottom:none;flex-wrap:wrap;">
-        <button class="nf-btn active" id="logFilterAll" onclick="setLogisticsFilter('all')">Toate</button>
-        <button class="nf-btn" id="logFilterPickup" onclick="setLogisticsFilter('pickup')">De ridicat</button>
-        <button class="nf-btn" id="logFilterDelivery" onclick="setLogisticsFilter('delivery')">De livrat</button>
-        <button class="nf-btn" id="logFilterProblem" onclick="setLogisticsFilter('problem')">Probleme</button>
-        <button class="nf-btn" id="logFilterDue" onclick="setLogisticsFilter('due')">Facturi scadente</button>
+        <div class="log-existing-tools">
+          <div class="note-filter-row" style="padding:0;background:transparent;border-bottom:none;flex-wrap:wrap;">
+            <button class="nf-btn active" id="logFilterAll" onclick="setLogisticsFilter('all')">Toate</button>
+            <button class="nf-btn" id="logFilterPickup" onclick="setLogisticsFilter('pickup')">De ridicat</button>
+            <button class="nf-btn" id="logFilterDelivery" onclick="setLogisticsFilter('delivery')">De livrat</button>
+            <button class="nf-btn" id="logFilterProblem" onclick="setLogisticsFilter('problem')">Probleme</button>
+            <button class="nf-btn" id="logFilterDue" onclick="setLogisticsFilter('due')">Facturi scadente</button>
+          </div>
+
+          <div class="fg">
+            <label class="fl">Caută în logistică</label>
+            <input id="logisticsListSearch" type="text" placeholder="firmă, produs, camion, factură, locație..." oninput="renderLogisticsList()">
+          </div>
+        </div>
+
+        <div class="log-list" id="logisticsList"></div>
       </div>
-
-      <div class="fg" style="margin-top:8px;">
-        <label class="fl">Caută în logistică</label>
-        <input id="logisticsListSearch" type="text" placeholder="firmă, produs, camion, factură, locație..." oninput="renderLogisticsList()">
-      </div>
-
-      <div class="log-section-title">Contracte logistice</div>
-      <div class="log-list" id="logisticsList"></div>
     </div>
 
     <div class="log-card" id="logisticsDetail">
@@ -2559,6 +2577,8 @@ function renderLogisticsList(){
   logisticsListSearch = document.getElementById('logisticsListSearch')?.value || '';
   if(searchTokens(logisticsListSearch).length) items=items.filter(c=>matchesSearch(logisticsSearchHaystack(c), logisticsListSearch));
 
+  const miniCount=document.getElementById('logContractsCountMini');
+  if(miniCount) miniCount.textContent=String(items.length);
   if(!items.length){
     box.innerHTML='<div class="log-empty">// nu există contracte pentru filtrul selectat</div>';
     return;
