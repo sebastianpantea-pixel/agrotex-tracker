@@ -539,6 +539,34 @@
   }
 
 
+  /* Logistic compact sections - colored functional layout */
+  .log-client-focus.compact { padding:10px 13px !important; margin:8px 0 10px 0 !important; }
+  .log-client-focus.compact .log-client-focus-label{font-size:8px;margin-bottom:4px;}
+  .log-client-focus.compact .log-client-focus-name{font-size:18px;line-height:1.15;}
+  .log-client-focus.compact .log-client-focus-meta{font-size:9px;margin-top:5px;line-height:1.35;}
+  .log-section-panel{background:#2b313b;border:1px solid #556070;border-left:5px solid #64748b;border-radius:6px;margin-top:12px;overflow:hidden;}
+  .log-section-panel summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;background:rgba(255,255,255,.018);border-bottom:1px solid rgba(255,255,255,.06);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.35px;}
+  .log-section-panel summary::-webkit-details-marker{display:none;}
+  .log-section-panel summary::before{content:'▸';color:var(--dim);margin-right:4px;}
+  .log-section-panel[open] summary::before{content:'▾';}
+  .log-section-body{padding:10px;}
+  .log-section-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-transform:none;letter-spacing:.2px;font-weight:600;margin-left:auto;}
+  .log-section-panel.pickup{border-left-color:var(--old);background:rgba(147,188,232,.045);}
+  .log-section-panel.pickup summary{color:var(--old);}
+  .log-section-panel.delivery{border-left-color:var(--new);background:rgba(126,214,165,.045);}
+  .log-section-panel.delivery summary{color:var(--new);}
+  .log-section-panel.plan{border-left-color:#8aa0bd;background:rgba(138,160,189,.045);}
+  .log-section-panel.plan summary{color:#b7c7dd;}
+  .log-section-panel.money{border-left-color:var(--acc);background:rgba(229,185,92,.045);}
+  .log-section-panel.money summary{color:var(--acc);}
+  .log-section-panel.warn{border-left-color:var(--short);background:rgba(233,133,133,.055);}
+  .log-section-panel.warn summary{color:var(--short);}
+  .log-compact-status{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:6px;}
+  .log-ok-chip{display:inline-flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;color:var(--long);border:1px solid rgba(112,214,156,.32);background:rgba(112,214,156,.08);border-radius:10px;padding:2px 7px;white-space:nowrap;}
+  .log-section-panel .log-mini-form{margin-top:9px;}
+  .log-section-panel .log-section-title{display:none;}
+
+
   /* Stock locations */
   #stockSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
   .stock-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
@@ -2772,6 +2800,8 @@ function renderLogisticsDetail(){
   const flowBadge=flow==='pickup'
       ? '<span class="log-badge pickup">DE RIDICAT</span>'
       : '<span class="log-badge delivery">DE LIVRAT</span>';
+  const warningsHtml=renderWarnings(c);
+  const hasWarnings=warningsHtml.includes('log-warning-line');
 
   detail.innerHTML=`\n    <div class="log-active-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
@@ -2786,7 +2816,7 @@ function renderLogisticsDetail(){
       </div>
     </div>
 
-    <div class="log-client-focus">
+    <div class="log-client-focus compact">
       <div class="log-client-focus-label">Lucrezi pe clientul</div>
       <div class="log-client-focus-name">${escHtml(t ? (t.cpty||'—') : '—')}${logContractNo(c) ? ` <span style="font-size:14px;color:var(--acc);font-weight:800;letter-spacing:.5px;">· CTR ${escHtml(logContractNo(c))}</span>` : ''}</div>
       <div class="log-client-focus-meta">
@@ -2802,72 +2832,92 @@ function renderLogisticsDetail(){
     </div>
     <div class="log-progress"><div class="log-progress-inner" style="width:${pct}%"></div></div>
 
-    <div class="log-section-title">Avertismente</div>
-    ${renderWarnings(c)}
-
-    <div class="fr fr2" style="margin-top:10px;">
-      <div class="fg">
-        <label class="fl">Perioadă de la</label>
-        <select id="logEditStartMonth" onchange="updateLogContractField('deliveryStartMonth',this.value)"></select>
-      </div>
-      <div class="fg">
-        <label class="fl">Perioadă până la</label>
-        <select id="logEditEndMonth" onchange="updateLogContractField('deliveryEndMonth',this.value)"></select>
-      </div>
+    <div class="log-compact-status">
+      ${hasWarnings ? '<span class="log-badge warn">Avertismente active</span>' : '<span class="log-ok-chip">✓ Fără avertismente</span>'}
     </div>
 
-    <div class="log-section-title">Alocare lunară contract</div>
-    ${renderAllocationsTable(c)}
+    <details class="log-section-panel ${flow==='pickup'?'pickup':'delivery'}" open>
+      <summary>${movementTitle}<span class="log-section-note">zona principală de lucru</span></summary>
+      <div class="log-section-body">
+        ${renderMovementsTable(c)}
 
-    <div class="log-mini-form">
-      <div class="fg"><label class="fl">Luna</label><select id="logAllocMonth"></select></div>
-      <div class="fg"><label class="fl">Cantitate t</label><input id="logAllocQty" type="number" step="0.01"></div>
-      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addAllocation()">+ Adaugă alocare</button></div>
-    </div>
+        <div class="log-mini-form">
+          <div class="fg"><label class="fl">Data</label><input id="logMovementDate" type="date" value="${today()}"></div>
+          <div class="fg"><label class="fl">Cantitate zi ${c.transportMode==='train'?'/ tren':'/ camion'} t</label><input id="logMovementQty" type="number" step="0.01"></div>
+          <div class="fg"><label class="fl">${c.transportMode==='train'?'Tren':'Transportator / camion'}</label><input id="logCarrier" type="text"></div>
+          ${c.transportMode==='train' ? `<div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStation" type="text"></div>` : ''}
+          <div class="fg"><label class="fl">${flow==='pickup'?'Locație / destinație':'Locație livrare'}</label><input id="logDeliveryLocation" type="text"></div>
+          ${flow==='pickup' ? `<div class="fg"><label class="fl">Livrare directă către</label><select id="logDirectDeliveryContract">${renderDirectDeliverySelect(c)}</select></div>` : ''}
+          <div class="fg"><label class="fl">Observații</label><input id="logMovementNote" type="text"></div>
+          <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addMovement()">+ ${movementBtn}</button></div>
+        </div>
 
-    <div class="log-section-title">${movementTitle}</div>
-    ${renderMovementsTable(c)}
-
-    <div class="log-mini-form">
-      <div class="fg"><label class="fl">Data</label><input id="logMovementDate" type="date" value="${today()}"></div>
-      <div class="fg"><label class="fl">Cantitate zi ${c.transportMode==='train'?'/ tren':'/ camion'} t</label><input id="logMovementQty" type="number" step="0.01"></div>
-      <div class="fg"><label class="fl">${c.transportMode==='train'?'Tren':'Transportator / camion'}</label><input id="logCarrier" type="text"></div>
-      ${c.transportMode==='train' ? `<div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStation" type="text"></div>` : ''}
-      <div class="fg"><label class="fl">${flow==='pickup'?'Locație / destinație':'Locație livrare'}</label><input id="logDeliveryLocation" type="text"></div>
-      ${flow==='pickup' ? `<div class="fg"><label class="fl">Livrare directă către</label><select id="logDirectDeliveryContract">${renderDirectDeliverySelect(c)}</select></div>` : ''}
-      <div class="fg"><label class="fl">Observații</label><input id="logMovementNote" type="text"></div>
-      <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addMovement()">+ ${movementBtn}</button></div>
-    </div>
-
-    ${c.transportMode==='train' ? `
-      <div class="log-mini-form" style="margin-top:10px;">
-        <div class="fg"><label class="fl">Nr. trenuri</label><input id="logTrainCount" type="number" value="1" min="1"></div>
-        <div class="fg"><label class="fl">Greutate tren t</label><input id="logTrainWeight" type="number" step="0.01" value="1800"></div>
-        <div class="fg"><label class="fl">Prima dată</label><input id="logTrainStartDate" type="date" value="${today()}"></div>
-        <div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStationBulk" type="text"></div>
-        <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="generateTrains()">Generează trenuri</button></div>
+        ${c.transportMode==='train' ? `
+          <div class="log-mini-form" style="margin-top:10px;">
+            <div class="fg"><label class="fl">Nr. trenuri</label><input id="logTrainCount" type="number" value="1" min="1"></div>
+            <div class="fg"><label class="fl">Greutate tren t</label><input id="logTrainWeight" type="number" step="0.01" value="1800"></div>
+            <div class="fg"><label class="fl">Prima dată</label><input id="logTrainStartDate" type="date" value="${today()}"></div>
+            <div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStationBulk" type="text"></div>
+            <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="generateTrains()">Generează trenuri</button></div>
+          </div>
+        ` : ''}
       </div>
-    ` : ''}
+    </details>
+
+    <details class="log-section-panel plan">
+      <summary>Planificare și alocări<span class="log-section-note">perioadă + cantitate lunară</span></summary>
+      <div class="log-section-body">
+        <div class="fr fr2">
+          <div class="fg">
+            <label class="fl">Perioadă de la</label>
+            <select id="logEditStartMonth" onchange="updateLogContractField('deliveryStartMonth',this.value)"></select>
+          </div>
+          <div class="fg">
+            <label class="fl">Perioadă până la</label>
+            <select id="logEditEndMonth" onchange="updateLogContractField('deliveryEndMonth',this.value)"></select>
+          </div>
+        </div>
+
+        ${renderAllocationsTable(c)}
+
+        <div class="log-mini-form">
+          <div class="fg"><label class="fl">Luna</label><select id="logAllocMonth"></select></div>
+          <div class="fg"><label class="fl">Cantitate t</label><input id="logAllocQty" type="number" step="0.01"></div>
+          <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addAllocation()">+ Adaugă alocare</button></div>
+        </div>
+      </div>
+    </details>
 
     ${flow==='delivery' ? `
-      <div class="log-section-title">Facturi și încasări manuale</div>
-      <div class="log-muted" style="margin-bottom:7px;">Factura se introduce manual. Poate fi diferită de perioada de livrare sau de cantitatea executată.</div>
-      ${renderInvoicesTable(c)}
+      <details class="log-section-panel money">
+        <summary>Facturi și încasări<span class="log-section-note">doar pentru marfa de livrat</span></summary>
+        <div class="log-section-body">
+          <div class="log-muted" style="margin-bottom:7px;">Factura se introduce manual. Poate fi diferită de perioada de livrare sau de cantitatea executată.</div>
+          ${renderInvoicesTable(c)}
 
-      <div class="log-mini-form">
-        <div class="fg"><label class="fl">Nr. factură</label><input id="logInvNo" type="text"></div>
-        <div class="fg"><label class="fl">Data facturii</label><input id="logInvDate" type="date" value="${today()}"></div>
-        <div class="fg"><label class="fl">Scadență</label><input id="logInvDue" type="date"></div>
-        <div class="fg"><label class="fl">Sumă</label><input id="logInvAmount" type="number" step="0.01"></div>
-        <div class="fg"><label class="fl">Monedă</label>
-          <select id="logInvCurrency" onchange="document.getElementById('logInvRateWrap').style.display=this.value==='EUR'?'flex':'none'">
-            <option value="RON">RON</option>
-            <option value="EUR">EUR</option>
-          </select>
+          <div class="log-mini-form">
+            <div class="fg"><label class="fl">Nr. factură</label><input id="logInvNo" type="text"></div>
+            <div class="fg"><label class="fl">Data facturii</label><input id="logInvDate" type="date" value="${today()}"></div>
+            <div class="fg"><label class="fl">Scadență</label><input id="logInvDue" type="date"></div>
+            <div class="fg"><label class="fl">Sumă</label><input id="logInvAmount" type="number" step="0.01"></div>
+            <div class="fg"><label class="fl">Monedă</label>
+              <select id="logInvCurrency" onchange="document.getElementById('logInvRateWrap').style.display=this.value==='EUR'?'flex':'none'">
+                <option value="RON">RON</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+            <div class="fg" id="logInvRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logInvRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
+            <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addInvoice()">+ Adaugă factură</button></div>
+          </div>
         </div>
-        <div class="fg" id="logInvRateWrap" style="display:none"><label class="fl">Curs EUR/RON</label><input id="logInvRate" type="number" step="0.0001" value="${fxRates.eurRon ? fxRates.eurRon.toFixed(4) : '5.0000'}"></div>
-        <div class="fg"><label class="fl">&nbsp;</label><button class="btn-log" onclick="addInvoice()">+ Adaugă factură</button></div>
-      </div>
+      </details>
+    ` : ''}
+
+    ${hasWarnings ? `
+      <details class="log-section-panel warn" open>
+        <summary>Avertismente<span class="log-section-note">necesită verificare</span></summary>
+        <div class="log-section-body">${warningsHtml}</div>
+      </details>
     ` : ''}
   `;
 
