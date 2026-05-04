@@ -2520,16 +2520,53 @@ function renderLogisticsDashboard(){
   if(!box) return;
   renderLogisticsMonthFilterStrip();
   const months=getNextMonthOptions(12);
+  const monthKeys=months.map(m=>m.key);
   const agg={};
   months.forEach(m=>agg[m.key]={pickup:0,delivery:0,receivable:0,paid:0});
 
+  const monthRange=(start,end)=>{
+    if(!start && !end) return [];
+    let s=start || end;
+    let e=end || start;
+    if(s>e){ const tmp=s; s=e; e=tmp; }
+    const out=[];
+    const d=new Date(`${s}-01T00:00:00`);
+    const stop=new Date(`${e}-01T00:00:00`);
+    while(d<=stop && out.length<36){
+      out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+      d.setMonth(d.getMonth()+1);
+    }
+    return out;
+  };
+
+  const addPlannedQty=(c, flow)=>{
+    const allocations=(c.allocations||[]).filter(a=>Number(a.qty)>0);
+    if(allocations.length){
+      allocations.forEach(a=>{
+        if(!agg[a.month]) return;
+        if(flow==='pickup') agg[a.month].pickup += Number(a.qty)||0;
+        else agg[a.month].delivery += Number(a.qty)||0;
+      });
+      return;
+    }
+
+    // Fallback: dacă nu există alocare lunară, folosim perioada contractului.
+    // Asta prinde contractele DE LIVRAT care au perioadă, dar nu au alocări introduse.
+    const t=getLogTrade(c);
+    const qty=Number(t?.qty)||0;
+    if(qty<=0) return;
+    const range=monthRange(c.deliveryStartMonth, c.deliveryEndMonth).filter(m=>agg[m]);
+    if(!range.length) return;
+    const perMonth=qty/range.length;
+    range.forEach(m=>{
+      if(flow==='pickup') agg[m].pickup += perMonth;
+      else agg[m].delivery += perMonth;
+    });
+  };
+
   logisticsContracts.forEach(c=>{
     const flow=logFlow(c);
-    (c.allocations||[]).forEach(a=>{
-      if(!agg[a.month]) return;
-      if(flow==='pickup') agg[a.month].pickup += Number(a.qty)||0;
-      else agg[a.month].delivery += Number(a.qty)||0;
-    });
+    addPlannedQty(c, flow);
     if(flow==='delivery') (c.invoices||[]).forEach(inv=>{
       const m=ymFromDate(inv.dueDate || inv.invoiceDate);
       if(!agg[m]) return;
@@ -2547,7 +2584,7 @@ function renderLogisticsDashboard(){
   });
 
   if(!activeMonths.length){
-    box.innerHTML='<div class="log-empty">// nu există luni cu alocări sau facturi</div>';
+    box.innerHTML='<div class="log-empty">// nu există luni cu alocări, perioade sau facturi</div>';
     return;
   }
 
