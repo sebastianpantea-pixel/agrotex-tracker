@@ -2806,7 +2806,13 @@ function getFilteredLogisticsItems(){
 
 function logOverviewProductKey(c){
   const t=getLogTrade(c) || {};
-  return t.product || productKeyFromName(t.product || t.productName || '');
+  const raw = t.product || t.productName || '';
+  const n = normalizeTextLoose(raw);
+  if(['corn','porumb','pb','maize'].includes(n)) return 'corn';
+  if(['wheat','grau','grâu'].includes(n)) return 'wheat';
+  if(['rapeseed','rapita','rapița','rapita 2026','rapiță'].includes(n)) return 'rapeseed';
+  if(['sunflower','floarea soarelui','floarea-soarelui','floareasoarelui'].includes(n)) return 'sunflower';
+  return products[raw] ? raw : n;
 }
 function logOverviewStatusKey(c){
   if(c.problem) return 'problem';
@@ -4444,6 +4450,7 @@ function renderStockEditPanel(r){
       <div class="fg"><label class="fl">Observații</label><input id="stockEditNote" type="text" value="${escHtml(r.note||'')}"></div>
       <div class="stock-form-actions">
         <button class="btn-add" style="margin-top:0;" onclick="saveStockEditForm(${r.id})">Salvează modificări</button>
+        <button class="btn-sm btn-log-red" onclick="deleteStockEntry(${r.id})">Șterge poziția</button>
         <button class="btn-sm" onclick="cancelStockEdit()">Anulează editarea</button>
       </div>
     </div>`;
@@ -4513,6 +4520,7 @@ async function deleteStockEntry(id){
     const res=await fetch('/api/stock/entries/'+id,{method:'DELETE'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     await loadStockEntries();
+    cancelStockEdit();
     renderStock();
   }catch(e){alert('Eroare la ștergere stoc: '+e.message);}
 }
