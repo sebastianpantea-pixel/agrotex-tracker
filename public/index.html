@@ -619,6 +619,15 @@
   .stock-site-badge.agrotex{color:var(--old);border-color:rgba(147,188,232,.4);background:rgba(147,188,232,.08);}
   .stock-site-badge.tert{color:var(--acc);border-color:rgba(229,185,92,.4);background:rgba(229,185,92,.08);}
 
+  .stock-space-builder{display:flex;flex-direction:column;gap:7px;margin-top:2px;}
+  .stock-space-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--border);padding-top:8px;margin-top:2px;}
+  .stock-space-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;}
+  .stock-space-row{display:grid;grid-template-columns:1.15fr .8fr .85fr auto auto;gap:6px;align-items:end;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:7px;}
+  .stock-space-row input,.stock-space-row select{height:28px;padding:4px 6px;font-size:10px;}
+  .stock-space-zero{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;padding-bottom:6px;}
+  .stock-space-zero input{width:auto;accent-color:var(--acc);}
+  @media(max-width:900px){.stock-space-row{grid-template-columns:1fr 1fr}.stock-space-zero{padding-bottom:0}}
+
   /* Stock locations */
   #stockSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
   .stock-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
@@ -838,12 +847,11 @@
         <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteName" type="text" placeholder="BAZA APA, TERȚ SAM MILLS..."></div>
         <div class="fg"><label class="fl">Tip locație</label><select id="stockSiteType"><option value="agrotex">Bază Agrotex</option><option value="tert">Terț</option></select></div>
       </div>
-      <div class="fr fr3">
-        <div class="fg"><label class="fl">Magazie / siloz</label><input id="stockSiteSpace" type="text" placeholder="MAGAZIA 1, SILOZ 3..."></div>
-        <div class="fg"><label class="fl">Tip spațiu</label><select id="stockSiteStorageType"><option value="Magazie">Magazie</option><option value="Siloz">Siloz</option></select></div>
-        <div class="fg"><label class="fl">Capacitate spațiu (t)</label><input id="stockSiteCapacity" type="number" step="0.01" min="0" placeholder="ex: 2000"></div>
+      <div class="stock-space-head">
+        <div class="stock-space-title">Magazii / silozuri în această bază</div>
+        <button class="btn-sm" type="button" onclick="addStockSiteSpaceRow()">+ Spațiu</button>
       </div>
-      <label class="contract-check-row"><input id="stockSiteZero" type="checkbox"> Stoc 0, apare în dropdown și intră în capacitate</label>
+      <div class="stock-space-builder" id="stockSiteSpaces"></div>
       <div class="fg"><label class="fl">Observații</label><input id="stockSiteNote" type="text" placeholder="custodie, spațiu extern, detalii..."></div>
       <div class="stock-form-actions">
         <button class="btn-add" style="margin-top:0;" onclick="saveStockSiteForm()">+ Salvează locație</button>
@@ -3002,7 +3010,7 @@ function renderDirectDeliverySelect(c, selected=''){
       status=left>0 ? `rămas ${fmtN(left)} t` : `executat ${fmtN(moved)} / ${fmtN(qty)} t`;
     }
     const ctr=String(t?.note||'').trim();
-    const ctrLabel=ctr ? `Ctr ${ctr} · ` : '';
+    const ctrLabel=ctr ? `${ctr} · ` : `— · `;
     return `<option value="${item.id}" ${String(item.id)===String(selected)?'selected':''}>${escHtml(ctrLabel)}${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
   }).join('');
 }
@@ -4476,11 +4484,50 @@ function resetStockFilters(){
   document.getElementById('stockOnlyPositive').checked=true;
   renderStock();
 }
+function stockSiteSpaceRowHtml(row={}){
+  const uid='sp_'+Math.random().toString(36).slice(2,9);
+  const space=escHtml(row.space||'');
+  const storageType=row.storageType || stockTypeFromSpace(row.space) || 'Magazie';
+  const cap=(row.capacity!==undefined && row.capacity!==null && row.capacity!=='') ? row.capacity : '';
+  const zero=!!row.stockZero;
+  return `<div class="stock-space-row" data-stock-space-row="1">
+    <div class="fg"><label class="fl">Magazie / siloz</label><input data-site-space="space" type="text" value="${space}" placeholder="MAGAZIA 1, SILOZ 3..."></div>
+    <div class="fg"><label class="fl">Tip</label><select data-site-space="storageType"><option value="Magazie" ${storageType==='Magazie'?'selected':''}>Magazie</option><option value="Siloz" ${storageType==='Siloz'?'selected':''}>Siloz</option></select></div>
+    <div class="fg"><label class="fl">Capacitate (t)</label><input data-site-space="capacity" type="number" step="0.01" min="0" value="${escHtml(cap)}" placeholder="ex: 2000"></div>
+    <label class="stock-space-zero"><input data-site-space="stockZero" type="checkbox" ${zero?'checked':''}> stoc 0</label>
+    <button class="btn-del" type="button" onclick="removeStockSiteSpaceRow(this)">✕</button>
+  </div>`;
+}
+function ensureStockSiteSpaceRow(){
+  const box=document.getElementById('stockSiteSpaces');
+  if(box && !box.querySelector('[data-stock-space-row]')) box.innerHTML=stockSiteSpaceRowHtml({stockZero:false});
+}
+function addStockSiteSpaceRow(row={}){
+  const box=document.getElementById('stockSiteSpaces');
+  if(!box) return;
+  box.insertAdjacentHTML('beforeend', stockSiteSpaceRowHtml(row));
+}
+function removeStockSiteSpaceRow(btn){
+  const box=document.getElementById('stockSiteSpaces');
+  const row=btn.closest('[data-stock-space-row]');
+  if(row) row.remove();
+  ensureStockSiteSpaceRow();
+}
+function readStockSiteSpaceRows(){
+  const box=document.getElementById('stockSiteSpaces');
+  if(!box) return [];
+  return Array.from(box.querySelectorAll('[data-stock-space-row]')).map(row=>({
+    space:(row.querySelector('[data-site-space="space"]')?.value||'').trim(),
+    storageType:row.querySelector('[data-site-space="storageType"]')?.value || 'Magazie',
+    capacity:parseStockNumber(row.querySelector('[data-site-space="capacity"]')?.value),
+    stockZero:!!row.querySelector('[data-site-space="stockZero"]')?.checked,
+  })).filter(r=>r.space || r.capacity || r.stockZero);
+}
 function resetStockSiteForm(){
-  ['stockSiteId','stockSiteName','stockSiteSpace','stockSiteCapacity','stockSiteNote'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  ['stockSiteId','stockSiteName','stockSiteNote'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const t=document.getElementById('stockSiteType'); if(t) t.value='agrotex';
-  const st=document.getElementById('stockSiteStorageType'); if(st) st.value='Magazie';
-  const z=document.getElementById('stockSiteZero'); if(z) z.checked=false;
+  const box=document.getElementById('stockSiteSpaces'); if(box) box.innerHTML='';
+  ensureStockSiteSpaceRow();
   const btn=document.querySelector('#stockSiteList')?.closest('.stock-panel')?.querySelector('.btn-add');
   if(btn) btn.textContent='+ Salvează locație';
 }
@@ -4490,35 +4537,56 @@ function editStockSite(id){
   document.getElementById('stockSiteId').value=s.id;
   document.getElementById('stockSiteName').value=s.name||'';
   document.getElementById('stockSiteType').value=s.type||'agrotex';
-  document.getElementById('stockSiteSpace').value=s.space||'';
-  document.getElementById('stockSiteStorageType').value=s.storageType||stockTypeFromSpace(s.space)||'Magazie';
-  document.getElementById('stockSiteCapacity').value=s.capacity||'';
-  document.getElementById('stockSiteZero').checked=!!s.stockZero;
+  const box=document.getElementById('stockSiteSpaces');
+  if(box) box.innerHTML=stockSiteSpaceRowHtml({space:s.space||'',storageType:s.storageType||stockTypeFromSpace(s.space)||'Magazie',capacity:s.capacity||'',stockZero:!!s.stockZero});
   document.getElementById('stockSiteNote').value=s.note||'';
   const btn=document.querySelector('#stockSiteList')?.closest('.stock-panel')?.querySelector('.btn-add');
   if(btn) btn.textContent='Salvează modificări locație';
 }
 async function saveStockSiteForm(){
   const id=document.getElementById('stockSiteId').value;
-  const site={
-    name:document.getElementById('stockSiteName').value.trim(),
-    type:document.getElementById('stockSiteType').value,
-    space:document.getElementById('stockSiteSpace').value.trim(),
-    storageType:document.getElementById('stockSiteStorageType').value,
-    capacity:parseStockNumber(document.getElementById('stockSiteCapacity').value),
-    stockZero:document.getElementById('stockSiteZero').checked,
+  const baseName=document.getElementById('stockSiteName').value.trim();
+  const baseType=document.getElementById('stockSiteType').value;
+  const baseNote=document.getElementById('stockSiteNote').value.trim();
+  const spaces=readStockSiteSpaceRows();
+  if(!baseName){alert('Completează baza/terțul.');return;}
+  if(!spaces.length){alert('Adaugă cel puțin o magazie sau un siloz.');return;}
+  const localKeys=new Set();
+  for(const sp of spaces){
+    if(!sp.space){alert('Completează numele fiecărei magazii / fiecărui siloz.');return;}
+    const key=stockSitePhysicalKey({name:baseName,space:sp.space});
+    if(localKeys.has(key)){alert('Ai aceeași magazie/siloz introdusă de două ori în această bază.');return;}
+    localKeys.add(key);
+  }
+  const payloads=spaces.map(sp=>({
+    name:baseName,
+    type:baseType,
+    space:sp.space,
+    storageType:sp.storageType,
+    capacity:sp.capacity,
+    stockZero:!!sp.stockZero,
     active:true,
-    note:document.getElementById('stockSiteNote').value.trim(),
-  };
-  if(!site.name){alert('Completează baza/terțul.');return;}
-  if(!site.space){alert('Completează magazia/silozul.');return;}
-  const duplicate=stockSites.find(s=>stockSitePhysicalKey(s)===stockSitePhysicalKey(site) && String(s.id)!==String(id||''));
-  if(duplicate){alert('Există deja această bază/terț cu aceeași magazie/siloz.');return;}
+    note:baseNote,
+  }));
+  for(let i=0;i<payloads.length;i++){
+    const duplicate=stockSites.find(s=>stockSitePhysicalKey(s)===stockSitePhysicalKey(payloads[i]) && String(s.id)!==String(id||''));
+    if(duplicate){alert(`Există deja locația: ${payloads[i].name} / ${payloads[i].space}`);return;}
+  }
   try{
-    const url=id?'/api/stock/locations/'+id:'/api/stock/locations';
-    const method=id?'PUT':'POST';
-    const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(site)});
-    if(!res.ok) throw new Error('HTTP '+res.status);
+    if(id){
+      const first=payloads[0];
+      const res=await fetch('/api/stock/locations/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(first)});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      for(const extra of payloads.slice(1)){
+        const r=await fetch('/api/stock/locations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(extra)});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+      }
+    }else{
+      for(const site of payloads){
+        const res=await fetch('/api/stock/locations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(site)});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+      }
+    }
     resetStockSiteForm();
     await loadStockSites();
     renderStock();
@@ -4544,6 +4612,7 @@ async function deleteStockSite(id){
   }catch(e){alert('Eroare la ștergere locație: '+e.message);}
 }
 function renderStockSitesList(){
+  ensureStockSiteSpaceRow();
   const box=document.getElementById('stockSiteList');
   if(!box) return;
   if(!stockSites.length){
@@ -4583,7 +4652,7 @@ function exportStockReport(){
   const ws=XLSX.utils.aoa_to_sheet(data);
   ws['!cols']=[12,22,12,18,10,16,10,12,14,10,10,10,10,24,28].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws,'Stocuri');
-  const sitesData=[['nume_locatie','tip_locatie','capacitate_t','activ','observatii']];
+  const sitesData=[['baza_tert','tip_locatie','spatiu','tip_spatiu','capacitate_t','stoc_0','observatii']];
   stockSites.forEach(s=>sitesData.push([s.name||'',stockSiteTypeLabel(s.type),s.space||'',s.storageType||'',Number(s.capacity)||0,s.stockZero?'da':'nu',s.note||'']));
   const wsSites=XLSX.utils.aoa_to_sheet(sitesData);
   wsSites['!cols']=[24,16,14,10,28].map(w=>({wch:w}));
