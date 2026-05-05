@@ -593,6 +593,18 @@
   .tr-incomplete:hover td{background:rgba(233,133,133,.075) !important;}
   .water-phase-select{background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 6px;min-width:210px;}
 
+  /* Logistics month overview in main panel */
+  .log-month-overview{display:flex;flex-direction:column;gap:10px;}
+  .log-month-overview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+  .log-month-overview-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;}
+  .log-month-overview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;}
+  .log-month-overview-item{border:1px solid var(--border);background:var(--surface2);border-radius:5px;padding:10px;cursor:pointer;transition:all .15s;}
+  .log-month-overview-item:hover{border-color:var(--acc);background:rgba(245,158,11,.07);}
+  .log-month-overview-name{font-size:12px;font-weight:800;color:var(--bright);line-height:1.35;}
+  .log-month-overview-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.55;margin-top:5px;}
+  .log-month-overview-stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
+
+
   /* Stock locations */
   #stockSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
   .stock-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
@@ -2560,7 +2572,14 @@ function monthHasLogActivity(c, month){
   const allocMatch=(c.allocations||[]).some(a=>a.month===month && Number(a.qty)>0);
   const invoiceMatch=logFlow(c)==='delivery' && (c.invoices||[]).some(inv=>ymFromDate(inv.dueDate || inv.invoiceDate)===month);
   const movementMatch=(c.movements||[]).some(m=>ymFromDate(m.date)===month);
-  return allocMatch || invoiceMatch || movementMatch;
+
+  // Dacă nu există alocări sau mișcări, dar contractul are perioadă,
+  // luna trebuie să apară și în lista filtrată, nu doar în cardul de sus.
+  const start=c.deliveryStartMonth || c.deliveryEndMonth;
+  const end=c.deliveryEndMonth || c.deliveryStartMonth;
+  const periodMatch=start && end && month>=start && month<=end;
+
+  return allocMatch || invoiceMatch || movementMatch || periodMatch;
 }
 function logisticsSearchHaystack(c){
   const t=getLogTrade(c) || {};
@@ -2576,15 +2595,18 @@ function logisticsSearchHaystack(c){
 }
 function setLogisticsMonthFilter(month){
   logisticsMonthFilter = month || null;
+  selectedLogisticsId = null;
   renderLogisticsDashboard();
   renderLogisticsList();
-  const list=document.getElementById('logisticsList');
-  if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
+  renderLogisticsDetail();
+  const detail=document.getElementById('logisticsDetail');
+  if(detail) detail.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function clearLogisticsMonthFilter(){
   logisticsMonthFilter = null;
   renderLogisticsDashboard();
   renderLogisticsList();
+  renderLogisticsDetail();
 }
 function renderLogisticsMonthFilterStrip(){
   const strip=document.getElementById('logisticsMonthFilterStrip');
@@ -2688,9 +2710,7 @@ function renderLogisticsDashboard(){
     </div>`;
   }).join('');
 }
-function renderLogisticsList(){
-  const box=document.getElementById('logisticsList');
-  if(!box) return;
+function getFilteredLogisticsItems(){
   let items=[...logisticsContracts];
   const f=window.logisticsFilter || 'all';
   if(f==='pickup') items=items.filter(c=>logFlow(c)==='pickup');
@@ -2700,6 +2720,52 @@ function renderLogisticsList(){
   if(logisticsMonthFilter) items=items.filter(c=>monthHasLogActivity(c, logisticsMonthFilter));
   logisticsListSearch = document.getElementById('logisticsListSearch')?.value || '';
   if(searchTokens(logisticsListSearch).length) items=items.filter(c=>matchesSearch(logisticsSearchHaystack(c), logisticsListSearch));
+  return items;
+}
+
+function renderLogisticsMonthOverview(){
+  const items=getFilteredLogisticsItems();
+  if(!logisticsMonthFilter){
+    return '<div class="log-empty">// selectează sau creează un contract logistic</div>';
+  }
+  const title=monthLabel(logisticsMonthFilter);
+  if(!items.length){
+    return `<div class="log-month-overview"><div class="log-month-overview-head"><div class="log-month-overview-title">Contracte pentru ${title}</div><button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button></div><div class="log-empty">// nu există contracte pentru luna selectată</div></div>`;
+  }
+  return `<div class="log-month-overview">
+    <div class="log-month-overview-head">
+      <div>
+        <div class="log-month-overview-title">Contracte filtrate pentru ${title}</div>
+        <div class="log-muted">${items.length} contracte găsite. Alege un contract pentru editare.</div>
+      </div>
+      <button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button>
+    </div>
+    <div class="log-month-overview-grid">
+      ${items.map(c=>{
+        const t=getLogTrade(c);
+        const moved=movementQty(c);
+        const qty=t ? Number(t.qty)||0 : 0;
+        const left=Math.max(0,qty-moved);
+        const flow=logFlow(c);
+        const st=computedLogStatus(c);
+        const flowBadge=flow==='pickup'
+          ? '<span class="log-badge pickup">DE RIDICAT</span>'
+          : '<span class="log-badge delivery">DE LIVRAT</span>';
+        const dueBadge=hasDueInvoice(c)?'<span class="log-badge warn">factură scadentă</span>':'';
+        return `<div class="log-month-overview-item" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail();renderLogisticsList();document.getElementById('logisticsDetail')?.scrollIntoView({behavior:'smooth',block:'center'});">
+          <div class="log-month-overview-name">${flowBadge} ${logContractName(c)}</div>
+          <div class="log-month-overview-meta">${monthLabel(c.deliveryStartMonth||'')} → ${monthLabel(c.deliveryEndMonth||'')} · executat ${fmtN(moved)} t · rămas ${fmtN(left)} t</div>
+          <div class="log-month-overview-stats"><span class="log-badge ${st.cls}">${st.label}</span>${dueBadge}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderLogisticsList(){
+  const box=document.getElementById('logisticsList');
+  if(!box) return;
+  let items=getFilteredLogisticsItems();
 
   const miniCount=document.getElementById('logContractsCountMini');
   if(miniCount) miniCount.textContent=String(items.length);
@@ -2925,7 +2991,7 @@ function renderLogisticsDetail(){
   const c=getLogContract(selectedLogisticsId);
 
   if(!c){
-    detail.innerHTML='<div class="log-empty">// selectează sau creează un contract logistic</div>';
+    detail.innerHTML=renderLogisticsMonthOverview();
     return;
   }
 
