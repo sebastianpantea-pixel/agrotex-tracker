@@ -3001,7 +3001,9 @@ function renderDirectDeliverySelect(c, selected=''){
       const left=Math.max(0,qty-moved);
       status=left>0 ? `rămas ${fmtN(left)} t` : `executat ${fmtN(moved)} / ${fmtN(qty)} t`;
     }
-    return `<option value="${item.id}" ${String(item.id)===String(selected)?'selected':''}>${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
+    const ctr=String(t?.note||'').trim();
+    const ctrLabel=ctr ? `Ctr ${ctr} · ` : '';
+    return `<option value="${item.id}" ${String(item.id)===String(selected)?'selected':''}>${escHtml(ctrLabel)}${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
   }).join('');
 }
 async function createDeliveryLogisticsFromTradeId(tradeId, pickupContract=null){
