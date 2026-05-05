@@ -619,14 +619,13 @@
   .stock-site-badge.agrotex{color:var(--old);border-color:rgba(147,188,232,.4);background:rgba(147,188,232,.08);}
   .stock-site-badge.tert{color:var(--acc);border-color:rgba(229,185,92,.4);background:rgba(229,185,92,.08);}
 
-  .stock-space-builder{display:flex;flex-direction:column;gap:7px;margin-top:2px;}
-  .stock-space-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--border);padding-top:8px;margin-top:2px;}
-  .stock-space-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;}
-  .stock-space-row{display:grid;grid-template-columns:1.15fr .8fr .85fr auto auto;gap:6px;align-items:end;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:7px;}
-  .stock-space-row input,.stock-space-row select{height:28px;padding:4px 6px;font-size:10px;}
-  .stock-space-zero{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;padding-bottom:6px;}
-  .stock-space-zero input{width:auto;accent-color:var(--acc);}
-  @media(max-width:900px){.stock-space-row{grid-template-columns:1fr 1fr}.stock-space-zero{padding-bottom:0}}
+
+  .stock-site-space-box{border:1px solid var(--border);background:rgba(255,255,255,.015);border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:7px;}
+  .stock-site-space-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .stock-site-space-row{display:grid;grid-template-columns:1.2fr .85fr .8fr auto auto;gap:6px;align-items:end;}
+  .stock-site-zero-label{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;padding-bottom:7px;}
+  .stock-site-zero-label input{width:auto;accent-color:var(--acc);}
+  @media(max-width:800px){.stock-site-space-row{grid-template-columns:1fr 1fr}.stock-site-zero-label{padding-bottom:0}}
 
   /* Stock locations */
   #stockSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
@@ -847,12 +846,11 @@
         <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteName" type="text" placeholder="BAZA APA, TERȚ SAM MILLS..."></div>
         <div class="fg"><label class="fl">Tip locație</label><select id="stockSiteType"><option value="agrotex">Bază Agrotex</option><option value="tert">Terț</option></select></div>
       </div>
-      <div class="stock-space-head">
-        <div class="stock-space-title">Magazii / silozuri în această bază</div>
-        <button class="btn-sm" type="button" onclick="addStockSiteSpaceRow()">+ Spațiu</button>
+      <div class="stock-site-space-box">
+        <div class="stock-site-space-head"><span>Magazii / silozuri</span><button class="btn-sm" onclick="addStockSiteSpaceRow()">+ Spațiu</button></div>
+        <div id="stockSiteSpaces"></div>
       </div>
-      <div class="stock-space-builder" id="stockSiteSpaces"></div>
-      <div class="fg"><label class="fl">Observații</label><input id="stockSiteNote" type="text" placeholder="custodie, spațiu extern, detalii..."></div>
+      <div class="fg"><label class="fl">Observații bază / terț</label><input id="stockSiteNote" type="text" placeholder="custodie, spațiu extern, detalii..."></div>
       <div class="stock-form-actions">
         <button class="btn-add" style="margin-top:0;" onclick="saveStockSiteForm()">+ Salvează locație</button>
         <button class="btn-sm" onclick="resetStockSiteForm()">Reset</button>
@@ -1579,6 +1577,7 @@ async function loadAll(){
   await loadLogistics();
   await loadStockSites();
   await loadStockEntries();
+  resetStockSiteForm();
   render();
 }
 
@@ -3009,8 +3008,11 @@ function renderDirectDeliverySelect(c, selected=''){
       const left=Math.max(0,qty-moved);
       status=left>0 ? `rămas ${fmtN(left)} t` : `executat ${fmtN(moved)} / ${fmtN(qty)} t`;
     }
-    const ctr=String(t?.note||'').trim();
-    const ctrLabel=ctr ? `${ctr} · ` : `— · `;
+    const realTrade=item.type==='contract'
+      ? trades.find(x=>String(x.id)===String(item.contract?.tradeId || item.trade?.id || ''))
+      : item.trade;
+    const ctr=String(realTrade?.note || item.contract?.contractNo || item.contract?.contractNumber || item.contract?.note || t?.note || '').trim();
+    const ctrLabel=ctr ? `${ctr} · ` : '— · ';
     return `<option value="${item.id}" ${String(item.id)===String(selected)?'selected':''}>${escHtml(ctrLabel)}${escHtml(t?.cpty||'Client')} · ${escHtml(p.name)} ${escHtml(t?.crop||'')} · ${status}</option>`;
   }).join('');
 }
@@ -4484,50 +4486,43 @@ function resetStockFilters(){
   document.getElementById('stockOnlyPositive').checked=true;
   renderStock();
 }
-function stockSiteSpaceRowHtml(row={}){
-  const uid='sp_'+Math.random().toString(36).slice(2,9);
-  const space=escHtml(row.space||'');
-  const storageType=row.storageType || stockTypeFromSpace(row.space) || 'Magazie';
-  const cap=(row.capacity!==undefined && row.capacity!==null && row.capacity!=='') ? row.capacity : '';
-  const zero=!!row.stockZero;
-  return `<div class="stock-space-row" data-stock-space-row="1">
-    <div class="fg"><label class="fl">Magazie / siloz</label><input data-site-space="space" type="text" value="${space}" placeholder="MAGAZIA 1, SILOZ 3..."></div>
-    <div class="fg"><label class="fl">Tip</label><select data-site-space="storageType"><option value="Magazie" ${storageType==='Magazie'?'selected':''}>Magazie</option><option value="Siloz" ${storageType==='Siloz'?'selected':''}>Siloz</option></select></div>
-    <div class="fg"><label class="fl">Capacitate (t)</label><input data-site-space="capacity" type="number" step="0.01" min="0" value="${escHtml(cap)}" placeholder="ex: 2000"></div>
-    <label class="stock-space-zero"><input data-site-space="stockZero" type="checkbox" ${zero?'checked':''}> stoc 0</label>
-    <button class="btn-del" type="button" onclick="removeStockSiteSpaceRow(this)">✕</button>
+function stockSiteSpaceRowHtml(row={}, idx=0, locked=false){
+  return `<div class="stock-site-space-row">
+    <div class="fg"><label class="fl">Magazie / siloz</label><input class="stockSiteSpaceInput" type="text" value="${escHtml(row.space||'')}" placeholder="MAGAZIA 1, SILOZ 3..."></div>
+    <div class="fg"><label class="fl">Tip spațiu</label><select class="stockSiteStorageTypeInput"><option value="Magazie" ${String(row.storageType||'Magazie')==='Magazie'?'selected':''}>Magazie</option><option value="Siloz" ${String(row.storageType||'')==='Siloz'?'selected':''}>Siloz</option></select></div>
+    <div class="fg"><label class="fl">Capacitate t</label><input class="stockSiteCapacityInput" type="number" step="0.01" min="0" value="${escHtml(row.capacity ?? '')}" placeholder="ex: 2000"></div>
+    <label class="stock-site-zero-label"><input class="stockSiteZeroInput" type="checkbox" ${row.stockZero?'checked':''}> stoc 0</label>
+    <button class="btn-del" onclick="removeStockSiteSpaceRow(this)" title="Șterge spațiul" ${locked?'style="visibility:hidden"':''}>✕</button>
   </div>`;
 }
-function ensureStockSiteSpaceRow(){
+function renderStockSiteSpaceRows(rows=[{}], locked=false){
   const box=document.getElementById('stockSiteSpaces');
-  if(box && !box.querySelector('[data-stock-space-row]')) box.innerHTML=stockSiteSpaceRowHtml({stockZero:false});
+  if(!box) return;
+  const list=rows.length?rows:[{}];
+  box.innerHTML=list.map((r,i)=>stockSiteSpaceRowHtml(r,i,locked && list.length===1)).join('');
 }
 function addStockSiteSpaceRow(row={}){
   const box=document.getElementById('stockSiteSpaces');
   if(!box) return;
-  box.insertAdjacentHTML('beforeend', stockSiteSpaceRowHtml(row));
+  box.insertAdjacentHTML('beforeend', stockSiteSpaceRowHtml(row, box.children.length, false));
 }
 function removeStockSiteSpaceRow(btn){
+  const row=btn.closest('.stock-site-space-row');
   const box=document.getElementById('stockSiteSpaces');
-  const row=btn.closest('[data-stock-space-row]');
-  if(row) row.remove();
-  ensureStockSiteSpaceRow();
+  if(row && box && box.children.length>1) row.remove();
 }
 function readStockSiteSpaceRows(){
-  const box=document.getElementById('stockSiteSpaces');
-  if(!box) return [];
-  return Array.from(box.querySelectorAll('[data-stock-space-row]')).map(row=>({
-    space:(row.querySelector('[data-site-space="space"]')?.value||'').trim(),
-    storageType:row.querySelector('[data-site-space="storageType"]')?.value || 'Magazie',
-    capacity:parseStockNumber(row.querySelector('[data-site-space="capacity"]')?.value),
-    stockZero:!!row.querySelector('[data-site-space="stockZero"]')?.checked,
+  return [...document.querySelectorAll('#stockSiteSpaces .stock-site-space-row')].map(row=>({
+    space:row.querySelector('.stockSiteSpaceInput')?.value.trim() || '',
+    storageType:row.querySelector('.stockSiteStorageTypeInput')?.value || 'Magazie',
+    capacity:parseStockNumber(row.querySelector('.stockSiteCapacityInput')?.value || ''),
+    stockZero:!!row.querySelector('.stockSiteZeroInput')?.checked,
   })).filter(r=>r.space || r.capacity || r.stockZero);
 }
 function resetStockSiteForm(){
   ['stockSiteId','stockSiteName','stockSiteNote'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const t=document.getElementById('stockSiteType'); if(t) t.value='agrotex';
-  const box=document.getElementById('stockSiteSpaces'); if(box) box.innerHTML='';
-  ensureStockSiteSpaceRow();
+  renderStockSiteSpaceRows([{}], true);
   const btn=document.querySelector('#stockSiteList')?.closest('.stock-panel')?.querySelector('.btn-add');
   if(btn) btn.textContent='+ Salvează locație';
 }
@@ -4537,9 +4532,13 @@ function editStockSite(id){
   document.getElementById('stockSiteId').value=s.id;
   document.getElementById('stockSiteName').value=s.name||'';
   document.getElementById('stockSiteType').value=s.type||'agrotex';
-  const box=document.getElementById('stockSiteSpaces');
-  if(box) box.innerHTML=stockSiteSpaceRowHtml({space:s.space||'',storageType:s.storageType||stockTypeFromSpace(s.space)||'Magazie',capacity:s.capacity||'',stockZero:!!s.stockZero});
   document.getElementById('stockSiteNote').value=s.note||'';
+  renderStockSiteSpaceRows([{
+    space:s.space||'',
+    storageType:s.storageType||stockTypeFromSpace(s.space)||'Magazie',
+    capacity:s.capacity||'',
+    stockZero:!!s.stockZero,
+  }], true);
   const btn=document.querySelector('#stockSiteList')?.closest('.stock-panel')?.querySelector('.btn-add');
   if(btn) btn.textContent='Salvează modificări locație';
 }
@@ -4547,42 +4546,31 @@ async function saveStockSiteForm(){
   const id=document.getElementById('stockSiteId').value;
   const baseName=document.getElementById('stockSiteName').value.trim();
   const baseType=document.getElementById('stockSiteType').value;
-  const baseNote=document.getElementById('stockSiteNote').value.trim();
+  const note=document.getElementById('stockSiteNote').value.trim();
   const spaces=readStockSiteSpaceRows();
   if(!baseName){alert('Completează baza/terțul.');return;}
   if(!spaces.length){alert('Adaugă cel puțin o magazie sau un siloz.');return;}
-  const localKeys=new Set();
+  const invalid=spaces.find(x=>!x.space);
+  if(invalid){alert('Completează numele fiecărei magazii/siloz.');return;}
+  const seen=new Set();
   for(const sp of spaces){
-    if(!sp.space){alert('Completează numele fiecărei magazii / fiecărui siloz.');return;}
-    const key=stockSitePhysicalKey({name:baseName,space:sp.space});
-    if(localKeys.has(key)){alert('Ai aceeași magazie/siloz introdusă de două ori în această bază.');return;}
-    localKeys.add(key);
-  }
-  const payloads=spaces.map(sp=>({
-    name:baseName,
-    type:baseType,
-    space:sp.space,
-    storageType:sp.storageType,
-    capacity:sp.capacity,
-    stockZero:!!sp.stockZero,
-    active:true,
-    note:baseNote,
-  }));
-  for(let i=0;i<payloads.length;i++){
-    const duplicate=stockSites.find(s=>stockSitePhysicalKey(s)===stockSitePhysicalKey(payloads[i]) && String(s.id)!==String(id||''));
-    if(duplicate){alert(`Există deja locația: ${payloads[i].name} / ${payloads[i].space}`);return;}
+    const k=normalizeTextLoose(sp.space);
+    if(seen.has(k)){alert('Ai aceeași magazie/siloz de două ori în aceeași bază.');return;}
+    seen.add(k);
   }
   try{
     if(id){
-      const first=payloads[0];
-      const res=await fetch('/api/stock/locations/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(first)});
+      const sp=spaces[0];
+      const site={name:baseName,type:baseType,space:sp.space,storageType:sp.storageType,capacity:sp.capacity,stockZero:sp.stockZero,active:true,note};
+      const duplicate=stockSites.find(s=>stockSitePhysicalKey(s)===stockSitePhysicalKey(site) && String(s.id)!==String(id||''));
+      if(duplicate){alert('Există deja această bază/terț cu aceeași magazie/siloz.');return;}
+      const res=await fetch('/api/stock/locations/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(site)});
       if(!res.ok) throw new Error('HTTP '+res.status);
-      for(const extra of payloads.slice(1)){
-        const r=await fetch('/api/stock/locations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(extra)});
-        if(!r.ok) throw new Error('HTTP '+r.status);
-      }
     }else{
-      for(const site of payloads){
+      const sites=spaces.map(sp=>({name:baseName,type:baseType,space:sp.space,storageType:sp.storageType,capacity:sp.capacity,stockZero:sp.stockZero,active:true,note}));
+      const dup=sites.find(site=>stockSites.some(s=>stockSitePhysicalKey(s)===stockSitePhysicalKey(site)));
+      if(dup){alert('Există deja locația: '+dup.name+' / '+dup.space);return;}
+      for(const site of sites){
         const res=await fetch('/api/stock/locations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(site)});
         if(!res.ok) throw new Error('HTTP '+res.status);
       }
@@ -4612,7 +4600,6 @@ async function deleteStockSite(id){
   }catch(e){alert('Eroare la ștergere locație: '+e.message);}
 }
 function renderStockSitesList(){
-  ensureStockSiteSpaceRow();
   const box=document.getElementById('stockSiteList');
   if(!box) return;
   if(!stockSites.length){
@@ -4652,7 +4639,7 @@ function exportStockReport(){
   const ws=XLSX.utils.aoa_to_sheet(data);
   ws['!cols']=[12,22,12,18,10,16,10,12,14,10,10,10,10,24,28].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws,'Stocuri');
-  const sitesData=[['baza_tert','tip_locatie','spatiu','tip_spatiu','capacitate_t','stoc_0','observatii']];
+  const sitesData=[['nume_locatie','tip_locatie','capacitate_t','activ','observatii']];
   stockSites.forEach(s=>sitesData.push([s.name||'',stockSiteTypeLabel(s.type),s.space||'',s.storageType||'',Number(s.capacity)||0,s.stockZero?'da':'nu',s.note||'']));
   const wsSites=XLSX.utils.aoa_to_sheet(sitesData);
   wsSites['!cols']=[24,16,14,10,28].map(w=>({wch:w}));
