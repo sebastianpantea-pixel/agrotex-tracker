@@ -799,44 +799,7 @@
 
   <div class="stock-dashboard" id="stockDashboard"></div>
 
-  <div class="stock-grid" style="grid-template-columns:430px 1fr;">
-    <div class="stock-left-stack">
-      <div class="stock-panel">
-        <div class="stock-title">Adaugă stoc nou</div>
-        <div class="stock-muted">Alegi locul deja creat. Pentru baze se alege direct magazia/silozul. Pentru terți se alege terțul simplu.</div>
-        <div class="fr fr2">
-          <div class="fg"><label class="fl">Data stocului</label><input id="stockDate" type="date"></div>
-          <div class="fg"><label class="fl">Loc stocare</label><select id="stockBase" onchange="applyStockSiteToForm('stock')"><option value="">Alege locul...</option></select></div>
-        </div>
-        <div class="fr fr3">
-          <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteBaseView" type="text" readonly placeholder="din registru"></div>
-          <div class="fg"><label class="fl">Spațiu</label><input id="stockSpace" type="text" readonly placeholder="doar la baze"></div>
-          <div class="fg"><label class="fl">Tip</label><input id="stockType" type="text" readonly placeholder="Magazie / Siloz / Terț"></div>
-        </div>
-        <div class="fr fr3">
-          <div class="fg"><label class="fl">Produs</label><select id="stockProduct"></select></div>
-          <div class="fg"><label class="fl">Recoltă</label><select id="stockCrop"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select></div>
-          <div class="fg"><label class="fl">Cantitate (t)</label><input id="stockQty" type="number" step="0.01" min="0"></div>
-        </div>
-        <div class="fr fr3">
-          <input id="stockCapacity" type="hidden">
-          <div class="fg"><label class="fl">Capacitate loc</label><input id="stockCapacityView" type="text" readonly placeholder="din registru"></div>
-          <div class="fg"><label class="fl">Proteină</label><input id="stockProtein" type="number" step="0.01" min="0"></div>
-          <div class="fg"><label class="fl">HL</label><input id="stockHl" type="number" step="0.01" min="0"></div>
-        </div>
-        <div class="fr fr3">
-          <div class="fg"><label class="fl">Umiditate</label><input id="stockHumidity" type="number" step="0.01" min="0"></div>
-          <div class="fg"><label class="fl">Oil / ulei</label><input id="stockOil" type="number" step="0.01" min="0"></div>
-          <div class="fg"><label class="fl">Calitate text</label><input id="stockQuality" type="text" placeholder="ex: panificație, furaj, custodie..."></div>
-        </div>
-        <div class="fg"><label class="fl">Observații</label><input id="stockNote" type="text" placeholder="custodie, marfă blocată, detalii..."></div>
-        <div class="stock-form-actions">
-          <button class="btn-add" style="margin-top:0;" onclick="saveStockEntryForm()">+ Adaugă stoc</button>
-          <button class="btn-sm" onclick="resetStockEntryForm()">Reset</button>
-        </div>
-      </div>
-    </div>
-
+  <div class="stock-grid" style="grid-template-columns:1fr;">
     <div class="stock-left-stack">
       <div class="stock-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -1324,7 +1287,7 @@
 </div>
 
 <div class="overlay" id="modStockSiteEdit">
-  <div class="modal" style="width:560px;max-width:98vw;">
+  <div class="modal" style="width:820px;max-width:98vw;">
     <div class="mtitle">Editează locație <span id="stockSiteEditIdLabel" style="color:var(--dim);font-size:10px;font-weight:400"></span></div>
     <input type="hidden" id="stockSiteEditId">
     <input type="hidden" id="stockSiteEditMode">
@@ -1341,7 +1304,30 @@
       </div>
       <label class="contract-check-row"><input id="stockSiteEditZero" type="checkbox"> Stoc 0, intră în capacitate și poate fi ales în dropdown</label>
     </div>
-    <div class="fg"><label class="fl">Observații</label><input id="stockSiteEditNote" type="text" placeholder="detalii..."></div>
+    <div class="fg"><label class="fl">Observații locație</label><input id="stockSiteEditNote" type="text" placeholder="detalii locație..."></div>
+
+    <div id="stockSiteEditStockFields" style="border-top:1px solid var(--border);padding-top:10px;margin-top:2px;">
+      <div class="stock-title" style="margin-bottom:7px;">Stoc curent pe acest loc</div>
+      <input type="hidden" id="stockSiteEditStockEntryId">
+      <div class="fr fr4">
+        <div class="fg"><label class="fl">Data stocului</label><input id="stockSiteEditStockDate" type="date"></div>
+        <div class="fg"><label class="fl">Produs</label><select id="stockSiteEditStockProduct"></select></div>
+        <div class="fg"><label class="fl">Recoltă</label><select id="stockSiteEditStockCrop"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
+        <div class="fg"><label class="fl">Cantitate (t)</label><input id="stockSiteEditStockQty" type="number" step="0.01" min="0"></div>
+      </div>
+      <div class="fr fr4">
+        <div class="fg"><label class="fl">Proteină</label><input id="stockSiteEditStockProtein" type="number" step="0.01" min="0"></div>
+        <div class="fg"><label class="fl">HL</label><input id="stockSiteEditStockHl" type="number" step="0.01" min="0"></div>
+        <div class="fg"><label class="fl">Umiditate</label><input id="stockSiteEditStockHumidity" type="number" step="0.01" min="0"></div>
+        <div class="fg"><label class="fl">Oil / ulei</label><input id="stockSiteEditStockOil" type="number" step="0.01" min="0"></div>
+      </div>
+      <div class="fr fr2">
+        <div class="fg"><label class="fl">Calitate text</label><input id="stockSiteEditStockQuality" type="text" placeholder="ex: panificație, furaj..."></div>
+        <div class="fg"><label class="fl">Observații stoc</label><input id="stockSiteEditStockNote" type="text" placeholder="custodie, marfă blocată..."></div>
+      </div>
+      <div class="stock-muted">Pentru spații goale lasă cantitatea 0 sau goală și bifează Stoc 0.</div>
+    </div>
+
     <div class="mbtns">
       <button class="btn-sm btn-log-red" onclick="deleteStockSiteFromModal()" style="margin-right:auto;">Șterge locația</button>
       <button class="btn-cancel" onclick="closeModal('modStockSiteEdit')">Anulează</button>
@@ -4217,7 +4203,7 @@ function stockProductOptions(selected=''){
   return base+`<option value="soy" ${selected==='soy'?'selected':''}>🌱 Soia</option><option value="barley" ${selected==='barley'?'selected':''}>🌾 Orz</option><option value="triticale" ${selected==='triticale'?'selected':''}>🌾 Triticale</option>`;
 }
 function populateStockProductSelect(){
-  ['stockProduct','stockEditProduct'].forEach(id=>{
+  ['stockProduct','stockEditProduct','stockSiteEditStockProduct'].forEach(id=>{
     const sel=document.getElementById(id); if(!sel) return;
     const cur=sel.value; sel.innerHTML=stockProductOptions(cur); if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
   });
@@ -4341,6 +4327,7 @@ function onStockSiteEditTypeChange(){
   if(box) box.style.display=(type==='tert' || isLocationMode)?'none':'block';
   if(typeSel) typeSel.disabled=isSpaceMode;
   if(nameInput) nameInput.readOnly=isSpaceMode;
+  updateStockSiteStockFieldsVisibility();
 }
 function stockSiteSpaceRowHtml(row={}){
   return `<div class="stock-site-space-row">
@@ -4409,6 +4396,7 @@ function openNewStockLocationModal(){
   document.getElementById('stockSiteEditCapacity').value='';
   document.getElementById('stockSiteEditZero').checked=true;
   document.getElementById('stockSiteEditNote').value='';
+  clearStockSiteStockFields();
   const del=document.querySelector('#modStockSiteEdit .btn-log-red'); if(del) del.style.display='none';
   onStockSiteEditTypeChange();
   document.getElementById('modStockSiteEdit')?.classList.add('open');
@@ -4430,9 +4418,106 @@ function openNewStockSpaceModal(baseName){
   document.getElementById('stockSiteEditCapacity').value='';
   document.getElementById('stockSiteEditZero').checked=true;
   document.getElementById('stockSiteEditNote').value='';
+  clearStockSiteStockFields();
   const del=document.querySelector('#modStockSiteEdit .btn-log-red'); if(del) del.style.display='none';
   onStockSiteEditTypeChange();
   document.getElementById('modStockSiteEdit')?.classList.add('open');
+}
+
+function stockEntriesForSite(site){
+  if(!site) return [];
+  return stockEntries.filter(r=>{
+    if(r.baseSiteId && String(r.baseSiteId)===String(site.id)) return true;
+    if(stockBaseKey(r.base)!==stockBaseKey(site.name)) return false;
+    if(site.type==='tert') return true;
+    return normalizeTextLoose(r.space||'')===normalizeTextLoose(site.space||'');
+  });
+}
+function primaryStockEntryForSite(site){
+  const rows=stockEntriesForSite(site);
+  if(!rows.length) return null;
+  return rows.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || Number(b.id||0)-Number(a.id||0))[0];
+}
+function clearStockSiteStockFields(){
+  const vals={
+    stockSiteEditStockEntryId:'',
+    stockSiteEditStockDate:today(),
+    stockSiteEditStockProduct:'wheat',
+    stockSiteEditStockCrop:'2026',
+    stockSiteEditStockQty:'',
+    stockSiteEditStockProtein:'',
+    stockSiteEditStockHl:'',
+    stockSiteEditStockHumidity:'',
+    stockSiteEditStockOil:'',
+    stockSiteEditStockQuality:'',
+    stockSiteEditStockNote:''
+  };
+  Object.entries(vals).forEach(([id,val])=>{const el=document.getElementById(id); if(el) el.value=val;});
+  populateStockProductSelect();
+}
+function fillStockSiteStockFields(site){
+  clearStockSiteStockFields();
+  const row=primaryStockEntryForSite(site);
+  if(!row) return;
+  const set=(id,val)=>{const el=document.getElementById(id); if(el) el.value=val ?? '';};
+  set('stockSiteEditStockEntryId', row.id||'');
+  set('stockSiteEditStockDate', row.date||today());
+  set('stockSiteEditStockProduct', row.product||'wheat');
+  set('stockSiteEditStockCrop', row.crop||'2026');
+  set('stockSiteEditStockQty', row.qty ?? '');
+  set('stockSiteEditStockProtein', row.protein ?? '');
+  set('stockSiteEditStockHl', row.hl ?? '');
+  set('stockSiteEditStockHumidity', row.humidity ?? '');
+  set('stockSiteEditStockOil', row.oil ?? '');
+  set('stockSiteEditStockQuality', row.quality || '');
+  set('stockSiteEditStockNote', row.note || '');
+}
+function shouldShowStockFieldsForSiteModal(){
+  const mode=document.getElementById('stockSiteEditMode')?.value || '';
+  const type=document.getElementById('stockSiteEditType')?.value || 'agrotex';
+  const isBaseOnly=(type==='agrotex' && (mode==='new_location' || mode==='edit_base'));
+  return !isBaseOnly;
+}
+function updateStockSiteStockFieldsVisibility(){
+  const box=document.getElementById('stockSiteEditStockFields');
+  if(box) box.style.display=shouldShowStockFieldsForSiteModal()?'block':'none';
+}
+function buildStockEntryFromSiteModal(site, existingId=''){
+  return {
+    date:document.getElementById('stockSiteEditStockDate')?.value || today(),
+    base:site?.name || '',
+    baseSiteId:site?.id || existingId || '',
+    baseType:site?.type || '',
+    space:site?.type==='tert'?'':site?.space || '',
+    type:site?.type==='tert'?'Terț':site?.storageType || '',
+    product:document.getElementById('stockSiteEditStockProduct')?.value || 'wheat',
+    crop:document.getElementById('stockSiteEditStockCrop')?.value || '2026',
+    qty:parseStockNumber(document.getElementById('stockSiteEditStockQty')?.value),
+    capacity:site?.capacity || 0,
+    protein:parseStockNumber(document.getElementById('stockSiteEditStockProtein')?.value),
+    hl:parseStockNumber(document.getElementById('stockSiteEditStockHl')?.value),
+    humidity:parseStockNumber(document.getElementById('stockSiteEditStockHumidity')?.value),
+    oil:parseStockNumber(document.getElementById('stockSiteEditStockOil')?.value),
+    quality:document.getElementById('stockSiteEditStockQuality')?.value.trim() || '',
+    note:document.getElementById('stockSiteEditStockNote')?.value.trim() || '',
+  };
+}
+function hasStockDataInSiteModal(){
+  const ids=['stockSiteEditStockQty','stockSiteEditStockProtein','stockSiteEditStockHl','stockSiteEditStockHumidity','stockSiteEditStockOil','stockSiteEditStockQuality','stockSiteEditStockNote'];
+  return ids.some(id=>String(document.getElementById(id)?.value||'').trim()!=='');
+}
+async function upsertStockEntryFromSiteModal(site, oldSite=null){
+  if(!site || !shouldShowStockFieldsForSiteModal()) return;
+  const existingId=document.getElementById('stockSiteEditStockEntryId')?.value || '';
+  const oldRow=existingId?stockEntries.find(r=>String(r.id)===String(existingId)):primaryStockEntryForSite(oldSite||site);
+  const hasData=hasStockDataInSiteModal();
+  if(!hasData && !oldRow) return;
+  const item=buildStockEntryFromSiteModal(site, site.id);
+  const targetId=oldRow?.id || existingId;
+  const method=targetId?'PUT':'POST';
+  const url=targetId?'/api/stock/entries/'+targetId:'/api/stock/entries';
+  const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+  if(!res.ok) throw new Error('stoc HTTP '+res.status);
 }
 function editStockSite(id){
   const s=stockSiteById(id); if(!s){alert('Nu găsesc locația.');return;}
@@ -4451,6 +4536,7 @@ function editStockSite(id){
   document.getElementById('stockSiteEditCapacity').value=s.isBaseOnly?'':(s.capacity||'');
   document.getElementById('stockSiteEditZero').checked=!!s.stockZero;
   document.getElementById('stockSiteEditNote').value=s.note||'';
+  fillStockSiteStockFields(s);
   const del=document.querySelector('#modStockSiteEdit .btn-log-red'); if(del) del.style.display='inline-block';
   onStockSiteEditTypeChange();
   document.getElementById('modStockSiteEdit')?.classList.add('open');
@@ -4484,6 +4570,10 @@ async function saveStockSiteEditModal(){
     const method=isNew?'POST':'PUT';
     const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(site)});
     if(!res.ok) throw new Error('HTTP '+res.status);
+    let savedId=id;
+    try{const saved=await res.json(); if(saved?.id) savedId=saved.id;}catch(_e){}
+    const savedSite={...site,id:savedId};
+    await upsertStockEntryFromSiteModal(savedSite, oldSite);
 
     if(!isNew && mode==='edit_base' && oldName && stockBaseKey(oldName)!==stockBaseKey(site.name)){
       const childSites=stockSites.filter(s=>String(s.id)!==String(id) && stockBaseKey(s.name)===stockBaseKey(oldName));
