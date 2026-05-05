@@ -779,8 +779,8 @@
 
   <div class="stock-grid">
     <div class="stock-panel">
-      <div class="stock-title">Adaugă / editează stoc</div>
-      <div class="stock-muted">Completezi manual stocul pe bază, magazie/siloz, produs și calitate. Datele se salvează separat în SQL.</div>
+      <div class="stock-title">Adaugă stoc nou</div>
+      <div class="stock-muted">Completezi manual un rând nou de stoc. Editarea se face separat, din tabelul din dreapta.</div>
       <input type="hidden" id="stockEntryId">
 
       <div class="fr fr2">
@@ -808,7 +808,7 @@
       </div>
       <div class="fg"><label class="fl">Observații</label><input id="stockNote" type="text" placeholder="custodie, marfă blocată, detalii..."></div>
       <div class="stock-form-actions">
-        <button class="btn-add" style="margin-top:0;" onclick="saveStockEntryForm()">+ Salvează stoc</button>
+        <button class="btn-add" style="margin-top:0;" onclick="saveStockEntryForm()">+ Adaugă stoc</button>
         <button class="btn-sm" onclick="resetStockEntryForm()">Reset</button>
       </div>
     </div>
@@ -824,7 +824,7 @@
         <button class="btn-sm" onclick="resetStockFilters()">Reset filtre</button>
       </div>
       <div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>Data</th><th>Bază</th><th>Spațiu</th><th>Tip</th><th>Produs</th><th>Rec.</th><th>Cantitate</th><th>Cap.</th><th>Calitate</th><th>Obs.</th><th></th></tr></thead><tbody id="stockRowsBody"></tbody></table></div>
-      <div id="stockDetails" class="stock-muted"></div>
+      <div id="stockDetails" class="stock-muted">Selectează un rând din tabel pentru editare. Panoul din stânga rămâne doar pentru adăugare.</div>
     </div>
   </div>
 </div>
@@ -1305,6 +1305,9 @@ let logisticsTabActive = false;
 let logisticsContracts = [];
 let selectedLogisticsId = null;
 let logisticsMonthFilter = null;
+let logisticsOverviewProductFilter = '';
+let logisticsOverviewFlowFilter = '';
+let logisticsOverviewStatusFilter = '';
 let logisticsListSearch = '';
 
 const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
@@ -2595,6 +2598,9 @@ function logisticsSearchHaystack(c){
 }
 function setLogisticsMonthFilter(month){
   logisticsMonthFilter = month || null;
+  logisticsOverviewProductFilter = '';
+  logisticsOverviewFlowFilter = '';
+  logisticsOverviewStatusFilter = '';
   selectedLogisticsId = null;
   renderLogisticsDashboard();
   renderLogisticsList();
@@ -2604,6 +2610,9 @@ function setLogisticsMonthFilter(month){
 }
 function clearLogisticsMonthFilter(){
   logisticsMonthFilter = null;
+  logisticsOverviewProductFilter = '';
+  logisticsOverviewFlowFilter = '';
+  logisticsOverviewStatusFilter = '';
   renderLogisticsDashboard();
   renderLogisticsList();
   renderLogisticsDetail();
@@ -2723,23 +2732,77 @@ function getFilteredLogisticsItems(){
   return items;
 }
 
+
+function logOverviewProductKey(c){
+  const t=getLogTrade(c) || {};
+  return t.product || productKeyFromName(t.product || t.productName || '');
+}
+function logOverviewStatusKey(c){
+  if(c.problem) return 'problem';
+  const st=computedLogStatus(c);
+  if(String(st.cls||'').includes('done') || c.manualClosed) return 'done';
+  return 'open';
+}
+function setLogOverviewProductFilter(v){
+  logisticsOverviewProductFilter = v || '';
+  renderLogisticsDetail();
+}
+function setLogOverviewFlowFilter(v){
+  logisticsOverviewFlowFilter = v || '';
+  renderLogisticsDetail();
+}
+function setLogOverviewStatusFilter(v){
+  logisticsOverviewStatusFilter = v || '';
+  renderLogisticsDetail();
+}
+function resetLogOverviewFilters(){
+  logisticsOverviewProductFilter = '';
+  logisticsOverviewFlowFilter = '';
+  logisticsOverviewStatusFilter = '';
+  renderLogisticsDetail();
+}
+function applyLogOverviewFilters(items){
+  let out=items.slice();
+  if(logisticsOverviewProductFilter) out=out.filter(c=>logOverviewProductKey(c)===logisticsOverviewProductFilter);
+  if(logisticsOverviewFlowFilter) out=out.filter(c=>logFlow(c)===logisticsOverviewFlowFilter);
+  if(logisticsOverviewStatusFilter) out=out.filter(c=>logOverviewStatusKey(c)===logisticsOverviewStatusFilter);
+  return out;
+}
+function renderLogOverviewFilters(baseItems){
+  const productKeys=[...new Set(baseItems.map(logOverviewProductKey).filter(Boolean))].sort((a,b)=>productNameFromKey(a).localeCompare(productNameFromKey(b),'ro'));
+  const productSelect=`<select onchange="setLogOverviewProductFilter(this.value)"><option value="">Toate produsele</option>${productKeys.map(k=>`<option value="${escHtml(k)}" ${logisticsOverviewProductFilter===k?'selected':''}>${escHtml(productNameFromKey(k))}</option>`).join('')}</select>`;
+  const flowSelect=`<select onchange="setLogOverviewFlowFilter(this.value)"><option value="">Toate fluxurile</option><option value="pickup" ${logisticsOverviewFlowFilter==='pickup'?'selected':''}>De ridicat</option><option value="delivery" ${logisticsOverviewFlowFilter==='delivery'?'selected':''}>De livrat</option></select>`;
+  const statusSelect=`<select onchange="setLogOverviewStatusFilter(this.value)"><option value="">Toate statusurile</option><option value="open" ${logisticsOverviewStatusFilter==='open'?'selected':''}>Deschise</option><option value="problem" ${logisticsOverviewStatusFilter==='problem'?'selected':''}>Probleme</option><option value="done" ${logisticsOverviewStatusFilter==='done'?'selected':''}>Finalizate</option></select>`;
+  const active=logisticsOverviewProductFilter || logisticsOverviewFlowFilter || logisticsOverviewStatusFilter;
+  return `<div class="log-filter-strip" style="margin-top:9px;">
+    <span class="log-muted">Filtre overview:</span>
+    ${productSelect}
+    ${flowSelect}
+    ${statusSelect}
+    ${active?'<button class="btn-log btn-log-red" onclick="resetLogOverviewFilters()">Reset filtre</button>':''}
+  </div>`;
+}
+
 function renderLogisticsMonthOverview(){
-  const items=getFilteredLogisticsItems();
+  const baseItems=getFilteredLogisticsItems();
   if(!logisticsMonthFilter){
     return '<div class="log-empty">// selectează sau creează un contract logistic</div>';
   }
   const title=monthLabel(logisticsMonthFilter);
+  const filtersHtml=renderLogOverviewFilters(baseItems);
+  const items=applyLogOverviewFilters(baseItems);
   if(!items.length){
-    return `<div class="log-month-overview"><div class="log-month-overview-head"><div class="log-month-overview-title">Contracte pentru ${title}</div><button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button></div><div class="log-empty">// nu există contracte pentru luna selectată</div></div>`;
+    return `<div class="log-month-overview"><div class="log-month-overview-head"><div><div class="log-month-overview-title">Contracte pentru ${title}</div><div class="log-muted">Nu există contracte pentru filtrele selectate.</div></div><button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button></div>${filtersHtml}<div class="log-empty">// nu există contracte pentru luna și filtrele selectate</div></div>`;
   }
   return `<div class="log-month-overview">
     <div class="log-month-overview-head">
       <div>
         <div class="log-month-overview-title">Contracte filtrate pentru ${title}</div>
-        <div class="log-muted">${items.length} contracte găsite. Alege un contract pentru editare.</div>
+        <div class="log-muted">${items.length} din ${baseItems.length} contracte. Alege un contract pentru editare.</div>
       </div>
       <button class="btn-log btn-log-red" onclick="clearLogisticsMonthFilter()">Reset lună</button>
     </div>
+    ${filtersHtml}
     <div class="log-month-overview-grid">
       ${items.map(c=>{
         const t=getLogTrade(c);
@@ -4032,25 +4095,26 @@ function populateStockFilters(){
 function renderStock(){
   populateStockProductSelect();
   populateStockFilters();
-  const allRows=stockEntries.slice();
   const rows=getFilteredStockEntries();
-  const totalQty=allRows.reduce((s,r)=>s+(Number(r.qty)||0),0);
-  const totalCapacity=allRows.reduce((s,r)=>s+(Number(r.capacity)||0),0);
+  const totalQty=rows.reduce((s,r)=>s+(Number(r.qty)||0),0);
+  const totalCapacity=rows.reduce((s,r)=>s+(Number(r.capacity)||0),0);
   const free=totalCapacity-totalQty;
   const occupancy=totalCapacity>0?Math.round((totalQty/totalCapacity)*100):0;
-  const baseCount=new Set(allRows.map(r=>stockBaseKey(r.base)).filter(Boolean)).size;
+  const baseCount=new Set(rows.map(r=>stockBaseKey(r.base)).filter(Boolean)).size;
   const byProduct={};
-  allRows.forEach(r=>{ byProduct[r.product]=(byProduct[r.product]||0)+(Number(r.qty)||0); });
+  rows.forEach(r=>{ byProduct[r.product]=(byProduct[r.product]||0)+(Number(r.qty)||0); });
   const topProducts=Object.entries(byProduct).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const filterActive=!!(document.getElementById('stockFilterBase')?.value || document.getElementById('stockFilterProduct')?.value || document.getElementById('stockFilterType')?.value || document.getElementById('stockFilterCrop')?.value || !(document.getElementById('stockOnlyPositive')?.checked));
 
   const dash=document.getElementById('stockDashboard');
   if(dash){
     dash.innerHTML=`
-      <div class="stock-card"><div class="stock-card-l">Total stoc manual</div><div class="stock-card-v" style="color:var(--long)">${fmtN(totalQty)} t</div></div>
-      <div class="stock-card"><div class="stock-card-l">Capacitate introdusă</div><div class="stock-card-v">${fmtN(totalCapacity)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">${filterActive?'Stoc filtrat':'Total stoc manual'}</div><div class="stock-card-v" style="color:var(--long)">${fmtN(totalQty)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Capacitate ${filterActive?'filtrată':'introdusă'}</div><div class="stock-card-v">${fmtN(totalCapacity)} t</div></div>
       <div class="stock-card"><div class="stock-card-l">Spațiu liber estimat</div><div class="stock-card-v" style="color:${free>=0?'var(--old)':'var(--short)'}">${fmtN(free)} t</div></div>
       <div class="stock-card"><div class="stock-card-l">Grad ocupare</div><div class="stock-card-v">${occupancy}%</div></div>
-      <div class="stock-card"><div class="stock-card-l">Baze active</div><div class="stock-card-v">${baseCount}</div></div>
+      <div class="stock-card"><div class="stock-card-l">Baze în selecție</div><div class="stock-card-v">${baseCount}</div></div>
+      <div class="stock-card"><div class="stock-card-l">Rânduri afișate</div><div class="stock-card-v">${rows.length}</div></div>
       ${topProducts.map(([k,v])=>`<div class="stock-card"><div class="stock-card-l">${escHtml(productNameFromKey(k))}</div><div class="stock-card-v">${fmtN(v)} t</div></div>`).join('')}`;
   }
 
@@ -4079,6 +4143,7 @@ function renderStock(){
     </tr>`;
   }).join('');
 }
+
 function resetStockEntryForm(){
   ['stockEntryId','stockBase','stockSpace','stockQty','stockCapacity','stockProtein','stockHl','stockHumidity','stockOil','stockQuality','stockNote'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const d=document.getElementById('stockDate'); if(d) d.value=today();
@@ -4086,29 +4151,55 @@ function resetStockEntryForm(){
   const c=document.getElementById('stockCrop'); if(c) c.value='2026';
   populateStockProductSelect();
 }
+function renderStockEditPanel(r){
+  const box=document.getElementById('stockDetails');
+  if(!box || !r) return;
+  const productOptions=Object.keys(products).map(k=>`<option value="${escHtml(k)}" ${r.product===k?'selected':''}>${escHtml(stockProductLabel(k))}</option>`).join('');
+  box.innerHTML=`
+    <div class="stock-panel" style="margin-top:10px;border-left:3px solid var(--acc);">
+      <div class="stock-title">Editează stoc #${r.id}</div>
+      <div class="stock-muted">Editezi rândul selectat din tabel. Panoul din stânga rămâne doar pentru adăugare.</div>
+      <div class="fr fr2">
+        <div class="fg"><label class="fl">Data stocului</label><input id="stockEditDate" type="date" value="${escHtml(r.date||today())}"></div>
+        <div class="fg"><label class="fl">Bază / depozit</label><input id="stockEditBase" type="text" value="${escHtml(r.base||'')}"></div>
+      </div>
+      <div class="fr fr2">
+        <div class="fg"><label class="fl">Spațiu</label><input id="stockEditSpace" type="text" value="${escHtml(r.space||'')}"></div>
+        <div class="fg"><label class="fl">Tip</label><select id="stockEditType"><option value="Magazie" ${(r.type||stockTypeFromSpace(r.space))==='Magazie'?'selected':''}>Magazie</option><option value="Siloz" ${(r.type||stockTypeFromSpace(r.space))==='Siloz'?'selected':''}>Siloz</option></select></div>
+      </div>
+      <div class="fr fr3">
+        <div class="fg"><label class="fl">Produs</label><select id="stockEditProduct">${productOptions}</select></div>
+        <div class="fg"><label class="fl">Recoltă</label><select id="stockEditCrop"><option value="2025" ${String(r.crop)==='2025'?'selected':''}>2025</option><option value="2026" ${String(r.crop)==='2026'?'selected':''}>2026</option><option value="2027" ${String(r.crop)==='2027'?'selected':''}>2027</option></select></div>
+        <div class="fg"><label class="fl">Cantitate (t)</label><input id="stockEditQty" type="number" step="0.01" min="0" value="${escHtml(r.qty??'')}"></div>
+      </div>
+      <div class="fr fr3">
+        <div class="fg"><label class="fl">Capacitate spațiu (t)</label><input id="stockEditCapacity" type="number" step="0.01" min="0" value="${escHtml(r.capacity??'')}"></div>
+        <div class="fg"><label class="fl">Proteină</label><input id="stockEditProtein" type="number" step="0.01" min="0" value="${escHtml(r.protein??'')}"></div>
+        <div class="fg"><label class="fl">HL</label><input id="stockEditHl" type="number" step="0.01" min="0" value="${escHtml(r.hl??'')}"></div>
+      </div>
+      <div class="fr fr3">
+        <div class="fg"><label class="fl">Umiditate</label><input id="stockEditHumidity" type="number" step="0.01" min="0" value="${escHtml(r.humidity??'')}"></div>
+        <div class="fg"><label class="fl">Oil / ulei</label><input id="stockEditOil" type="number" step="0.01" min="0" value="${escHtml(r.oil??'')}"></div>
+        <div class="fg"><label class="fl">Calitate text</label><input id="stockEditQuality" type="text" value="${escHtml(r.quality||'')}"></div>
+      </div>
+      <div class="fg"><label class="fl">Observații</label><input id="stockEditNote" type="text" value="${escHtml(r.note||'')}"></div>
+      <div class="stock-form-actions">
+        <button class="btn-add" style="margin-top:0;" onclick="saveStockEditForm(${r.id})">Salvează modificări</button>
+        <button class="btn-sm" onclick="cancelStockEdit()">Anulează editarea</button>
+      </div>
+    </div>`;
+}
+function cancelStockEdit(){
+  const box=document.getElementById('stockDetails');
+  if(box) box.innerHTML='Selectează un rând din tabel pentru editare. Panoul din stânga rămâne doar pentru adăugare.';
+}
 function editStockEntry(id){
   const r=stockEntries.find(x=>String(x.id)===String(id));
   if(!r) return;
-  document.getElementById('stockEntryId').value=r.id;
-  document.getElementById('stockDate').value=r.date || today();
-  document.getElementById('stockBase').value=r.base || '';
-  document.getElementById('stockSpace').value=r.space || '';
-  document.getElementById('stockType').value=r.type || stockTypeFromSpace(r.space);
-  populateStockProductSelect();
-  document.getElementById('stockProduct').value=r.product || Object.keys(products)[0];
-  document.getElementById('stockCrop').value=r.crop || '2026';
-  document.getElementById('stockQty').value=r.qty || '';
-  document.getElementById('stockCapacity').value=r.capacity || '';
-  document.getElementById('stockProtein').value=r.protein || '';
-  document.getElementById('stockHl').value=r.hl || '';
-  document.getElementById('stockHumidity').value=r.humidity || '';
-  document.getElementById('stockOil').value=r.oil || '';
-  document.getElementById('stockQuality').value=r.quality || '';
-  document.getElementById('stockNote').value=r.note || '';
-  document.getElementById('stockDetails').innerHTML=`<div class="log-ok-line">Editezi stocul #${r.id}. Apasă Salvează stoc după modificări.</div>`;
+  renderStockEditPanel(r);
+  document.getElementById('stockDetails')?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 async function saveStockEntryForm(){
-  const id=document.getElementById('stockEntryId').value;
   const item={
     date:document.getElementById('stockDate').value || today(),
     base:document.getElementById('stockBase').value.trim(),
@@ -4129,15 +4220,43 @@ async function saveStockEntryForm(){
   if(!item.space){alert('Completează magazia/silozul.');return;}
   if(!item.qty && item.qty!==0){alert('Completează cantitatea.');return;}
   try{
-    const url=id?`/api/stock/entries/${id}`:'/api/stock/entries';
-    const method=id?'PUT':'POST';
-    const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+    const res=await fetch('/api/stock/entries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
     if(!res.ok) throw new Error('HTTP '+res.status);
     resetStockEntryForm();
     await loadStockEntries();
     renderStock();
   }catch(e){alert('Eroare la salvare stoc: '+e.message);}
 }
+async function saveStockEditForm(id){
+  const item={
+    date:document.getElementById('stockEditDate').value || today(),
+    base:document.getElementById('stockEditBase').value.trim(),
+    space:document.getElementById('stockEditSpace').value.trim(),
+    type:document.getElementById('stockEditType').value,
+    product:document.getElementById('stockEditProduct').value,
+    crop:document.getElementById('stockEditCrop').value,
+    qty:parseStockNumber(document.getElementById('stockEditQty').value),
+    capacity:parseStockNumber(document.getElementById('stockEditCapacity').value),
+    protein:parseStockNumber(document.getElementById('stockEditProtein').value),
+    hl:parseStockNumber(document.getElementById('stockEditHl').value),
+    humidity:parseStockNumber(document.getElementById('stockEditHumidity').value),
+    oil:parseStockNumber(document.getElementById('stockEditOil').value),
+    quality:document.getElementById('stockEditQuality').value.trim(),
+    note:document.getElementById('stockEditNote').value.trim(),
+  };
+  if(!item.base){alert('Completează baza/depozitul.');return;}
+  if(!item.space){alert('Completează magazia/silozul.');return;}
+  if(!item.qty && item.qty!==0){alert('Completează cantitatea.');return;}
+  try{
+    const res=await fetch('/api/stock/entries/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    await loadStockEntries();
+    renderStock();
+    const saved=stockEntries.find(x=>String(x.id)===String(id));
+    if(saved) renderStockEditPanel(saved);
+  }catch(e){alert('Eroare la salvare stoc: '+e.message);}
+}
+
 async function deleteStockEntry(id){
   if(!confirm('Ștergi acest rând de stoc?')) return;
   try{
