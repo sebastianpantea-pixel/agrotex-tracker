@@ -4563,7 +4563,7 @@ function renderStockRows(rows){
 function renderStock(){
   populateStockProductSelect(); populateStockFilters();
   const rows=getFilteredStockEntries();
-  renderStockDashboard(rows); renderStockSitesList(); renderStockRows(rows); updateBadges();
+  renderStockDashboard(rows); renderStockSitesList(); renderStockRows(rows); const bStock=document.getElementById('bStock'); if(bStock) bStock.textContent=stockEntries.length;
 }
 function resetStockFilters(){
   ['stockFilterBase','stockFilterLocationType','stockFilterProduct','stockFilterType','stockFilterCrop'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
