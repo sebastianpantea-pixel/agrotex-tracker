@@ -576,6 +576,22 @@
   .log-section-panel .log-section-title{display:none;}
 
 
+
+
+  /* Contracte incomplete + faze meteo */
+  .contract-check-row{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid rgba(233,133,133,.35);background:rgba(233,133,133,.08);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--short);font-weight:800;letter-spacing:.4px;cursor:pointer;user-select:none;}
+  .contract-check-row input{width:auto;accent-color:#e98585;}
+  .incomplete-contracts-box{display:none;border-bottom:1px solid var(--border);background:rgba(233,133,133,.055);padding:8px 10px;}
+  .incomplete-contracts-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--short);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;}
+  .incomplete-contracts-list{display:flex;flex-direction:column;gap:5px;max-height:118px;overflow:auto;padding-right:2px;}
+  .incomplete-contract-row{border:1px solid rgba(233,133,133,.28);background:rgba(233,133,133,.07);border-radius:4px;padding:6px 7px;cursor:pointer;transition:all .15s;}
+  .incomplete-contract-row:hover{border-color:rgba(233,133,133,.55);background:rgba(233,133,133,.12);}
+  .incomplete-contract-main{font-size:10px;font-weight:800;color:var(--bright);line-height:1.35;}
+  .incomplete-contract-meta{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);margin-top:3px;line-height:1.35;}
+  .tr-incomplete td{background:rgba(233,133,133,.035);}
+  .tr-incomplete:hover td{background:rgba(233,133,133,.075) !important;}
+  .water-phase-select{background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 6px;min-width:210px;}
+
   /* Stock locations */
   #stockSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
   .stock-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
@@ -931,6 +947,7 @@
         <div class="pt">📋 Notițe &amp; To-Do</div>
         <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
       </div>
+      <div class="incomplete-contracts-box" id="incompleteContractsBox"></div>
       <div class="notes-input-row">
         <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
         <select id="noteTag" style="width:100px;padding:5px 5px;font-size:10px;height:28px;">
@@ -1037,6 +1054,10 @@
           <div class="fg"><label class="fl">Număr contract</label><input id="fNote" type="text"></div>
           <div class="fg" id="grpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="fBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
         </div>
+
+        <label class="contract-check-row" title="Marchează tranzacția ca de completat când contractul vine ulterior pe mail">
+          <input id="fIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
+        </label>
 
         <button class="btn-add" id="btnAdd" onclick="addTrade()">+ Adaugă Tranzacție</button>
       </div>
@@ -1200,6 +1221,10 @@
       <div class="fg" id="eGrpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="eBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
     </div>
 
+    <label class="contract-check-row" title="Rămâne evidențiat până debifezi manual">
+      <input id="eIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
+    </label>
+
     <div class="mbtns">
       <button class="btn-cancel" onclick="closeModal('modEdit')">Anulează</button>
       <button class="btn-save" onclick="saveEdit()">Salvează</button>
@@ -1279,11 +1304,42 @@ const TARGET_ROWS = [
 ];
 
 const WATER_NEED_CROPS = [
-  { key:'wheat',     emoji:'🌾', name:'Grâu',             targetSoil:0.25, rootDepth:60,  note:'Faza vegetativă / înflorire' },
-  { key:'rapeseed',  emoji:'🌿', name:'Rapiță',            targetSoil:0.27, rootDepth:80,  note:'Înainte de înflorire' },
-  { key:'corn',      emoji:'🌽', name:'Porumb',            targetSoil:0.28, rootDepth:100, note:'Răsărire / vegetativ timpuriu' },
-  { key:'sunflower', emoji:'🌻', name:'Floarea-soarelui', targetSoil:0.26, rootDepth:120, note:'Răsărire / vegetativ timpuriu' },
+  { key:'wheat', emoji:'🌾', name:'Grâu', phases:[
+    { key:'veg', label:'Vegetativ', targetSoil:0.23, rootDepth:45, note:'Vegetativ' },
+    { key:'burduf', label:'Burduf / spic', targetSoil:0.25, rootDepth:60, note:'Burduf / spic' },
+    { key:'inflorire', label:'Înflorire', targetSoil:0.26, rootDepth:70, note:'Înflorire' },
+    { key:'umplere', label:'Umplere bob', targetSoil:0.24, rootDepth:75, note:'Umplere bob' },
+  ]},
+  { key:'rapeseed', emoji:'🌿', name:'Rapiță', phases:[
+    { key:'rozeta', label:'Rozetă', targetSoil:0.23, rootDepth:45, note:'Rozetă' },
+    { key:'alungire', label:'Alungire tulpină', targetSoil:0.26, rootDepth:70, note:'Alungire tulpină' },
+    { key:'inflorire', label:'Înflorire', targetSoil:0.28, rootDepth:90, note:'Înflorire' },
+    { key:'silicve', label:'Formare silicve', targetSoil:0.26, rootDepth:100, note:'Formare silicve' },
+  ]},
+  { key:'corn', emoji:'🌽', name:'Porumb', phases:[
+    { key:'rasarire', label:'Răsărire', targetSoil:0.24, rootDepth:35, note:'Răsărire' },
+    { key:'vegetativ', label:'Vegetativ', targetSoil:0.26, rootDepth:70, note:'Vegetativ' },
+    { key:'inflorire', label:'Înflorire / mătăsit', targetSoil:0.30, rootDepth:110, note:'Înflorire / mătăsit' },
+    { key:'umplere', label:'Umplere bob', targetSoil:0.28, rootDepth:120, note:'Umplere bob' },
+  ]},
+  { key:'sunflower', emoji:'🌻', name:'Floarea-soarelui', phases:[
+    { key:'rasarire', label:'Răsărire', targetSoil:0.23, rootDepth:35, note:'Răsărire' },
+    { key:'vegetativ', label:'Vegetativ', targetSoil:0.25, rootDepth:70, note:'Vegetativ' },
+    { key:'buton', label:'Buton floral', targetSoil:0.27, rootDepth:100, note:'Buton floral' },
+    { key:'inflorire', label:'Înflorire', targetSoil:0.28, rootDepth:120, note:'Înflorire' },
+  ]},
 ];
+let waterCropPhases = {};
+try { waterCropPhases = JSON.parse(localStorage.getItem('agrotex_water_phases') || '{}'); } catch(e) { waterCropPhases = {}; }
+function selectedWaterPhase(crop){
+  const phaseKey = waterCropPhases[crop.key] || crop.phases[0].key;
+  return crop.phases.find(p => p.key === phaseKey) || crop.phases[0];
+}
+function setWaterPhase(cropKey, phaseKey){
+  waterCropPhases[cropKey] = phaseKey;
+  localStorage.setItem('agrotex_water_phases', JSON.stringify(waterCropPhases));
+  if(weatherSelected) renderWeatherDetail(weatherSelected);
+}
 
 const AGRI_KEYWORDS = ['grâu','porumb','rapiță','rapita','cereale','oleaginoase','recoltă','recolta','fermi','agricol','apia','madr','export','import','grain','wheat','corn','rapeseed','barley','orz','soia','matif','cbot','harvest','crop','usda','wasde','agri'];
 const MACRO_KEYWORDS = ['bursă','bursa','financiar','macroeconomic','bnr','curs','inflatie','inflație','dobândă','dobanda','energie','petrol','gaze','piață','piata','market','futures','price','euro','dollar','fed','ecb','tariff','taxa','economic'];
@@ -1547,6 +1603,7 @@ async function addTrade(){
   const loc=document.getElementById('fLoc').value.trim();
   const cpty=document.getElementById('fCpty').value.trim();
   const note=document.getElementById('fNote').value.trim();
+  const manualIncomplete=document.getElementById('fIncomplete')?.checked || false;
   const bonif=parseFloat(document.getElementById('fBonif').value)||0;
   const ptype=document.getElementById('fPtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
@@ -1555,36 +1612,39 @@ async function addTrade(){
   const needT=chosen.transport;
   const isEur=(dir==='short' && ptype==='fix' && formCurrency==='eur');
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,bonif:bonif||0};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
     if(isEur){
       const priceEur=parseFloat(document.getElementById('fPriceEur').value);
       cursEur=parseFloat(document.getElementById('fCursEur').value)||fxRates.eurRon||5;
-      if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
-      price=priceEur*cursEur;
+      if((!priceEur||priceEur<=0) && !manualIncomplete){alert('Preț EUR invalid. Bifează Contract incomplet dacă nu ai încă toate datele.');return;}
+      price=(priceEur||0)*cursEur;
       currency='eur';
-      t.priceEur=priceEur;
+      t.priceEur=priceEur||0;
       t.cursEur=cursEur;
     } else {
       price=parseFloat(document.getElementById('fPriceRon').value);
-      if(!price||price<=0){alert('Preț RON invalid.');return;}
+      if((!price||price<=0) && !manualIncomplete){alert('Preț RON invalid. Bifează Contract incomplet dacă nu ai încă toate datele.');return;}
+      price=price||0;
     }
     const date=document.getElementById(isEur?'fDateEur':'fDate').value;
     const trspRaw=needT?(parseFloat(document.getElementById(isEur?'fTranspEur':'fTransp').value)||0):0;
     const trsp=isEur?trspRaw*cursEur:trspRaw;
-    if(!date){alert('Selectați data.');return;}
-    Object.assign(t,{price,currency,date,transport:trsp,transportEur:isEur?trspRaw:null});
+    if(!date && !manualIncomplete){alert('Selectați data sau bifează Contract incomplet.');return;}
+    Object.assign(t,{price,currency,date:date||'',transport:trsp,transportEur:isEur?trspRaw:null});
+    if(manualIncomplete || !price || !date) t.incomplete=true;
   } else {
     const matif=document.getElementById('fMatif').value.trim();
     const basis=parseFloat(document.getElementById('fBasis').value);
     const date=document.getElementById('fDateB').value;
     const trsp=needT?(parseFloat(document.getElementById('fTranspB').value)||0):0;
-    if(!matif){alert('Introduceți contractul MATIF.');return;}
-    if(isNaN(basis)){alert('Basis invalid.');return;}
-    if(!date){alert('Selectați data.');return;}
-    Object.assign(t,{matif,basis,date,transport:trsp,currency:'eur'});
+    if(!matif && !manualIncomplete){alert('Introduceți contractul MATIF sau bifează Contract incomplet.');return;}
+    if(isNaN(basis) && !manualIncomplete){alert('Basis invalid. Bifează Contract incomplet dacă nu ai încă toate datele.');return;}
+    if(!date && !manualIncomplete){alert('Selectați data sau bifează Contract incomplet.');return;}
+    Object.assign(t,{matif,basis:isNaN(basis)?0:basis,date:date||'',transport:trsp,currency:'eur'});
+    if(manualIncomplete || !matif || isNaN(basis) || !date) t.incomplete=true;
   }
 
   document.getElementById('btnAdd').disabled=true;
@@ -1595,6 +1655,7 @@ async function addTrade(){
   render();
   checkCfoAlert(t);
   ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const fInc=document.getElementById('fIncomplete'); if(fInc) fInc.checked=false;
 }
 async function deleteTrade(id){
   if(logisticsContracts.some(c=>String(c.tradeId)===String(id))){
@@ -1690,6 +1751,7 @@ function applyFilter(){
   const isActive=Object.values(activeFilter).some(v=>v!=='');
   document.getElementById('btnResetFilter').style.display=isActive?'':'none';
   renderTable();
+  renderIncompleteContracts();
 }
 function resetFilter(){
   activeFilter={prod:'',dir:'',ptype:'',cpty:'',dateFrom:'',dateTo:''};
@@ -1716,6 +1778,27 @@ function getFilteredTrades(){
 }
 function hasLogisticsForTrade(tradeId){
   return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId));
+}
+function renderIncompleteContracts(){
+  const box=document.getElementById('incompleteContractsBox');
+  if(!box) return;
+  const items=trades.filter(t=>t.incomplete).sort((a,b)=>(b.id||0)-(a.id||0));
+  if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.style.display='block';
+  box.innerHTML=`
+    <div class="incomplete-contracts-title">
+      <span>⚠ Contracte incomplete</span>
+      <span class="log-badge warn">${items.length}</span>
+    </div>
+    <div class="incomplete-contracts-list">
+      ${items.slice(0,8).map(t=>{
+        const prod=products[t.product]||{name:t.product,emoji:'📦'};
+        return `<div class="incomplete-contract-row" onclick="setCrop('${t.crop||crop}');setTimeout(()=>openEdit(${t.id}),20)">
+          <div class="incomplete-contract-main">${prod.emoji} ${escHtml(prod.name)} ${escHtml(t.crop||'')} · ${fmtN(t.qty)} t · ${escHtml(t.cpty||'—')}</div>
+          <div class="incomplete-contract-meta">#${t.id} · ${t.dir==='long'?'Cumpărare':'Vânzare'} · ${t.note?'Ctr '+escHtml(t.note)+' · ':''}${t.date||'fără dată'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 function renderTable(){
   const ft=getFilteredTrades();
@@ -1749,7 +1832,7 @@ function renderTable(){
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
     const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
-    return `<tr class="tr-click" onclick="openEdit(${t.id})">
+    return `<tr class="tr-click${t.incomplete?' tr-incomplete':''}" onclick="openEdit(${t.id})">
       <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
@@ -1866,6 +1949,8 @@ function openEdit(id){
   document.getElementById('eBonif').value=t.bonif||'';
   document.getElementById('eCpty').value=t.cpty||'';
   document.getElementById('eNote').value=t.note||'';
+  const eInc=document.getElementById('eIncomplete');
+  if(eInc) eInc.checked=!!t.incomplete;
 
   document.getElementById('ePrice').value=(t.currency==='eur'?'':t.price)||'';
   document.getElementById('eDate').value=t.date||today();
@@ -1930,6 +2015,7 @@ async function saveEdit(){
   const bonif=parseFloat(document.getElementById('eBonif').value)||0;
   const cpty=document.getElementById('eCpty').value.trim();
   const note=document.getElementById('eNote').value.trim();
+  const manualIncomplete=document.getElementById('eIncomplete')?.checked || false;
   const ptype=document.getElementById('ePtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
 
@@ -1938,17 +2024,17 @@ async function saveEdit(){
   const chosen=rules.find(r=>r.val===parity)||rules[0];
   const needT=chosen.transport;
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:false,bonif:bonif||0};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
     if(isEur){
       const priceEur=parseFloat(document.getElementById('ePriceEur').value);
       cursEur=parseFloat(document.getElementById('eCursEur').value)||fxRates.eurRon||5;
-      if(!priceEur||priceEur<=0){alert('Preț EUR invalid.');return;}
-      price=priceEur*cursEur;
+      if((!priceEur||priceEur<=0) && !manualIncomplete){alert('Preț EUR invalid. Bifează Contract incomplet dacă nu ai încă toate datele.');return;}
+      price=(priceEur||0)*cursEur;
       currency='eur';
-      t.priceEur=priceEur;
+      t.priceEur=priceEur||0;
       t.cursEur=cursEur;
     } else {
       price=parseFloat(document.getElementById('ePrice').value);
@@ -4299,15 +4385,17 @@ function calcWaterNeed(summary) {
   const prognoza7 = Number(s.next7Precip) || 0;
 
   return WATER_NEED_CROPS.map(crop => {
-    if (soilEff === null) return { ...crop, needMm: null, prognoza7, deficit: null, status: 'no-data' };
-    const needMm = Math.max(0, (crop.targetSoil - soilEff) * crop.rootDepth * 10);
+    const phase = selectedWaterPhase(crop);
+    const base = { ...crop, ...phase, phases: crop.phases, phaseKey: phase.key };
+    if (soilEff === null) return { ...base, needMm: null, prognoza7, deficit: null, status: 'no-data' };
+    const needMm = Math.max(0, (phase.targetSoil - soilEff) * phase.rootDepth * 10);
     const deficit = needMm - prognoza7;
     let status;
     if (needMm <= 0) status = 'ok';
     else if (prognoza7 >= needMm) status = 'ok';
     else if (prognoza7 >= needMm * 0.5) status = 'partial';
     else status = 'deficit';
-    return { ...crop, soilEff: Math.round(soilEff * 1000) / 1000, needMm: Math.round(needMm * 10) / 10, prognoza7: Math.round(prognoza7 * 10) / 10, deficit: Math.round(deficit * 10) / 10, status };
+    return { ...base, soilEff: Math.round(soilEff * 1000) / 1000, needMm: Math.round(needMm * 10) / 10, prognoza7: Math.round(prognoza7 * 10) / 10, deficit: Math.round(deficit * 10) / 10, status };
   });
 }
 function renderWaterNeedTable(summary) {
@@ -4324,7 +4412,11 @@ function renderWaterNeedTable(summary) {
       <td class="wn-prognoza">${c.prognoza7} mm</td>
       <td>${defStr}</td>
       <td>${statusLabel[c.status]}</td>
-      <td style="color:var(--dim);font-size:10px">${c.note}</td>
+      <td>
+        <select class="water-phase-select" onchange="setWaterPhase('${c.key}', this.value)">
+          ${c.phases.map(ph=>`<option value="${ph.key}" ${ph.key===c.phaseKey?'selected':''}>${escHtml(ph.label)}</option>`).join('')}
+        </select>
+      </td>
     </tr>`;
   }).join('');
   return `
