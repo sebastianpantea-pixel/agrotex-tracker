@@ -654,6 +654,26 @@
   .stock-progress-inner{height:100%;background:var(--acc);}
   .stock-form-actions{display:flex;gap:8px;align-items:center;}
 
+
+
+  /* Stock redesign, clean layout */
+  .stock-redesign-grid{display:grid;grid-template-columns:390px minmax(0,1fr);gap:14px;align-items:start;}
+  .stock-main-stack{display:flex;flex-direction:column;gap:14px;min-width:0;}
+  .stock-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .stock-quick-search{max-width:310px;min-width:220px;}
+  .stock-sites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;max-height:280px;overflow:auto;padding-right:2px;}
+  .stock-site-card{border:1px solid var(--border);background:var(--surface2);border-radius:5px;padding:9px;display:flex;flex-direction:column;gap:6px;}
+  .stock-site-card:hover{border-color:var(--border2);background:var(--surface3);}
+  .stock-site-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .stock-site-card-name{font-size:11px;font-weight:900;color:var(--bright);line-height:1.35;}
+  .stock-site-card-meta{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.45;}
+  .stock-site-card-actions{display:flex;gap:4px;align-items:center;flex-shrink:0;}
+  .stock-row-actions{display:flex;gap:4px;align-items:center;justify-content:flex-end;}
+  .stock-modal-form{display:flex;flex-direction:column;gap:9px;}
+  .stock-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:2px;}
+  .stock-empty-box{padding:18px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.7px;border:1px dashed var(--border2);border-radius:4px;background:rgba(255,255,255,.012);}
+  @media(max-width:1100px){.stock-redesign-grid{grid-template-columns:1fr}.stock-quick-search{max-width:none;width:100%;}}
+
 </style>
 </head>
 <body>
@@ -791,7 +811,7 @@
   <div class="meteo-toolbar">
     <button class="news-back-btn" onclick="closeStockTab()">← Înapoi</button>
     <span class="meteo-badge" style="color:var(--acc);border-color:rgba(229,185,92,.35);background:rgba(229,185,92,.08);">STOCURI PE BAZE</span>
-    <span class="stock-muted">Modul manual. Nu se calculează din poziție, contracte sau logistică.</span>
+    <span class="stock-muted">Modul manual. Locațiile și stocurile sunt gestionate separat, salvate în SQL.</span>
     <button class="btn-import" style="margin-left:auto;" onclick="document.getElementById('stockImportFile').click()">⬆ Import Stocuri</button>
     <button class="btn-import" onclick="exportStockReport()">⬇ Export Stocuri</button>
     <input type="file" id="stockImportFile" accept=".xlsx,.xls" style="display:none" onchange="importStockEntries(event)">
@@ -799,79 +819,96 @@
 
   <div class="stock-dashboard" id="stockDashboard"></div>
 
-  <div class="stock-grid">
+  <div class="stock-redesign-grid">
     <div class="stock-left-stack">
-    <div class="stock-panel">
-      <div class="stock-title">Adaugă stoc nou</div>
-      <div class="stock-muted">Completezi manual un rând nou de stoc. Editarea se face separat, din tabelul din dreapta.</div>
-      <input type="hidden" id="stockEntryId">
+      <div class="stock-panel stock-create-panel">
+        <div class="stock-title">Adaugă stoc nou</div>
+        <div class="stock-muted">Alegi un loc fizic deja creat, apoi introduci produsul, recolta, cantitatea și calitatea.</div>
+        <input type="hidden" id="stockEntryId">
 
-      <div class="fr fr2">
-        <div class="fg"><label class="fl">Data stocului</label><input id="stockDate" type="date"></div>
-        <div class="fg"><label class="fl">Loc stocare</label><select id="stockBase" onchange="applyStockSiteToForm('stock')"><option value="">Alege baza / magazia / silozul...</option></select></div>
+        <div class="fr fr2">
+          <div class="fg"><label class="fl">Data stocului</label><input id="stockDate" type="date"></div>
+          <div class="fg"><label class="fl">Loc stocare</label><select id="stockBase" onchange="applyStockSiteToForm('stock')"><option value="">Alege baza / magazia / silozul...</option></select></div>
+        </div>
+        <div class="fr fr3">
+          <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteBaseView" type="text" readonly placeholder="din locație"></div>
+          <div class="fg"><label class="fl">Spațiu</label><input id="stockSpace" type="text" readonly placeholder="din locație"></div>
+          <div class="fg"><label class="fl">Tip</label><input id="stockType" type="text" readonly placeholder="Magazie / Siloz"></div>
+        </div>
+        <div class="fr fr3">
+          <div class="fg"><label class="fl">Produs</label><select id="stockProduct"></select></div>
+          <div class="fg"><label class="fl">Recoltă</label><select id="stockCrop"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select></div>
+          <div class="fg"><label class="fl">Cantitate (t)</label><input id="stockQty" type="number" step="0.01" min="0"></div>
+        </div>
+        <div class="fr fr3">
+          <input id="stockCapacity" type="hidden">
+          <div class="fg"><label class="fl">Capacitate loc</label><input id="stockCapacityView" type="text" readonly placeholder="din registru"></div>
+          <div class="fg"><label class="fl">Proteină</label><input id="stockProtein" type="number" step="0.01" min="0"></div>
+          <div class="fg"><label class="fl">HL</label><input id="stockHl" type="number" step="0.01" min="0"></div>
+        </div>
+        <div class="fr fr3">
+          <div class="fg"><label class="fl">Umiditate</label><input id="stockHumidity" type="number" step="0.01" min="0"></div>
+          <div class="fg"><label class="fl">Oil / ulei</label><input id="stockOil" type="number" step="0.01" min="0"></div>
+          <div class="fg"><label class="fl">Calitate text</label><input id="stockQuality" type="text" placeholder="ex: panificație, furaj, custodie..."></div>
+        </div>
+        <div class="fg"><label class="fl">Observații</label><input id="stockNote" type="text" placeholder="custodie, marfă blocată, detalii..."></div>
+        <div class="stock-form-actions">
+          <button class="btn-add" style="margin-top:0;" onclick="saveStockEntryForm()">+ Adaugă stoc</button>
+          <button class="btn-sm" onclick="resetStockEntryForm()">Reset</button>
+        </div>
       </div>
-      <div class="fr fr3">
-        <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteBaseView" type="text" readonly placeholder="se completează din locație"></div>
-        <div class="fg"><label class="fl">Spațiu</label><input id="stockSpace" type="text" readonly placeholder="se completează din locație"></div>
-        <div class="fg"><label class="fl">Tip</label><input id="stockType" type="text" readonly placeholder="Magazie / Siloz"></div>
-      </div>
-      <div class="fr fr3">
-        <div class="fg"><label class="fl">Produs</label><select id="stockProduct"></select></div>
-        <div class="fg"><label class="fl">Recoltă</label><select id="stockCrop"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select></div>
-        <div class="fg"><label class="fl">Cantitate (t)</label><input id="stockQty" type="number" step="0.01" min="0"></div>
-      </div>
-      <div class="fr fr3">
-        <input id="stockCapacity" type="hidden">
-        <div class="fg"><label class="fl">Capacitate loc</label><input id="stockCapacityView" type="text" readonly placeholder="din registru"></div>
-        <div class="fg"><label class="fl">Proteină</label><input id="stockProtein" type="number" step="0.01" min="0"></div>
-        <div class="fg"><label class="fl">HL</label><input id="stockHl" type="number" step="0.01" min="0"></div>
-      </div>
-      <div class="fr fr3">
-        <div class="fg"><label class="fl">Umiditate</label><input id="stockHumidity" type="number" step="0.01" min="0"></div>
-        <div class="fg"><label class="fl">Oil / ulei</label><input id="stockOil" type="number" step="0.01" min="0"></div>
-        <div class="fg"><label class="fl">Calitate text</label><input id="stockQuality" type="text" placeholder="ex: panificație, furaj, custodie..."></div>
-      </div>
-      <div class="fg"><label class="fl">Observații</label><input id="stockNote" type="text" placeholder="custodie, marfă blocată, detalii..."></div>
-      <div class="stock-form-actions">
-        <button class="btn-add" style="margin-top:0;" onclick="saveStockEntryForm()">+ Adaugă stoc</button>
-        <button class="btn-sm" onclick="resetStockEntryForm()">Reset</button>
+
+      <div class="stock-panel stock-create-panel">
+        <div class="stock-title">Creează bază / terț</div>
+        <div class="stock-muted">Creezi o bază completă cu mai multe magazii/silozuri. Fiecare spațiu se salvează separat.</div>
+        <input type="hidden" id="stockSiteId">
+        <div class="fr fr2">
+          <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteName" type="text" placeholder="BAZA APA, TERȚ SAM MILLS..."></div>
+          <div class="fg"><label class="fl">Tip locație</label><select id="stockSiteType"><option value="agrotex">Bază Agrotex</option><option value="tert">Terț</option></select></div>
+        </div>
+        <div class="stock-site-space-box">
+          <div class="stock-site-space-head"><span>Magazii / silozuri</span><button class="btn-sm" onclick="addStockSiteSpaceRow()">+ Spațiu</button></div>
+          <div id="stockSiteSpaces"></div>
+        </div>
+        <div class="fg"><label class="fl">Observații bază / terț</label><input id="stockSiteNote" type="text" placeholder="custodie, spațiu extern, detalii..."></div>
+        <div class="stock-form-actions">
+          <button class="btn-add" style="margin-top:0;" onclick="saveStockSiteForm()">+ Salvează locație</button>
+          <button class="btn-sm" onclick="resetStockSiteForm()">Reset</button>
+        </div>
       </div>
     </div>
 
-    <div class="stock-panel">
-      <div class="stock-title">Baze / terți stoc</div>
-      <div class="stock-muted">Creezi locații comune pentru toate calculatoarele. Poți crea baze goale cu capacitate, chiar dacă stocul este 0.</div>
-      <input type="hidden" id="stockSiteId">
-      <div class="fr fr2">
-        <div class="fg"><label class="fl">Bază / terț</label><input id="stockSiteName" type="text" placeholder="BAZA APA, TERȚ SAM MILLS..."></div>
-        <div class="fg"><label class="fl">Tip locație</label><select id="stockSiteType"><option value="agrotex">Bază Agrotex</option><option value="tert">Terț</option></select></div>
+    <div class="stock-main-stack">
+      <div class="stock-panel">
+        <div class="stock-title-row">
+          <div>
+            <div class="stock-title">Locații / spații create</div>
+            <div class="stock-muted">Registrul fizic de depozitare. Aici editezi sau ștergi baze, magazii și silozuri.</div>
+          </div>
+          <input id="stockSiteSearch" class="stock-quick-search" type="text" placeholder="caută bază, siloz, magazie..." oninput="renderStockSitesRegistry()">
+        </div>
+        <div id="stockSitesManager" class="stock-sites-grid"></div>
       </div>
-      <div class="stock-site-space-box">
-        <div class="stock-site-space-head"><span>Magazii / silozuri</span><button class="btn-sm" onclick="addStockSiteSpaceRow()">+ Spațiu</button></div>
-        <div id="stockSiteSpaces"></div>
-      </div>
-      <div class="fg"><label class="fl">Observații bază / terț</label><input id="stockSiteNote" type="text" placeholder="custodie, spațiu extern, detalii..."></div>
-      <div class="stock-form-actions">
-        <button class="btn-add" style="margin-top:0;" onclick="saveStockSiteForm()">+ Salvează locație</button>
-        <button class="btn-sm" onclick="resetStockSiteForm()">Reset</button>
-      </div>
-    </div>
-    </div>
 
-    <div class="stock-panel">
-      <div class="stock-title">Stocuri introduse manual</div>
-      <div class="stock-filter-strip">
-        <select id="stockFilterBase" onchange="renderStock()"><option value="">Toate bazele</option></select>
-        <select id="stockFilterLocationType" onchange="renderStock()"><option value="">Baze + terți</option><option value="agrotex">Doar baze Agrotex</option><option value="tert">Doar terți</option></select>
-        <select id="stockFilterProduct" onchange="renderStock()"><option value="">Toate produsele</option></select>
-        <select id="stockFilterType" onchange="renderStock()"><option value="">Magazie + Siloz</option><option value="Magazie">Magazie</option><option value="Siloz">Siloz</option></select>
-        <select id="stockFilterCrop" onchange="renderStock()"><option value="">Toate recoltele</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
-        <label style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);white-space:nowrap;"><input id="stockOnlyPositive" type="checkbox" checked onchange="renderStock()" style="width:auto;"> doar cantitate &gt; 0</label>
-        <button class="btn-sm" onclick="resetStockFilters()">Reset filtre</button>
+      <div class="stock-panel">
+        <div class="stock-title-row">
+          <div>
+            <div class="stock-title">Stocuri introduse manual</div>
+            <div class="stock-muted">Tabelul de marfă fizică. Editarea stocului se face în popup.</div>
+          </div>
+        </div>
+        <div class="stock-filter-strip">
+          <select id="stockFilterBase" onchange="renderStock()"><option value="">Toate bazele</option></select>
+          <select id="stockFilterLocationType" onchange="renderStock()"><option value="">Baze + terți</option><option value="agrotex">Doar baze Agrotex</option><option value="tert">Doar terți</option></select>
+          <select id="stockFilterProduct" onchange="renderStock()"><option value="">Toate produsele</option></select>
+          <select id="stockFilterType" onchange="renderStock()"><option value="">Magazie + Siloz</option><option value="Magazie">Magazie</option><option value="Siloz">Siloz</option></select>
+          <select id="stockFilterCrop" onchange="renderStock()"><option value="">Toate recoltele</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+          <label style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);white-space:nowrap;"><input id="stockOnlyPositive" type="checkbox" checked onchange="renderStock()" style="width:auto;"> doar cantitate &gt; 0</label>
+          <button class="btn-sm" onclick="resetStockFilters()">Reset filtre</button>
+        </div>
+        <div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>Data</th><th>Bază</th><th>Spațiu</th><th>Tip</th><th>Produs</th><th>Rec.</th><th>Cantitate</th><th>Cap.</th><th>Calitate</th><th>Obs.</th><th></th></tr></thead><tbody id="stockRowsBody"></tbody></table></div>
+        <div id="stockDetails" class="stock-muted">Click pe un rând sau pe Edit pentru editare stoc. Click pe Loc pentru editare spațiu.</div>
       </div>
-      <div id="stockSitesManager" class="stock-site-list" style="max-height:190px;border:1px solid var(--border);border-radius:4px;background:rgba(255,255,255,.01);padding:8px;"></div>
-      <div class="stock-table-wrap"><table class="stock-table"><thead><tr><th>Data</th><th>Bază</th><th>Spațiu</th><th>Tip</th><th>Produs</th><th>Rec.</th><th>Cantitate</th><th>Cap.</th><th>Calitate</th><th>Obs.</th><th></th></tr></thead><tbody id="stockRowsBody"></tbody></table></div>
-      <div id="stockDetails" class="stock-muted">Selectează un rând din tabel pentru editare. Panoul din stânga rămâne doar pentru adăugare.</div>
     </div>
   </div>
 </div>
@@ -4895,6 +4932,329 @@ function importStockEntries(event){
     }finally{
       event.target.value='';
     }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
+/* Stock redesign overrides */
+function normalizeProductKeyAny(raw){
+  if(!raw) return '';
+  const k=String(raw);
+  if(products[k]) return k;
+  return getStockProductKey(k) || k;
+}
+function stockQualityLine(r){
+  return [
+    r.protein?`Prot ${fmtDec(r.protein,1)}`:'',
+    r.hl?`HL ${fmtDec(r.hl,1)}`:'',
+    r.humidity?`Umid ${fmtDec(r.humidity,1)}`:'',
+    r.oil?`Oil ${fmtDec(r.oil,1)}`:'',
+    r.quality||''
+  ].filter(Boolean).join(' · ') || '—';
+}
+function stockSiteOptionLabel(s){
+  if(!s) return '';
+  const type=s.storageType || stockTypeFromSpace(s.space);
+  return `${s.name||'—'} · ${s.space||'—'} · ${type}${s.capacity?` · ${fmtN(s.capacity)} t`:''}`;
+}
+function activeStockSites(){
+  return stockSites
+    .filter(s=>s && s.name && s.space)
+    .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ro') || String(a.space||'').localeCompare(String(b.space||''),'ro'));
+}
+function populateStockProductSelect(){
+  const selects=['stockProduct','stockEditProduct'];
+  const opts=Object.entries(products).map(([k,p])=>`<option value="${k}">${p.emoji||''} ${escHtml(p.name||k)}</option>`).join('')+
+    `<option value="soy">Soia</option><option value="barley">Orz</option><option value="triticale">Triticale</option>`;
+  selects.forEach(id=>{const el=document.getElementById(id); if(el) el.innerHTML=opts;});
+}
+function populateStockLocationSelect(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const current=el.value;
+  el.innerHTML='<option value="">Alege baza / magazia / silozul...</option>'+activeStockSites().map(s=>`<option value="${s.id}">${escHtml(stockSiteOptionLabel(s))}</option>`).join('');
+  if(current && [...el.options].some(o=>String(o.value)===String(current))) el.value=current;
+}
+function populateStockFilters(){
+  const fBase=document.getElementById('stockFilterBase');
+  if(fBase){
+    const cur=fBase.value;
+    const bases=[...new Set([...stockEntries.map(r=>r.base).filter(Boolean),...stockSites.map(s=>s.name).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'ro'));
+    fBase.innerHTML='<option value="">Toate bazele</option>'+bases.map(b=>`<option value="${escHtml(b)}">${escHtml(b)}</option>`).join('');
+    if(bases.includes(cur)) fBase.value=cur;
+  }
+  const fProd=document.getElementById('stockFilterProduct');
+  if(fProd){
+    const cur=fProd.value;
+    const keys=[...new Set(stockEntries.map(r=>normalizeProductKeyAny(r.product)).filter(Boolean))].sort((a,b)=>productNameFromKey(a).localeCompare(productNameFromKey(b),'ro'));
+    fProd.innerHTML='<option value="">Toate produsele</option>'+keys.map(k=>`<option value="${escHtml(k)}">${escHtml(productNameFromKey(k))}</option>`).join('');
+    if(keys.includes(cur)) fProd.value=cur;
+  }
+  populateStockLocationSelect('stockBase');
+  populateStockLocationSelect('stockEditBase');
+}
+function getFilteredStockEntries(){
+  let rows=stockEntries.slice().map(r=>({...r, product:normalizeProductKeyAny(r.product)}));
+  const f=getStockFilterState();
+  if(f.base) rows=rows.filter(r=>stockBaseKey(r.base)===stockBaseKey(f.base));
+  if(f.locationType) rows=rows.filter(r=>{
+    const site=getStockEntrySite(r);
+    return (site?.type || r.baseType || '')===f.locationType;
+  });
+  if(f.product) rows=rows.filter(r=>normalizeProductKeyAny(r.product)===f.product);
+  if(f.stockType) rows=rows.filter(r=>String((getStockEntrySite(r)?.storageType)||r.type||'')===String(f.stockType));
+  if(f.crop) rows=rows.filter(r=>String(r.crop||'')===String(f.crop));
+  if(f.onlyPositive) rows=rows.filter(r=>(Number(r.qty)||0)>0);
+  return rows;
+}
+function matchingStockSitesForFilters(){
+  const f=getStockFilterState();
+  return activeStockSites().filter(s=>{
+    if(f.base && stockBaseKey(s.name)!==stockBaseKey(f.base)) return false;
+    if(f.locationType && s.type!==f.locationType) return false;
+    if(f.stockType && String(s.storageType||stockTypeFromSpace(s.space))!==String(f.stockType)) return false;
+    return true;
+  });
+}
+function renderStock(){
+  populateStockProductSelect();
+  populateStockFilters();
+  const rows=getFilteredStockEntries();
+  const sites=matchingStockSitesForFilters();
+  const totalQty=rows.reduce((s,r)=>s+(Number(r.qty)||0),0);
+  const totalCapacity=sites.length ? sites.reduce((s,x)=>s+(Number(x.capacity)||0),0) : rows.reduce((s,r)=>s+(Number(r.capacity)||0),0);
+  const free=totalCapacity-totalQty;
+  const occupancy=totalCapacity>0?Math.round((totalQty/totalCapacity)*100):0;
+  const byProduct={};
+  rows.forEach(r=>{const k=normalizeProductKeyAny(r.product); byProduct[k]=(byProduct[k]||0)+(Number(r.qty)||0);});
+  const topProducts=Object.entries(byProduct).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const dash=document.getElementById('stockDashboard');
+  if(dash){
+    dash.innerHTML=`
+      <div class="stock-card"><div class="stock-card-l">Stoc filtrat</div><div class="stock-card-v" style="color:var(--long)">${fmtN(totalQty)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Capacitate selecție</div><div class="stock-card-v">${fmtN(totalCapacity)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Spațiu liber estimat</div><div class="stock-card-v" style="color:${free>=0?'var(--old)':'var(--short)'}">${fmtN(free)} t</div></div>
+      <div class="stock-card"><div class="stock-card-l">Grad ocupare</div><div class="stock-card-v">${occupancy}%</div></div>
+      <div class="stock-card"><div class="stock-card-l">Spații în registru</div><div class="stock-card-v">${sites.length}</div></div>
+      <div class="stock-card"><div class="stock-card-l">Rânduri afișate</div><div class="stock-card-v">${rows.length}</div></div>
+      ${topProducts.map(([k,v])=>`<div class="stock-card"><div class="stock-card-l">${escHtml(productNameFromKey(k))}</div><div class="stock-card-v">${fmtN(v)} t</div></div>`).join('')}`;
+  }
+  renderStockSitesRegistry();
+  renderStockRows(rows);
+  const b=document.getElementById('bStock'); if(b) b.textContent=stockEntries.length;
+}
+function renderStockSitesRegistry(){
+  const box=document.getElementById('stockSitesManager');
+  if(!box) return;
+  const q=normalizeTextLoose(document.getElementById('stockSiteSearch')?.value||'');
+  let sites=activeStockSites();
+  if(q){
+    sites=sites.filter(s=>normalizeTextLoose(`${s.name} ${s.space} ${s.storageType} ${s.note||''}`).includes(q));
+  }
+  if(!sites.length){
+    box.innerHTML='<div class="stock-empty-box">// nicio locație creată</div>';
+    return;
+  }
+  box.innerHTML=sites.map(s=>{
+    const used=stockEntries.filter(r=>String(r.baseSiteId||'')===String(s.id) || (stockBaseKey(r.base)===stockBaseKey(s.name) && normalizeTextLoose(r.space||'')===normalizeTextLoose(s.space||'')));
+    const qty=used.reduce((a,r)=>a+(Number(r.qty)||0),0);
+    return `<div class="stock-site-card">
+      <div class="stock-site-card-top">
+        <div>
+          <div class="stock-site-card-name">${escHtml(s.name||'—')} · ${escHtml(s.space||'—')}</div>
+          <div class="stock-site-card-meta"><span class="stock-site-badge ${stockSiteTypeClass(s.type)}">${stockSiteTypeLabel(s.type)}</span> <span class="stock-badge ${String(s.storageType).toLowerCase()==='siloz'?'siloz':'magazie'}">${escHtml(s.storageType||stockTypeFromSpace(s.space))}</span> · cap. ${fmtN(s.capacity||0)} t · stoc ${fmtN(qty)} t${s.stockZero?' · stoc 0':''}</div>
+          ${s.note?`<div class="stock-site-card-meta">${escHtml(s.note)}</div>`:''}
+        </div>
+        <div class="stock-site-card-actions">
+          <button class="btn-sm" onclick="editStockSite(${s.id})">Edit</button>
+          <button class="btn-del" onclick="deleteStockSite(${s.id})">×</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderStockRows(rows=getFilteredStockEntries()){
+  const body=document.getElementById('stockRowsBody');
+  if(!body) return;
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="11"><div class="stock-empty-box">// niciun stoc pentru filtrele selectate</div></td></tr>';
+    return;
+  }
+  body.innerHTML=rows.map(r=>{
+    const site=getStockEntrySite(r);
+    const type=site?.storageType || r.type || stockTypeFromSpace(r.space);
+    const productKey=normalizeProductKeyAny(r.product);
+    const p=products[productKey] || {};
+    const cap=Number(site?.capacity || r.capacity || 0);
+    return `<tr class="stock-row-click" onclick="editStockEntry(${r.id})">
+      <td>${escHtml(r.date||'')}</td>
+      <td><b>${escHtml(r.base||'—')}</b></td>
+      <td>${escHtml(r.space||'—')}</td>
+      <td><span class="stock-badge ${String(type).toLowerCase()==='siloz'?'siloz':'magazie'}">${escHtml(type||'—')}</span></td>
+      <td>${p.emoji||''} ${escHtml(productNameFromKey(productKey))}</td>
+      <td><span class="told">${escHtml(r.crop||'')}</span></td>
+      <td class="tl">${fmtN(r.qty)} t</td>
+      <td>${fmtN(cap)} t</td>
+      <td>${escHtml(stockQualityLine(r))}</td>
+      <td>${escHtml(r.note||'—')}</td>
+      <td><div class="stock-row-actions"><button class="btn-sm" onclick="event.stopPropagation();editStockEntry(${r.id})">Edit</button>${site?`<button class="btn-sm" onclick="event.stopPropagation();editStockSite(${site.id})">Loc</button>`:''}<button class="btn-del" onclick="event.stopPropagation();deleteStockEntry(${r.id})">×</button></div></td>
+    </tr>`;
+  }).join('');
+}
+function buildStockEntryFormHtml(r={}, prefix='stockEdit'){
+  const productKey=normalizeProductKeyAny(r.product) || 'wheat';
+  setTimeout(()=>{ populateStockProductSelect(); populateStockLocationSelect(prefix+'Base');
+    const b=document.getElementById(prefix+'Base'); if(b) b.value=r.baseSiteId||getStockEntrySite(r)?.id||'';
+    const p=document.getElementById(prefix+'Product'); if(p) p.value=productKey;
+    applyStockSiteToForm(prefix);
+  },0);
+  return `<div class="stock-modal-form">
+    <div class="mtitle">Editează stoc <span style="color:var(--dim);font-size:10px;font-weight:400">#${escHtml(r.id||'')}</span></div>
+    <div class="fr fr2"><div class="fg"><label class="fl">Data stocului</label><input id="${prefix}Date" type="date" value="${escHtml(r.date||today())}"></div><div class="fg"><label class="fl">Loc stocare</label><select id="${prefix}Base" onchange="applyStockSiteToForm('${prefix}')"></select></div></div>
+    <div class="fr fr3"><div class="fg"><label class="fl">Bază / terț</label><input id="${prefix}SiteBaseView" type="text" readonly></div><div class="fg"><label class="fl">Spațiu</label><input id="${prefix}Space" type="text" readonly></div><div class="fg"><label class="fl">Tip</label><input id="${prefix}Type" type="text" readonly></div></div>
+    <div class="fr fr3"><div class="fg"><label class="fl">Produs</label><select id="${prefix}Product"></select></div><div class="fg"><label class="fl">Recoltă</label><select id="${prefix}Crop"><option value="2025" ${String(r.crop)==='2025'?'selected':''}>2025</option><option value="2026" ${String(r.crop)==='2026'?'selected':''}>2026</option><option value="2027" ${String(r.crop)==='2027'?'selected':''}>2027</option></select></div><div class="fg"><label class="fl">Cantitate (t)</label><input id="${prefix}Qty" type="number" step="0.01" min="0" value="${escHtml(r.qty??'')}"></div></div>
+    <div class="fr fr3"><input id="${prefix}Capacity" type="hidden" value="${escHtml(r.capacity??'')}"><div class="fg"><label class="fl">Capacitate loc</label><input id="${prefix}CapacityView" type="text" readonly></div><div class="fg"><label class="fl">Proteină</label><input id="${prefix}Protein" type="number" step="0.01" min="0" value="${escHtml(r.protein||'')}"></div><div class="fg"><label class="fl">HL</label><input id="${prefix}Hl" type="number" step="0.01" min="0" value="${escHtml(r.hl||'')}"></div></div>
+    <div class="fr fr3"><div class="fg"><label class="fl">Umiditate</label><input id="${prefix}Humidity" type="number" step="0.01" min="0" value="${escHtml(r.humidity||'')}"></div><div class="fg"><label class="fl">Oil / ulei</label><input id="${prefix}Oil" type="number" step="0.01" min="0" value="${escHtml(r.oil||'')}"></div><div class="fg"><label class="fl">Calitate text</label><input id="${prefix}Quality" type="text" value="${escHtml(r.quality||'')}"></div></div>
+    <div class="fg"><label class="fl">Observații</label><input id="${prefix}Note" type="text" value="${escHtml(r.note||'')}"></div>
+    <div class="stock-modal-actions"><button class="btn-sm btn-log-red" onclick="deleteStockEntry(${r.id})" style="margin-right:auto;">Șterge poziția</button><button class="btn-cancel" onclick="closeModal('modStockEntryEdit')">Anulează</button><button class="btn-save" onclick="saveStockEditForm(${r.id})">Salvează</button></div>
+  </div>`;
+}
+function editStockEntry(id){
+  const r=stockEntries.find(x=>String(x.id)===String(id));
+  if(!r){alert('Nu găsesc rândul de stoc. Reîncarcă pagina.');return;}
+  const body=document.getElementById('stockEntryEditModalBody');
+  if(!body){alert('Lipsește modalul de editare stoc.');return;}
+  body.innerHTML=buildStockEntryFormHtml(r,'stockEdit');
+  openModal('modStockEntryEdit');
+}
+async function saveStockEditForm(id){
+  const item=buildStockEntryFromForm('stockEdit');
+  if(!item.base){alert('Alege locul de stocare.');return;}
+  if(!item.qty && item.qty!==0){alert('Completează cantitatea.');return;}
+  try{
+    const res=await fetch('/api/stock/entries/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    await loadStockEntries();
+    closeModal('modStockEntryEdit');
+    renderStock();
+  }catch(e){alert('Eroare la salvare stoc: '+e.message);}
+}
+async function deleteStockEntry(id){
+  if(!confirm('Ștergi acest rând de stoc?')) return;
+  try{
+    const res=await fetch('/api/stock/entries/'+id,{method:'DELETE'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    await loadStockEntries();
+    closeModal('modStockEntryEdit');
+    renderStock();
+  }catch(e){alert('Eroare la ștergere stoc: '+e.message);}
+}
+function editStockSite(id){
+  const s=stockSiteById(id);
+  if(!s){alert('Nu găsesc locația.');return;}
+  const set=(id,val)=>{const el=document.getElementById(id); if(el) el.value=val ?? '';};
+  set('stockSiteEditId',s.id);
+  const lbl=document.getElementById('stockSiteEditIdLabel'); if(lbl) lbl.textContent='#'+s.id;
+  set('stockSiteEditName',s.name||'');
+  set('stockSiteEditType',s.type||'agrotex');
+  set('stockSiteEditSpace',s.space||'');
+  set('stockSiteEditStorageType',s.storageType||stockTypeFromSpace(s.space)||'Magazie');
+  set('stockSiteEditCapacity',s.capacity||'');
+  const z=document.getElementById('stockSiteEditZero'); if(z) z.checked=!!s.stockZero;
+  set('stockSiteEditNote',s.note||'');
+  openModal('modStockSiteEdit');
+}
+async function deleteStockSite(id){
+  const s=stockSiteById(id);
+  if(!s) return;
+  const linked=stockEntries.filter(r=>String(r.baseSiteId||'')===String(s.id) || (stockBaseKey(r.base)===stockBaseKey(s.name) && normalizeTextLoose(r.space||'')===normalizeTextLoose(s.space||'')));
+  let msg=`Ștergi locația "${stockSiteDisplay(s)}"?`;
+  if(linked.length){ msg+=`\n\nExistă ${linked.length} rânduri de stoc pe această locație. OK șterge și rândurile de stoc legate, ca locația să dispară complet din dropdown.`; }
+  if(!confirm(msg)) return;
+  try{
+    for(const r of linked){ await fetch('/api/stock/entries/'+r.id,{method:'DELETE'}); }
+    const res=await fetch('/api/stock/locations/'+id,{method:'DELETE'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    await Promise.all([loadStockSites(),loadStockEntries()]);
+    closeModal('modStockSiteEdit');
+    renderStock();
+  }catch(e){alert('Eroare la ștergere locație: '+e.message);}
+}
+async function deleteStockSiteFromModal(){
+  const id=document.getElementById('stockSiteEditId')?.value;
+  if(id) await deleteStockSite(id);
+}
+function resetStockFilters(){
+  ['stockFilterBase','stockFilterLocationType','stockFilterProduct','stockFilterType','stockFilterCrop'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const op=document.getElementById('stockOnlyPositive'); if(op) op.checked=true;
+  renderStock();
+}
+function parseStockLocationsFromWorkbook(wb){
+  const sheetName=wb.SheetNames.find(n=>normalizeTextLoose(n).includes('loc'));
+  if(!sheetName) return [];
+  const ws=wb.Sheets[sheetName];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  if(!aoa.length) return [];
+  const headers=(aoa[0]||[]).map(c=>normalizeTextLoose(c));
+  const get=(row,names)=>{ for(const n of names){ const idx=headers.findIndex(h=>h.includes(n)); if(idx>=0) return row[idx]; } return ''; };
+  const out=[];
+  aoa.slice(1).forEach(row=>{
+    const name=String(get(row,['baza','tert','depozit'])||'').trim();
+    const space=String(get(row,['spatiu','magazie','siloz'])||'').trim();
+    if(!name||!space) return;
+    out.push({name,type:normalizeTextLoose(get(row,['tip_locatie','tip locatie'])).includes('tert')?'tert':'agrotex',space,storageType:String(get(row,['tip_spatiu','tip spatiu','tip'])||stockTypeFromSpace(space)).trim(),capacity:parseStockNumber(get(row,['capacitate'])),stockZero:normalizeTextLoose(get(row,['stoc_0','stoc 0'])).startsWith('da'),active:true,note:String(get(row,['observatii','obs'])||'').trim()});
+  });
+  return out;
+}
+function parseStockImportRows(wb){
+  const preferred=wb.SheetNames.find(n=>normalizeTextLoose(n).includes('stoc')) || wb.SheetNames[0];
+  const ws=wb.Sheets[preferred];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const result=[];
+  const stockDate=sheetNameToDate(preferred);
+  const headerIdx=aoa.findIndex(r=>r.map(c=>normalizeTextLoose(c)).some(h=>h.includes('baza')) && r.map(c=>normalizeTextLoose(c)).some(h=>h.includes('cantitate')));
+  if(headerIdx>=0){
+    const headers=(aoa[headerIdx]||[]).map(c=>normalizeTextLoose(c));
+    const get=(row,names)=>{ for(const n of names){ const idx=headers.findIndex(h=>h.includes(n)); if(idx>=0) return row[idx]; } return ''; };
+    aoa.slice(headerIdx+1).forEach(row=>{
+      const base=String(get(row,['baza','depozit'])||'').trim();
+      const space=String(get(row,['spatiu','magazie','siloz'])||'').trim();
+      const qty=parseStockNumber(get(row,['cantitate','qty']));
+      const prodKey=getStockProductKey(get(row,['produs','product'])) || normalizeProductKeyAny(get(row,['produs','product'])) || 'wheat';
+      if(base && space && (qty || qty===0)){
+        result.push({date:String(get(row,['data'])||stockDate).slice(0,10),base,space,type:String(get(row,['tip'])||stockTypeFromSpace(space)),product:prodKey,crop:String(get(row,['recolta','crop'])||'2026'),qty,capacity:parseStockNumber(get(row,['capacitate'])),protein:parseStockNumber(get(row,['proteina'])),hl:parseStockNumber(get(row,['hl'])),humidity:parseStockNumber(get(row,['umiditate'])),oil:parseStockNumber(get(row,['oil','ulei'])),quality:String(get(row,['calitate'])||'').trim(),note:String(get(row,['observatii','note','obs'])||'').trim()});
+      }
+    });
+  }
+  return result.filter(r=>r.base&&r.space&&(Number(r.qty)||0)>=0);
+}
+async function importStockEntries(event){
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const locations=parseStockLocationsFromWorkbook(wb);
+      const rows=parseStockImportRows(wb);
+      if(!locations.length && !rows.length){alert('Nu am găsit stocuri sau locații în fișier.');return;}
+      for(const loc of locations){
+        const exists=stockSites.find(s=>stockSitePhysicalKey(s)===stockSitePhysicalKey(loc));
+        if(!exists) await fetch('/api/stock/locations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(loc)});
+      }
+      await loadStockSites();
+      if(rows.length){
+        await ensureStockSitesFromEntries(rows);
+        rows.forEach(r=>{ const site=stockSiteByPhysical(r.base,r.space,r.type) || stockSiteByName(r.base); if(site){ r.base=site.name; r.baseSiteId=site.id; r.baseType=site.type; r.space=site.space; r.type=site.storageType; r.capacity=site.capacity||r.capacity; } });
+        const replace=confirm(`Am găsit ${rows.length} rânduri de stoc și ${locations.length} locații. OK = înlocuiește stocurile. Cancel = adaugă peste ce există.`);
+        const res=await fetch('/api/stock/entries/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:rows,mode:replace?'replace':'append'})});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+      }
+      await Promise.all([loadStockSites(),loadStockEntries()]);
+      renderStock();
+      alert(`Import reușit: ${rows.length} rânduri stoc, ${locations.length} locații.`);
+    }catch(err){ alert('Eroare import stocuri: '+err.message); }
+    finally{ event.target.value=''; }
   };
   reader.readAsArrayBuffer(file);
 }
