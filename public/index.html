@@ -4310,7 +4310,7 @@ function editStockEntry(id){
   populateStockBaseSelects();
   const sel=document.getElementById('stockEditBase'); if(sel && site) sel.value=String(site.id);
   applyStockSiteToForm('stockEdit');
-  openModal('modStockEntryEdit');
+  document.getElementById('modStockEntryEdit')?.classList.add('open');
 }
 async function saveStockEditForm(){
   const id=document.getElementById('stockEditId')?.value;
@@ -4408,7 +4408,7 @@ function editStockSite(id){
   document.getElementById('stockSiteEditZero').checked=!!s.stockZero;
   document.getElementById('stockSiteEditNote').value=s.note||'';
   onStockSiteEditTypeChange();
-  openModal('modStockSiteEdit');
+  document.getElementById('modStockSiteEdit')?.classList.add('open');
 }
 async function saveStockSiteEditModal(){
   const id=document.getElementById('stockSiteEditId')?.value;
