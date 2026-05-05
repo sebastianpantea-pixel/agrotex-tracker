@@ -579,7 +579,8 @@
 
 
   /* Contracte incomplete + faze meteo */
-  .contract-check-row{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid rgba(233,133,133,.35);background:rgba(233,133,133,.08);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--short);font-weight:800;letter-spacing:.4px;cursor:pointer;user-select:none;}
+  .contract-check-row{display:flex;align-items:center;gap:7px;padding:3px 0 1px 0;border:none;background:transparent;border-radius:0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);font-weight:600;letter-spacing:.2px;cursor:pointer;user-select:none;}
+  .contract-check-row:hover{color:var(--bright);}
   .contract-check-row input{width:auto;accent-color:#e98585;}
   .incomplete-contracts-box{display:none;border-bottom:1px solid var(--border);background:rgba(233,133,133,.055);padding:8px 10px;}
   .incomplete-contracts-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--short);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;}
@@ -4386,7 +4387,7 @@ function calcWaterNeed(summary) {
 
   return WATER_NEED_CROPS.map(crop => {
     const phase = selectedWaterPhase(crop);
-    const base = { ...crop, ...phase, phases: crop.phases, phaseKey: phase.key };
+    const base = { ...crop, ...phase, key: crop.key, phaseKey: phase.key, phases: crop.phases };
     if (soilEff === null) return { ...base, needMm: null, prognoza7, deficit: null, status: 'no-data' };
     const needMm = Math.max(0, (phase.targetSoil - soilEff) * phase.rootDepth * 10);
     const deficit = needMm - prognoza7;
