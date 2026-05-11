@@ -214,6 +214,14 @@
   .log-month-product-vals{display:flex;gap:6px;white-space:nowrap;font-weight:800;}
   .log-month-product-pickup{color:var(--old);}
   .log-month-product-delivery{color:var(--new);}
+  .log-month-exec{color:var(--bright);}
+  .log-month-diff-pos{color:var(--long);font-weight:900;}
+  .log-month-diff-neg{color:var(--short);font-weight:900;}
+  .log-month-diff-flat{color:var(--dim);font-weight:800;}
+  .log-month-product-exec{color:var(--bright);}
+  .log-month-product-diff-pos{color:var(--long);}
+  .log-month-product-diff-neg{color:var(--short);}
+  .log-month-product-diff-flat{color:var(--dim);}
   .log-grid{display:grid;grid-template-columns:430px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
   .log-left-stack{display:flex;flex-direction:column;gap:12px;}
@@ -2753,7 +2761,7 @@ function renderLogisticsDashboard(){
   renderLogisticsMonthFilterStrip();
   const months=getNextMonthOptions(12);
   const agg={};
-  months.forEach(m=>agg[m.key]={pickup:0,delivery:0,receivable:0,paid:0,products:{}});
+  months.forEach(m=>agg[m.key]={pickup:0,delivery:0,pickupExec:0,deliveryExec:0,receivable:0,paid:0,products:{}});
 
   const monthRange=(start,end)=>{
     if(!start && !end) return [];
@@ -2785,11 +2793,33 @@ function renderLogisticsDashboard(){
     return key || 'Produs';
   };
 
+  const ensureProductMonth=(month,t)=>{
+    if(!agg[month]) return null;
+    const key=productKeyForLogCard(t);
+    if(!agg[month].products[key]) agg[month].products[key]={pickup:0,delivery:0,pickupExec:0,deliveryExec:0,label:productLabelForLogCard(key)};
+    return agg[month].products[key];
+  };
+
   const addProductQty=(month, flow, t, qty)=>{
     if(!agg[month] || !qty) return;
-    const key=productKeyForLogCard(t);
-    if(!agg[month].products[key]) agg[month].products[key]={pickup:0,delivery:0,label:productLabelForLogCard(key)};
-    agg[month].products[key][flow] += Number(qty)||0;
+    const p=ensureProductMonth(month,t);
+    if(!p) return;
+    p[flow] += Number(qty)||0;
+  };
+
+  const addExecutedQty=(c, flow)=>{
+    const t=getLogTrade(c) || {};
+    (c.movements||c.deliveries||[]).forEach(mv=>{
+      const month=ymFromDate(mv.date);
+      if(!agg[month]) return;
+      const qty=Number(mv.qty)||0;
+      if(qty<=0) return;
+      if(flow==='pickup') agg[month].pickupExec += qty;
+      else agg[month].deliveryExec += qty;
+      const p=ensureProductMonth(month,t);
+      if(!p) return;
+      p[flow==='pickup'?'pickupExec':'deliveryExec'] += qty;
+    });
   };
 
   const addPlannedQty=(c, flow)=>{
@@ -2823,6 +2853,7 @@ function renderLogisticsDashboard(){
   logisticsContracts.forEach(c=>{
     const flow=logFlow(c);
     addPlannedQty(c, flow);
+    addExecutedQty(c, flow);
     if(flow==='delivery') (c.invoices||[]).forEach(inv=>{
       const m=ymFromDate(inv.dueDate || inv.invoiceDate);
       if(!agg[m]) return;
@@ -2836,7 +2867,7 @@ function renderLogisticsDashboard(){
   const activeMonths=months.filter(m=>{
     const a=agg[m.key];
     const rest=Math.max(0,a.receivable-a.paid);
-    return a.pickup>0 || a.delivery>0 || a.receivable>0 || a.paid>0 || rest>0;
+    return a.pickup>0 || a.delivery>0 || a.pickupExec>0 || a.deliveryExec>0 || a.receivable>0 || a.paid>0 || rest>0;
   });
 
   if(!activeMonths.length){
@@ -2844,18 +2875,32 @@ function renderLogisticsDashboard(){
     return;
   }
 
+  const diffClass=(d)=>d>0?'log-month-diff-pos':(d<0?'log-month-diff-neg':'log-month-diff-flat');
+  const signed=(n)=>{ const v=Number(n)||0; return `${v>0?'+':''}${fmtN(v)}`; };
+  const planExecLine=(label, plan, exec, cls)=>{
+    const diff=(Number(exec)||0)-(Number(plan)||0);
+    return `<div class="log-month-row"><span class="log-month-label">${label}</span><span class="log-month-value ${cls}">plan ${fmtN(plan)} t · exec <span class="log-month-exec">${fmtN(exec)} t</span> · <span class="${diffClass(diff)}">${signed(diff)} t</span></span></div>`;
+  };
+
   const productRows=(a)=>{
     const rows=Object.entries(a.products||{})
-      .map(([key,p])=>({key,...p,total:(p.pickup||0)+(p.delivery||0)}))
+      .map(([key,p])=>({key,...p,total:(p.pickup||0)+(p.delivery||0)+(p.pickupExec||0)+(p.deliveryExec||0)}))
       .filter(p=>p.total>0)
       .sort((x,y)=>y.total-x.total);
     if(!rows.length) return '';
+    const pair=(plan,exec,kind)=>{
+      if((Number(plan)||0)<=0 && (Number(exec)||0)<=0) return '';
+      const d=(Number(exec)||0)-(Number(plan)||0);
+      const label=kind==='pickup'?'Rid':'Liv';
+      const cls=kind==='pickup'?'log-month-product-pickup':'log-month-product-delivery';
+      return `<span class="${cls}">${label} ${fmtN(plan)}/${fmtN(exec)} t <span class="${d>0?'log-month-product-diff-pos':(d<0?'log-month-product-diff-neg':'log-month-product-diff-flat')}">(${signed(d)})</span></span>`;
+    };
     return `<div class="log-month-products">${rows.map(p=>`
       <div class="log-month-product-row">
         <span class="log-month-product-name">${escHtml(p.label)}</span>
         <span class="log-month-product-vals">
-          ${p.pickup>0 ? `<span class="log-month-product-pickup">R ${fmtN(p.pickup)} t</span>` : ''}
-          ${p.delivery>0 ? `<span class="log-month-product-delivery">L ${fmtN(p.delivery)} t</span>` : ''}
+          ${pair(p.pickup,p.pickupExec,'pickup')}
+          ${pair(p.delivery,p.deliveryExec,'delivery')}
         </span>
       </div>`).join('')}</div>`;
   };
@@ -2865,8 +2910,8 @@ function renderLogisticsDashboard(){
     const rest=Math.max(0,a.receivable-a.paid);
     return `<div class="log-month-card ${m.key===nowYm?'current':''} ${logisticsMonthFilter===m.key?'active':''}" onclick="setLogisticsMonthFilter('${m.key}')">
       <div class="log-month-title">${m.label}${m.key===nowYm?'<span class="log-badge open">curentă</span>':''}</div>
-      ${a.pickup>0 ? `<div class="log-month-row"><span class="log-month-label">De ridicat</span><span class="log-month-value pickup">${fmtN(a.pickup)} t</span></div>` : ''}
-      ${a.delivery>0 ? `<div class="log-month-row"><span class="log-month-label">De livrat</span><span class="log-month-value deliver">${fmtN(a.delivery)} t</span></div>` : ''}
+      ${(a.pickup>0 || a.pickupExec>0) ? planExecLine('De ridicat', a.pickup, a.pickupExec, 'pickup') : ''}
+      ${(a.delivery>0 || a.deliveryExec>0) ? planExecLine('De livrat', a.delivery, a.deliveryExec, 'deliver') : ''}
       ${productRows(a)}
       ${a.receivable>0 ? `<div class="log-month-row"><span class="log-month-label">De încasat</span><span class="log-month-value money">${fmtN(a.receivable)} RON</span></div>` : ''}
       ${a.paid>0 ? `<div class="log-month-row"><span class="log-month-label">Încasat</span><span class="log-month-value paid">${fmtN(a.paid)} RON</span></div>` : ''}
