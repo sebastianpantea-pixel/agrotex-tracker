@@ -208,6 +208,12 @@
   .log-month-value.money{color:var(--acc);}
   .log-month-value.paid{color:var(--long);}
   .log-month-value.rest{color:var(--short);}
+  .log-month-products{border-top:1px solid var(--border);padding-top:6px;margin-top:2px;display:flex;flex-direction:column;gap:4px;}
+  .log-month-product-row{display:flex;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.25;}
+  .log-month-product-name{color:var(--bright);font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .log-month-product-vals{display:flex;gap:6px;white-space:nowrap;font-weight:800;}
+  .log-month-product-pickup{color:var(--old);}
+  .log-month-product-delivery{color:var(--new);}
   .log-grid{display:grid;grid-template-columns:430px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
   .log-left-stack{display:flex;flex-direction:column;gap:12px;}
@@ -2733,9 +2739,8 @@ function renderLogisticsDashboard(){
   if(!box) return;
   renderLogisticsMonthFilterStrip();
   const months=getNextMonthOptions(12);
-  const monthKeys=months.map(m=>m.key);
   const agg={};
-  months.forEach(m=>agg[m.key]={pickup:0,delivery:0,receivable:0,paid:0});
+  months.forEach(m=>agg[m.key]={pickup:0,delivery:0,receivable:0,paid:0,products:{}});
 
   const monthRange=(start,end)=>{
     if(!start && !end) return [];
@@ -2752,20 +2757,44 @@ function renderLogisticsDashboard(){
     return out;
   };
 
+  const productKeyForLogCard=(t)=>{
+    const raw=String(t?.product || t?.productName || '').trim();
+    const key=logProductComparable(t);
+    if(products[raw]) return raw;
+    if(products[key]) return key;
+    return key || raw || 'unknown';
+  };
+
+  const productLabelForLogCard=(key)=>{
+    if(products[key]) return `${products[key].emoji||''} ${products[key].name||key}`.trim();
+    const found=Object.entries(products).find(([k,p])=>logProductComparable({product:k})===key);
+    if(found) return `${found[1].emoji||''} ${found[1].name||found[0]}`.trim();
+    return key || 'Produs';
+  };
+
+  const addProductQty=(month, flow, t, qty)=>{
+    if(!agg[month] || !qty) return;
+    const key=productKeyForLogCard(t);
+    if(!agg[month].products[key]) agg[month].products[key]={pickup:0,delivery:0,label:productLabelForLogCard(key)};
+    agg[month].products[key][flow] += Number(qty)||0;
+  };
+
   const addPlannedQty=(c, flow)=>{
+    const t=getLogTrade(c) || {};
     const allocations=(c.allocations||[]).filter(a=>Number(a.qty)>0);
     if(allocations.length){
       allocations.forEach(a=>{
         if(!agg[a.month]) return;
-        if(flow==='pickup') agg[a.month].pickup += Number(a.qty)||0;
-        else agg[a.month].delivery += Number(a.qty)||0;
+        const qty=Number(a.qty)||0;
+        if(flow==='pickup') agg[a.month].pickup += qty;
+        else agg[a.month].delivery += qty;
+        addProductQty(a.month, flow, t, qty);
       });
       return;
     }
 
     // Fallback: dacă nu există alocare lunară, folosim perioada contractului.
     // Asta prinde contractele DE LIVRAT care au perioadă, dar nu au alocări introduse.
-    const t=getLogTrade(c);
     const qty=Number(t?.qty)||0;
     if(qty<=0) return;
     const range=monthRange(c.deliveryStartMonth, c.deliveryEndMonth).filter(m=>agg[m]);
@@ -2774,6 +2803,7 @@ function renderLogisticsDashboard(){
     range.forEach(m=>{
       if(flow==='pickup') agg[m].pickup += perMonth;
       else agg[m].delivery += perMonth;
+      addProductQty(m, flow, t, perMonth);
     });
   };
 
@@ -2801,6 +2831,22 @@ function renderLogisticsDashboard(){
     return;
   }
 
+  const productRows=(a)=>{
+    const rows=Object.entries(a.products||{})
+      .map(([key,p])=>({key,...p,total:(p.pickup||0)+(p.delivery||0)}))
+      .filter(p=>p.total>0)
+      .sort((x,y)=>y.total-x.total);
+    if(!rows.length) return '';
+    return `<div class="log-month-products">${rows.map(p=>`
+      <div class="log-month-product-row">
+        <span class="log-month-product-name">${escHtml(p.label)}</span>
+        <span class="log-month-product-vals">
+          ${p.pickup>0 ? `<span class="log-month-product-pickup">R ${fmtN(p.pickup)} t</span>` : ''}
+          ${p.delivery>0 ? `<span class="log-month-product-delivery">L ${fmtN(p.delivery)} t</span>` : ''}
+        </span>
+      </div>`).join('')}</div>`;
+  };
+
   box.innerHTML=activeMonths.map(m=>{
     const a=agg[m.key];
     const rest=Math.max(0,a.receivable-a.paid);
@@ -2808,12 +2854,14 @@ function renderLogisticsDashboard(){
       <div class="log-month-title">${m.label}${m.key===nowYm?'<span class="log-badge open">curentă</span>':''}</div>
       ${a.pickup>0 ? `<div class="log-month-row"><span class="log-month-label">De ridicat</span><span class="log-month-value pickup">${fmtN(a.pickup)} t</span></div>` : ''}
       ${a.delivery>0 ? `<div class="log-month-row"><span class="log-month-label">De livrat</span><span class="log-month-value deliver">${fmtN(a.delivery)} t</span></div>` : ''}
+      ${productRows(a)}
       ${a.receivable>0 ? `<div class="log-month-row"><span class="log-month-label">De încasat</span><span class="log-month-value money">${fmtN(a.receivable)} RON</span></div>` : ''}
       ${a.paid>0 ? `<div class="log-month-row"><span class="log-month-label">Încasat</span><span class="log-month-value paid">${fmtN(a.paid)} RON</span></div>` : ''}
       ${rest>0 ? `<div class="log-month-row"><span class="log-month-label">Rest</span><span class="log-month-value rest">${fmtN(rest)} RON</span></div>` : ''}
     </div>`;
   }).join('');
 }
+
 function getFilteredLogisticsItems(){
   let items=[...logisticsContracts];
   const f=window.logisticsFilter || 'all';
@@ -4685,30 +4733,6 @@ function renderStockDashboard(rows){
   Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,4).forEach(([k,v])=>cards.push([productNameFromKey(k),`${fmtN(v)} t`,'stock-positive']));
   document.getElementById('stockDashboard').innerHTML=cards.map(([l,v,cls])=>`<div class="stock-card"><div class="stock-card-l">${escHtml(l)}</div><div class="stock-card-v ${cls||''}">${escHtml(v)}</div></div>`).join('');
 }
-
-function stockSiteCurrentRows(site){
-  if(!site) return [];
-  return stockEntries.filter(r=>{
-    const linked=getStockEntrySite(r);
-    if(linked && String(linked.id)===String(site.id)) return true;
-    if(site.type==='tert') return stockBaseKey(r.base)===stockBaseKey(site.name);
-    return stockBaseKey(r.base)===stockBaseKey(site.name) && normalizeTextLoose(r.space||'')===normalizeTextLoose(site.space||'');
-  });
-}
-function stockSiteCurrentSummary(site){
-  const rows=stockSiteCurrentRows(site);
-  const qty=rows.reduce((a,r)=>a+(Number(r.qty)||0),0);
-  const positive=rows.filter(r=>(Number(r.qty)||0)>0);
-  if(!positive.length){
-    return {qty, label:'stoc 0'};
-  }
-  const main=positive.slice().sort((a,b)=>(Number(b.qty)||0)-(Number(a.qty)||0))[0];
-  const product=stockProductLabel(main.product);
-  const crop=main.crop ? ` ${main.crop}` : '';
-  const extra=positive.length>1 ? ` + ${positive.length-1} produse` : '';
-  return {qty, label:`${product}${crop} · stoc ${fmtN(qty)} t${extra}`};
-}
-
 function renderStockSitesList(){
   const box=document.getElementById('stockSitesManager'); if(!box) return;
   const visible=stockSites.filter(s=>s && s.name && (s.type==='tert' || s.space || s.isBaseOnly));
@@ -4725,10 +4749,10 @@ function renderStockSitesList(){
   box.innerHTML=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,'ro')).map(g=>{
     if(g.tertRecord){
       const s=g.tertRecord;
-      const ss=stockSiteCurrentSummary(s);
+      const qty=stockEntries.filter(r=>getStockEntrySite(r)?.id===s.id || stockBaseKey(r.base)===stockBaseKey(s.name)).reduce((a,r)=>a+(Number(r.qty)||0),0);
       return `<div style="border:1px solid var(--border);border-radius:4px;background:var(--surface2);padding:9px;">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-          <div><div class="stock-site-main">${escHtml(s.name)}</div><span class="stock-site-badge tert">Terț</span><div class="stock-site-meta">${escHtml(ss.label)}${s.note?' · '+escHtml(s.note):''}</div></div>
+          <div><div class="stock-site-main">${escHtml(s.name)}</div><span class="stock-site-badge tert">Terț</span><div class="stock-site-meta">stoc ${fmtN(qty)} t${s.note?' · '+escHtml(s.note):''}</div></div>
           <div class="stock-site-actions"><button class="btn-sm" onclick="editStockSite(${s.id})">Edit</button><button class="btn-del" onclick="deleteStockSite(${s.id})">✕</button></div>
         </div>
       </div>`;
@@ -4744,10 +4768,10 @@ function renderStockSitesList(){
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         ${g.spaces.length?g.spaces.sort((a,b)=>String(a.space||'').localeCompare(String(b.space||''),'ro')).map(s=>{
-          const ss=stockSiteCurrentSummary(s);
+          const q=stockEntries.filter(r=>getStockEntrySite(r)?.id===s.id).reduce((a,r)=>a+(Number(r.qty)||0),0);
           const label=`${s.space} · ${s.storageType} · cap. ${fmtN(s.capacity)} t`;
           return `<div class="stock-site-row" onclick="editStockSite(${s.id})" style="cursor:pointer;">
-            <div><div class="stock-site-main">${escHtml(label)}</div><div class="stock-site-meta">${escHtml(ss.label)}${s.stockZero && ss.qty<=0?' · stoc 0':''}${s.note?' · '+escHtml(s.note):''}</div></div>
+            <div><div class="stock-site-main">${escHtml(label)}</div><div class="stock-site-meta">stoc ${fmtN(q)} t${s.stockZero?' · stoc 0':''}${s.note?' · '+escHtml(s.note):''}</div></div>
             <div class="stock-site-actions"><button class="btn-sm" onclick="event.stopPropagation();editStockSite(${s.id})">Edit</button><button class="btn-del" onclick="event.stopPropagation();deleteStockSite(${s.id})">✕</button></div>
           </div>`;
         }).join(''):`<div class="stock-muted">// baza nu are încă magazii sau silozuri. Folosește + Spațiu.</div>`}
