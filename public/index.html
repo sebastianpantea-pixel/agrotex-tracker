@@ -4685,6 +4685,30 @@ function renderStockDashboard(rows){
   Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,4).forEach(([k,v])=>cards.push([productNameFromKey(k),`${fmtN(v)} t`,'stock-positive']));
   document.getElementById('stockDashboard').innerHTML=cards.map(([l,v,cls])=>`<div class="stock-card"><div class="stock-card-l">${escHtml(l)}</div><div class="stock-card-v ${cls||''}">${escHtml(v)}</div></div>`).join('');
 }
+
+function stockSiteCurrentRows(site){
+  if(!site) return [];
+  return stockEntries.filter(r=>{
+    const linked=getStockEntrySite(r);
+    if(linked && String(linked.id)===String(site.id)) return true;
+    if(site.type==='tert') return stockBaseKey(r.base)===stockBaseKey(site.name);
+    return stockBaseKey(r.base)===stockBaseKey(site.name) && normalizeTextLoose(r.space||'')===normalizeTextLoose(site.space||'');
+  });
+}
+function stockSiteCurrentSummary(site){
+  const rows=stockSiteCurrentRows(site);
+  const qty=rows.reduce((a,r)=>a+(Number(r.qty)||0),0);
+  const positive=rows.filter(r=>(Number(r.qty)||0)>0);
+  if(!positive.length){
+    return {qty, label:'stoc 0'};
+  }
+  const main=positive.slice().sort((a,b)=>(Number(b.qty)||0)-(Number(a.qty)||0))[0];
+  const product=stockProductLabel(main.product);
+  const crop=main.crop ? ` ${main.crop}` : '';
+  const extra=positive.length>1 ? ` + ${positive.length-1} produse` : '';
+  return {qty, label:`${product}${crop} · stoc ${fmtN(qty)} t${extra}`};
+}
+
 function renderStockSitesList(){
   const box=document.getElementById('stockSitesManager'); if(!box) return;
   const visible=stockSites.filter(s=>s && s.name && (s.type==='tert' || s.space || s.isBaseOnly));
@@ -4701,10 +4725,10 @@ function renderStockSitesList(){
   box.innerHTML=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,'ro')).map(g=>{
     if(g.tertRecord){
       const s=g.tertRecord;
-      const qty=stockEntries.filter(r=>getStockEntrySite(r)?.id===s.id || stockBaseKey(r.base)===stockBaseKey(s.name)).reduce((a,r)=>a+(Number(r.qty)||0),0);
+      const ss=stockSiteCurrentSummary(s);
       return `<div style="border:1px solid var(--border);border-radius:4px;background:var(--surface2);padding:9px;">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-          <div><div class="stock-site-main">${escHtml(s.name)}</div><span class="stock-site-badge tert">Terț</span><div class="stock-site-meta">stoc ${fmtN(qty)} t${s.note?' · '+escHtml(s.note):''}</div></div>
+          <div><div class="stock-site-main">${escHtml(s.name)}</div><span class="stock-site-badge tert">Terț</span><div class="stock-site-meta">${escHtml(ss.label)}${s.note?' · '+escHtml(s.note):''}</div></div>
           <div class="stock-site-actions"><button class="btn-sm" onclick="editStockSite(${s.id})">Edit</button><button class="btn-del" onclick="deleteStockSite(${s.id})">✕</button></div>
         </div>
       </div>`;
@@ -4720,10 +4744,10 @@ function renderStockSitesList(){
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         ${g.spaces.length?g.spaces.sort((a,b)=>String(a.space||'').localeCompare(String(b.space||''),'ro')).map(s=>{
-          const q=stockEntries.filter(r=>getStockEntrySite(r)?.id===s.id).reduce((a,r)=>a+(Number(r.qty)||0),0);
+          const ss=stockSiteCurrentSummary(s);
           const label=`${s.space} · ${s.storageType} · cap. ${fmtN(s.capacity)} t`;
           return `<div class="stock-site-row" onclick="editStockSite(${s.id})" style="cursor:pointer;">
-            <div><div class="stock-site-main">${escHtml(label)}</div><div class="stock-site-meta">stoc ${fmtN(q)} t${s.stockZero?' · stoc 0':''}${s.note?' · '+escHtml(s.note):''}</div></div>
+            <div><div class="stock-site-main">${escHtml(label)}</div><div class="stock-site-meta">${escHtml(ss.label)}${s.stockZero && ss.qty<=0?' · stoc 0':''}${s.note?' · '+escHtml(s.note):''}</div></div>
             <div class="stock-site-actions"><button class="btn-sm" onclick="event.stopPropagation();editStockSite(${s.id})">Edit</button><button class="btn-del" onclick="event.stopPropagation();deleteStockSite(${s.id})">✕</button></div>
           </div>`;
         }).join(''):`<div class="stock-muted">// baza nu are încă magazii sau silozuri. Folosește + Spațiu.</div>`}
