@@ -397,6 +397,7 @@
   .tr-click{cursor:pointer;}
   .tr-click:hover td{background:rgba(245,158,11,.04) !important;}
   .incomplete-badge{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700;background:rgba(239,68,68,.15);color:var(--short);border:1px solid var(--short-dim);margin-left:4px;vertical-align:middle;}
+  .finished-badge{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700;background:rgba(34,197,94,.12);color:var(--long);border:1px solid rgba(34,197,94,.35);margin-left:4px;vertical-align:middle;}
 
   .agg-ch{padding:6px 13px;background:var(--surface3);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);}
   .agg-ch.old{color:var(--old);} .agg-ch.new{color:var(--new);}
@@ -1896,6 +1897,17 @@ function getFilteredTrades(){
 function hasLogisticsForTrade(tradeId){
   return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId));
 }
+function getLogisticsContractsForTrade(tradeId){
+  return logisticsContracts.filter(c=>String(c.tradeId)===String(tradeId));
+}
+function isTradeLogisticsFinished(tradeId){
+  const linked=getLogisticsContractsForTrade(tradeId);
+  if(!linked.length) return false;
+  return linked.some(c=>{
+    const st=computedLogStatus(c);
+    return st && String(st.cls||'').includes('done');
+  });
+}
 function renderIncompleteContracts(){
   const box=document.getElementById('incompleteContractsBox');
   if(!box) return;
@@ -1948,9 +1960,10 @@ function renderTable(){
     const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
+    const finishedBadge=isTradeLogisticsFinished(t.id)?`<span class="finished-badge">✓ finalizat</span>`:'';
     const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
     return `<tr class="tr-click${t.incomplete?' tr-incomplete':''}" onclick="openEdit(${t.id})">
-      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}</td>
+      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}${finishedBadge}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
       <td style="color:var(--bright)">${fmtN(t.qty)}</td>
@@ -3238,7 +3251,6 @@ function renderLogisticsDetail(){
       <div class="log-actions">
         <span class="log-badge ${st.cls}">${st.label}</span>
         <button class="btn-log ${c.manualClosed?'btn-log-green':'btn-log'}" onclick="toggleLogManualClosed()">${c.manualClosed?'Redeschide ctr':'Finalizează ctr'}</button>
-        <button class="btn-log" onclick="exportSingleLogistics()">Export contract</button>
         <button class="btn-log ${c.problem?'btn-log-green':'btn-log-red'}" onclick="toggleLogProblem()">${c.problem?'Scoate problema':'Marchează problemă'}</button>
         <button class="btn-log btn-log-red" onclick="deleteSelectedLogistics()">Șterge</button>
       </div>
@@ -3643,84 +3655,6 @@ async function deleteSelectedLogistics(){
     console.error('Delete logistics error:', e);
     alert('Eroare la ștergerea contractului logistic de pe server.');
   }
-}
-function exportSingleLogistics(id=selectedLogisticsId){
-  const c=getLogContract(id);
-  if(!c){ alert('Selectează un contract logistic pentru export.'); return; }
-  const t=getLogTrade(c);
-  const p=t ? (products[t.product]||{name:t.product}) : {name:''};
-  const flow=logFlow(c);
-  const wb=XLSX.utils.book_new();
-
-  const contract=[
-    ['Câmp','Valoare'],
-    ['ID contract logistic', c.id],
-    ['ID tranzacție sursă', c.tradeId || c.source_trade_id || ''],
-    ['Flux', flow==='pickup' ? 'De ridicat' : 'De livrat'],
-    ['Status', computedLogStatus(c).label],
-    ['Problemă', c.problem ? 'DA' : 'NU'],
-    ['Închis manual', c.manualClosed ? 'DA' : 'NU'],
-    ['Client / Furnizor', t?.cpty || ''],
-    ['Număr contract', logContractNo(c) || ''],
-    ['Produs', p.name || ''],
-    ['Recoltă', t?.crop || ''],
-    ['Cantitate contract t', Number(t?.qty)||0],
-    ['Executat t', movementQty(c)],
-    ['Rămas t', Math.max(0,(Number(t?.qty)||0)-movementQty(c))],
-    ['Paritate', t?.parity || ''],
-    ['Locație / bază', t?.loc || ''],
-    ['Transport', c.transportMode || ''],
-    ['Perioadă de la', c.deliveryStartMonth || ''],
-    ['Perioadă până la', c.deliveryEndMonth || ''],
-    ['Facturi RON', flow==='delivery' ? Math.round(invoicesTotalRon(c)*100)/100 : 0],
-    ['Încasat RON', flow==='delivery' ? Math.round(invoicesPaidRon(c)*100)/100 : 0],
-    ['Rest încasări RON', flow==='delivery' ? Math.round(Math.max(0,invoicesTotalRon(c)-invoicesPaidRon(c))*100)/100 : 0]
-  ];
-  const ws1=XLSX.utils.aoa_to_sheet(contract);
-  ws1['!cols']=[28,34].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws1,'Contract');
-
-  const allocations=[['Lună','Cantitate t']];
-  (c.allocations||[]).forEach(a=>allocations.push([a.month||'', Number(a.qty)||0]));
-  if(allocations.length===1) allocations.push(['',0]);
-  const ws2=XLSX.utils.aoa_to_sheet(allocations);
-  ws2['!cols']=[14,14].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws2,'Alocari');
-
-  const movements=[['Data','Cantitate t','Transportator / camion','Stație','Locație livrare','Livrare directă către','Legat automat','Observații']];
-  (c.movements||[]).forEach(d=>{
-    const direct=d.directDeliveryContractId ? getLogContract(d.directDeliveryContractId) : null;
-    const dt=direct ? getLogTrade(direct) : null;
-    const dp=dt ? (products[dt.product]||{name:dt.product}) : null;
-    const directLabel=direct ? `${logContractNo(direct) ? logContractNo(direct)+' · ' : ''}${dt?.cpty||''} · ${dp?.name||''} ${dt?.crop||''}` : '';
-    movements.push([d.date||'', Number(d.qty)||0, d.carrier||'', d.station||'', d.deliveryLocation||'', directLabel, d.autoFromPickup?'DA':'', d.note||'']);
-  });
-  if(movements.length===1) movements.push(['',0,'','','','','','']);
-  const ws3=XLSX.utils.aoa_to_sheet(movements);
-  ws3['!cols']=[12,12,24,18,24,40,14,32].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws3, flow==='pickup'?'Ridicari':'Livrari');
-
-  if(flow==='delivery'){
-    const invoices=[['Nr factură','Data factură','Scadență','Lună scadență','Valoare','Monedă','Curs','Valoare RON','Încasată','Data încasării','Observații']];
-    (c.invoices||[]).forEach(r=>invoices.push([r.invoiceNo||'',r.invoiceDate||'',r.dueDate||'',ymFromDate(r.dueDate || r.invoiceDate),Number(r.amount)||0,r.currency||'RON',Number(r.rate)||1,Math.round(invoiceValueRon(r)*100)/100,r.paid?'DA':'NU',r.paidDate||'',r.note||'']));
-    if(invoices.length===1) invoices.push(['','','','',0,'RON',1,0,'NU','','']);
-    const ws4=XLSX.utils.aoa_to_sheet(invoices);
-    ws4['!cols']=[16,12,12,14,14,10,10,14,10,14,30].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,ws4,'Facturi');
-  }
-
-  const safe=(v)=>String(v||'').trim().replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,'_').slice(0,80) || 'contract';
-  const fileClient=safe(t?.cpty || 'contract');
-  const fileNo=safe(logContractNo(c) || c.id);
-  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  const blob=new Blob([wbout],{type:'application/octet-stream'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`agrotex_contract_logistic_${fileClient}_${fileNo}_${today()}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
 }
 function exportLogistics(){
   const wb=XLSX.utils.book_new();
