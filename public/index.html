@@ -2344,6 +2344,7 @@ function migrateLogisticsData(){
         carrier:d.carrier||'',
         station:d.station||'',
         deliveryLocation:d.deliveryLocation||d.delivery_location||'',
+        departureBase:d.departureBase||d.departure_base||d.bazaPlecare||d.baza_plecare||'',
         status:d.status==='problem' ? 'problem' : 'delivered',
         note:d.note||''
       })) : [];
@@ -2351,6 +2352,7 @@ function migrateLogisticsData(){
     (c.movements||[]).forEach((m,idx)=>{
       if(!m.id) m.id = 'mv_' + (c.id || c.tradeId || 'c') + '_' + idx + '_' + Math.random().toString(36).slice(2,8);
       if(m.status!=='problem') m.status='delivered';
+      if(m.departureBase===undefined) m.departureBase = '';
       if(m.directDeliveryContractId===undefined) m.directDeliveryContractId = '';
       if(m.linkedDeliveryMovementId===undefined) m.linkedDeliveryMovementId = '';
       if(m.linkedPickupContractId===undefined) m.linkedPickupContractId = '';
@@ -2719,7 +2721,7 @@ function logisticsSearchHaystack(c){
   const t=getLogTrade(c) || {};
   const p=products[t.product] || {name:t.product||'',emoji:''};
   const allocations=(c.allocations||[]).flatMap(a=>[a.month,monthLabel(a.month),a.qty]);
-  const movements=(c.movements||[]).flatMap(m=>[m.date,ymFromDate(m.date),monthLabel(ymFromDate(m.date)),m.qty,m.carrier,m.station,m.deliveryLocation,m.status,m.note]);
+  const movements=(c.movements||[]).flatMap(m=>[m.date,ymFromDate(m.date),monthLabel(ymFromDate(m.date)),m.qty,m.carrier,m.station,m.departureBase,m.deliveryLocation,m.status,m.note]);
   const invoices=logFlow(c)==='delivery' ? (c.invoices||[]).flatMap(inv=>[inv.invoiceNo,inv.invoiceDate,inv.dueDate,ymFromDate(inv.dueDate||inv.invoiceDate),monthLabel(ymFromDate(inv.dueDate||inv.invoiceDate)),inv.amount,inv.currency,inv.rate,inv.paid?'incasata platita':'neincasata',inv.paidDate,inv.note]) : [];
   return [
     c.id,c.tradeId,c.source_trade_id,c.flow,logFlowLabel(c),c.transportMode,c.problem?'problema':'',c.manualClosed?'finalizat manual inchis':'',c.deliveryStartMonth,c.deliveryEndMonth,c.note,
@@ -3246,6 +3248,7 @@ function buildAutoDeliveryFromPickup(pickupContract, pickupMovement, deliveryCon
     qty: Number(pickupMovement.qty)||0,
     carrier: pickupMovement.carrier || '',
     station: pickupMovement.station || '',
+    departureBase: pickupMovement.departureBase || '',
     deliveryLocation: pickupMovement.deliveryLocation || deliveryTrade?.loc || '',
     status:'delivered',
     note: pickupMovement.note ? `Auto din ridicare de la ${supplier}. ${pickupMovement.note}` : `Auto din ridicare de la ${supplier}`,
@@ -3349,6 +3352,7 @@ function renderLogisticsDetail(){
           <div class="fg"><label class="fl">Cantitate zi ${c.transportMode==='train'?'/ tren':'/ camion'} t</label><input id="logMovementQty" type="number" step="0.01"></div>
           <div class="fg"><label class="fl">${c.transportMode==='train'?'Tren':'Transportator / camion'}</label><input id="logCarrier" type="text"></div>
           ${c.transportMode==='train' ? `<div class="fg"><label class="fl">Gara încărcare</label><input id="logTrainStation" type="text"></div>` : ''}
+          ${flow==='delivery' ? `<div class="fg"><label class="fl">Bază plecare</label><select id="logDepartureBase">${logisticsDepartureBaseOptions('')}</select></div>` : ''}
           <div class="fg"><label class="fl">${flow==='pickup'?'Locație / destinație':'Locație livrare'}</label><input id="logDeliveryLocation" type="text"></div>
           ${flow==='pickup' ? `<div class="fg"><label class="fl">Livrare directă către</label><select id="logDirectDeliveryContract">${renderDirectDeliverySelect(c)}</select></div>` : ''}
           <div class="fg"><label class="fl">Observații</label><input id="logMovementNote" type="text"></div>
@@ -3445,15 +3449,27 @@ function renderAllocationsTable(c){
     `).join('')}</tbody>
   </table></div>`;
 }
+
+function logisticsDepartureBaseOptions(selected=''){
+  const names=[];
+  const add=(v)=>{const val=String(v||'').trim(); if(val && !names.some(x=>normalizeTextLoose(x)===normalizeTextLoose(val))) names.push(val);};
+  (stockSites||[]).forEach(s=>{ if(s && s.type!=='tert' && s.name) add(s.name); });
+  (stockEntries||[]).forEach(r=>{ if(r && r.base) add(r.base); });
+  names.sort((a,b)=>String(a).localeCompare(String(b),'ro'));
+  const sel=String(selected||'');
+  if(sel && normalizeTextLoose(sel)!=='fara baza direct furnizor' && !names.some(x=>normalizeTextLoose(x)===normalizeTextLoose(sel))) names.unshift(sel);
+  return `<option value="" ${!sel?'selected':''}>Fără bază / direct furnizor</option>` + names.map(n=>`<option value="${escHtml(n)}" ${n===sel?'selected':''}>${escHtml(n)}</option>`).join('');
+}
 function renderMovementsTable(c){
   const rows=c.movements || c.deliveries || [];
   if(!rows.length) return '<div class="log-empty">// nicio mișcare introdusă</div>';
   const isTrain=c.transportMode==='train';
   const flow=logFlow(c);
   const locTitle=flow==='pickup'?'Locație / destinație':'Locație livrare';
+  const departureTitle=flow==='delivery'?'<th>Bază plecare</th>':'';
   const directTitle=flow==='pickup'?'<th>Livrare directă</th>':'';
   return `<div class="log-table-wrap"><table class="log-table">
-    <thead><tr><th>Data</th><th>Cantitate t</th><th>${isTrain?'Tren':'Transportator / camion'}</th>${isTrain?'<th>Gara încărcare</th>':''}<th>${locTitle}</th>${directTitle}<th>Observații</th><th></th></tr></thead>
+    <thead><tr><th>Data</th><th>Cantitate t</th><th>${isTrain?'Tren':'Transportator / camion'}</th>${isTrain?'<th>Gara încărcare</th>':''}${departureTitle}<th>${locTitle}</th>${directTitle}<th>Observații</th><th></th></tr></thead>
     <tbody>${rows.map((d,i)=>{
       const linkedContract=d.directDeliveryContractId ? getLogContract(d.directDeliveryContractId) : null;
       const linkedTrade=linkedContract ? getLogTrade(linkedContract) : null;
@@ -3463,6 +3479,7 @@ function renderMovementsTable(c){
         <td><input type="number" step="0.01" value="${d.qty||0}" onchange="updateMovement(${i},'qty',this.value)"></td>
         <td><input type="text" value="${escHtml(d.carrier||'')}" onchange="updateMovement(${i},'carrier',this.value)" ${d.autoFromPickup?'disabled':''}></td>
         ${isTrain?`<td><input type="text" value="${escHtml(d.station||'')}" onchange="updateMovement(${i},'station',this.value)" ${d.autoFromPickup?'disabled':''}></td>`:''}
+        ${flow==='delivery'?`<td><select onchange="updateMovement(${i},'departureBase',this.value)" ${d.autoFromPickup?'disabled':''}>${logisticsDepartureBaseOptions(d.departureBase||'')}</select></td>`:''}
         <td><input type="text" value="${escHtml(d.deliveryLocation||'')}" onchange="updateMovement(${i},'deliveryLocation',this.value)" ${d.autoFromPickup?'disabled':''}></td>
         ${flow==='pickup'?`<td><select onchange="updateMovement(${i},'directDeliveryContractId',this.value)">${renderDirectDeliverySelect(c,d.directDeliveryContractId||'')}</select>${linkedTrade?`<div class="log-muted">→ ${escHtml(linkedTrade.cpty||'Client')}</div>`:''}</td>`:''}
         <td><input type="text" value="${escHtml(d.note||'')}" onchange="updateMovement(${i},'note',this.value)" ${d.autoFromPickup?'disabled':''}>${autoInfo}</td>
@@ -3569,6 +3586,7 @@ async function addMovement(){
     qty,
     carrier:document.getElementById('logCarrier').value.trim(),
     station:document.getElementById('logTrainStation') ? document.getElementById('logTrainStation').value.trim() : '',
+    departureBase:document.getElementById('logDepartureBase') ? document.getElementById('logDepartureBase').value.trim() : '',
     deliveryLocation:document.getElementById('logDeliveryLocation') ? document.getElementById('logDeliveryLocation').value.trim() : '',
     status:'delivered',
     note:document.getElementById('logMovementNote').value.trim(),
@@ -3635,6 +3653,7 @@ function generateTrains(){
       qty:weight,
       carrier:`Tren ${i+1}`,
       station,
+      departureBase:'',
       deliveryLocation:'',
       status:'delivered',
       note:''
@@ -3738,13 +3757,13 @@ function exportLogistics(){
   ws2['!cols']=[12,10,12,12].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws2,'Alocari');
 
-  const movements=[['contractId','tradeId','flow','partner','date','qty','carrier','station','deliveryLocation','directDeliveryContractId','linkedMovementId','autoFromPickup','note']];
+  const movements=[['contractId','tradeId','flow','partner','date','qty','carrier','station','departureBase','deliveryLocation','directDeliveryContractId','linkedMovementId','autoFromPickup','note']];
   logisticsContracts.forEach(c=>{
     const t=getLogTrade(c);
-    (c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,logFlow(c),t?.cpty||'',d.date,d.qty,d.carrier,d.station||'',d.deliveryLocation||'',d.directDeliveryContractId||'',d.linkedDeliveryMovementId||d.linkedPickupMovementId||'',d.autoFromPickup?'DA':'',d.note||'']));
+    (c.movements||[]).forEach(d=>movements.push([c.id,c.tradeId,logFlow(c),t?.cpty||'',d.date,d.qty,d.carrier,d.station||'',d.departureBase||'',d.deliveryLocation||'',d.directDeliveryContractId||'',d.linkedDeliveryMovementId||d.linkedPickupMovementId||'',d.autoFromPickup?'DA':'',d.note||'']));
   });
   const ws3=XLSX.utils.aoa_to_sheet(movements);
-  ws3['!cols']=[12,10,12,12,20,18,24,30].map(w=>({wch:w}));
+  ws3['!cols']=[12,10,12,18,12,10,18,14,20,20,24,18,12,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws3,'Miscari');
 
   const invoices=[['contractId','tradeId','invoiceNo','invoiceDate','dueDate','dueMonth','amount','currency','rate','valueRon','paid','paidDate','note']];
@@ -3898,13 +3917,15 @@ function importLogistics(event){
         const qty = toNumber(firstNonEmpty(r.qty, r.cantitate, r.quantity));
         const carrier = firstNonEmpty(r.carrier, r.transportator, r.camion, r['transportator / camion']);
         const station = firstNonEmpty(r.station, r.gara, r.garaIncarcare, r.loadingStation);
+        const departureBase = firstNonEmpty(r.departureBase, r.departure_base, r.bazaPlecare, r.baza_plecare, r.baza, r.plecareDin, r.plecare_din);
         const deliveryLocation = firstNonEmpty(r.deliveryLocation, r.delivery_location, r.locatieLivrare, r.livrareLa, r.destinatie, r.locationDelivery);
-        if(!date && !qty && !carrier && !station && !deliveryLocation) return;
+        if(!date && !qty && !carrier && !station && !departureBase && !deliveryLocation) return;
         c.movements.push({
           date,
           qty,
           carrier,
           station,
+          departureBase,
           deliveryLocation,
           status:'delivered',
           note:firstNonEmpty(r.note, r.observatii, r.observații)
