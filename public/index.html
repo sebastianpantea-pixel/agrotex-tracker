@@ -3790,10 +3790,8 @@ function exportOutstandingInvoices(){
   const wb=XLSX.utils.book_new();
   const todayStr=today();
   const rows=[[
-    'client','produs','recolta','contractLogistic','numarContract','tradeId','flow','transport',
-    'cantitateContract','planificat','executat','ramasCantitate',
-    'nrFactura','dataFactura','scadenta','zileIntarziere',
-    'valoareFactura','moneda','curs','valoareEUR','valoareRON','statusContract','problem','observatiiFactura','observatiiContract'
+    'client','produs','recolta','numarContract','cantitateContract',
+    'nrFactura','dataFactura','scadenta','zileIntarziere','moneda','valoareFactura'
   ]];
   const summary={};
   const addSummary=(client, currency, amount, overdueAmount)=>{
@@ -3813,17 +3811,10 @@ function exportOutstandingInvoices(){
   logisticsContracts.filter(c=>logFlow(c)==='delivery').forEach(c=>{
     const t=getLogTrade(c) || {};
     const prod=products[t.product] || {name:getTradeProductName ? getTradeProductName(t) : (t.product || '')};
-    const status=computedLogStatus(c);
     const contractQty=Number(t.qty)||0;
-    const planned=allocatedQty(c);
-    const executed=movementQty(c);
-    const remaining=contractQty-executed;
     (c.invoices||[]).filter(inv=>!inv.paid).forEach(inv=>{
       const currency=String(inv.currency || 'RON').toUpperCase();
       const amount=Number(inv.amount)||0;
-      const rate=Number(inv.rate)||fxRates.eurRon||5;
-      const valueEur=currency==='EUR' ? amount : '';
-      const valueRon=currency==='EUR' ? amount*rate : amount;
       const days=daysUntil(inv.dueDate);
       const overdueDays=(days!==null && days<0) ? Math.abs(days) : 0;
       addSummary(t.cpty || '—', currency, amount, overdueDays>0 ? amount : 0);
@@ -3831,28 +3822,14 @@ function exportOutstandingInvoices(){
         t.cpty || '',
         prod.name || t.product || '',
         t.crop || '',
-        c.id || '',
         logContractNo(c) || '',
-        c.tradeId || '',
-        logFlow(c),
-        c.transportMode || '',
         Math.round(contractQty*1000)/1000,
-        Math.round(planned*1000)/1000,
-        Math.round(executed*1000)/1000,
-        Math.round(remaining*1000)/1000,
         inv.invoiceNo || '',
         inv.invoiceDate || '',
         inv.dueDate || '',
         overdueDays,
-        Math.round(amount*100)/100,
         currency,
-        currency==='EUR' ? rate : '',
-        valueEur==='' ? '' : Math.round(valueEur*100)/100,
-        Math.round(valueRon*100)/100,
-        status.label || '',
-        c.problem ? 'DA' : '',
-        inv.note || '',
-        c.note || c.observations || ''
+        Math.round(amount*100)/100
       ]);
     });
   });
@@ -3864,7 +3841,7 @@ function exportOutstandingInvoices(){
 
   const ws1=XLSX.utils.aoa_to_sheet(rows);
   ws1['!cols']=[
-    24,16,10,14,18,10,10,12,14,12,12,14,16,12,12,14,14,10,10,14,14,18,10,28,30
+    24,16,10,18,14,16,12,12,14,10,14
   ].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws1,'Facturi in sold');
 
