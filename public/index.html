@@ -194,24 +194,33 @@
 
   /* Logistics V4 */
   #logisticsSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
-  .log-dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
-  .log-month-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:all .15s;}
+  .log-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;align-items:stretch;}
+  .log-month-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all .15s;min-height:210px;}
   .log-month-card:hover{border-color:var(--acc);background:rgba(245,158,11,.035);}
   .log-month-card.active{border-color:var(--acc);background:rgba(245,158,11,.08);}
   .log-month-card.current{border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.045);}
   .log-month-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .log-month-row{display:flex;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;border-top:1px solid var(--border);padding-top:6px;}
+  .log-month-row{display:grid;grid-template-columns:96px 1fr;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;border-top:1px solid var(--border);padding-top:7px;align-items:start;}
   .log-month-label{color:var(--dim);}
   .log-month-value{font-weight:900;color:var(--bright);text-align:right;}
+  .log-month-planbox{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;}
+  .log-month-planitem{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:5px 6px;text-align:right;}
+  .log-month-planlabel{display:block;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px;}
+  .log-month-planval{display:block;font-size:10px;font-weight:900;color:var(--bright);}
+  .log-month-planval.plan{color:var(--dim);}
+  .log-month-planval.exec{color:var(--bright);}
+  @media(max-width:760px){.log-dashboard{grid-template-columns:1fr}.log-month-row{grid-template-columns:1fr}.log-month-value{text-align:left}.log-month-planbox{grid-template-columns:1fr 1fr 1fr}.log-month-planitem{text-align:left}}
   .log-month-value.pickup{color:var(--old);}
   .log-month-value.deliver{color:var(--new);}
   .log-month-value.money{color:var(--acc);}
   .log-month-value.paid{color:var(--long);}
   .log-month-value.rest{color:var(--short);}
-  .log-month-products{border-top:1px solid var(--border);padding-top:6px;margin-top:2px;display:flex;flex-direction:column;gap:4px;}
-  .log-month-product-row{display:flex;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.25;}
+  .log-month-products{border-top:1px solid var(--border);padding-top:8px;margin-top:2px;display:flex;flex-direction:column;gap:6px;}
+  .log-month-product-row{display:grid;grid-template-columns:105px 1fr;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.35;align-items:start;}
   .log-month-product-name{color:var(--bright);font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .log-month-product-vals{display:flex;gap:6px;white-space:nowrap;font-weight:800;}
+  .log-month-product-vals{display:flex;gap:6px;flex-wrap:wrap;font-weight:800;justify-content:flex-end;}
+  .log-month-flowpill{display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);border-radius:10px;padding:2px 6px;white-space:nowrap;}
+  @media(max-width:760px){.log-month-product-row{grid-template-columns:1fr}.log-month-product-vals{justify-content:flex-start}}
   .log-month-product-pickup{color:var(--old);}
   .log-month-product-delivery{color:var(--new);}
   .log-month-exec{color:var(--bright);}
@@ -2879,7 +2888,16 @@ function renderLogisticsDashboard(){
   const signed=(n)=>{ const v=Number(n)||0; return `${v>0?'+':''}${fmtN(v)}`; };
   const planExecLine=(label, plan, exec, cls)=>{
     const diff=(Number(exec)||0)-(Number(plan)||0);
-    return `<div class="log-month-row"><span class="log-month-label">${label}</span><span class="log-month-value ${cls}">plan ${fmtN(plan)} t · exec <span class="log-month-exec">${fmtN(exec)} t</span> · <span class="${diffClass(diff)}">${signed(diff)} t</span></span></div>`;
+    return `<div class="log-month-row">
+      <span class="log-month-label">${label}</span>
+      <span class="log-month-value ${cls}">
+        <span class="log-month-planbox">
+          <span class="log-month-planitem"><span class="log-month-planlabel">Plan</span><span class="log-month-planval plan">${fmtN(plan)} t</span></span>
+          <span class="log-month-planitem"><span class="log-month-planlabel">Executat</span><span class="log-month-planval exec">${fmtN(exec)} t</span></span>
+          <span class="log-month-planitem"><span class="log-month-planlabel">Dif.</span><span class="log-month-planval ${diffClass(diff)}">${signed(diff)} t</span></span>
+        </span>
+      </span>
+    </div>`;
   };
 
   const productRows=(a)=>{
@@ -2893,7 +2911,7 @@ function renderLogisticsDashboard(){
       const d=(Number(exec)||0)-(Number(plan)||0);
       const label=kind==='pickup'?'Rid':'Liv';
       const cls=kind==='pickup'?'log-month-product-pickup':'log-month-product-delivery';
-      return `<span class="${cls}">${label} ${fmtN(plan)}/${fmtN(exec)} t <span class="${d>0?'log-month-product-diff-pos':(d<0?'log-month-product-diff-neg':'log-month-product-diff-flat')}">(${signed(d)})</span></span>`;
+      return `<span class="log-month-flowpill ${cls}"><span>${label}</span><span>${fmtN(plan)}/${fmtN(exec)} t</span><span class="${d>0?'log-month-product-diff-pos':(d<0?'log-month-product-diff-neg':'log-month-product-diff-flat')}">(${signed(d)})</span></span>`;
     };
     return `<div class="log-month-products">${rows.map(p=>`
       <div class="log-month-product-row">
