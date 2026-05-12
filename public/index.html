@@ -3,68 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Position Tracker — Agrotex</title>
+<title>Agrotex GrainExec</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    /* Soft Blue Grey */
-    --bg:#E6ECF2;
-    --surface:#FFFFFF;
-    --surface2:#D7E1EA;
-    --surface3:#C8D5E0;
+    --bg:#252B33;
+    --surface:#2D3540;
+    --surface2:#37414D;
+    --surface3:#424E5B;
 
-    --border:#A7B6C4;
-    --border2:#6F8498;
+    --border:#556575;
+    --border2:#718296;
 
-    --text:#111827;
-    --dim:#425466;
-    --bright:#111827;
-    --fg:#111827;
+    --text:#DCE4EC;
+    --dim:#AAB6C3;
+    --bright:#F8FAFC;
+    --fg:#F8FAFC;
 
-    --long:#176B49;
-    --long-dim:#6FAF92;
-    --long-bg:#CFEBDD;
+    --long:#72D39A;
+    --long-dim:#3E7A57;
+    --long-bg:rgba(114,211,154,0.12);
 
-    --short:#9A3338;
-    --short-dim:#C77D82;
-    --short-bg:#EFC9CC;
+    --short:#F08A8E;
+    --short-dim:#8A464A;
+    --short-bg:rgba(240,138,142,0.12);
 
-    --neutral:#1F5F8B;
-    --neutral-dim:#7EA3BF;
+    --neutral:#9BC4F6;
+    --neutral-dim:#4C6F99;
 
-    --acc:#1F5F8B;
-    --basis:#51458F;
-    --transport:#8A5E16;
+    --acc:#E0B75E;
+    --basis:#C5B3F0;
+    --transport:#E8A06A;
 
-    --old:#1F5F8B;
-    --new:#176B49;
-    --eur:#8A5E16;
+    --old:#9BC4F6;
+    --new:#82D9AA;
+    --eur:#E0B75E;
 
-    --meteo:#1F5F8B;
-    --meteo2:#2D78A8;
-
-    --surface-2:#E4EAF0;
-    --surface-3:#D8E0E8;
-    --border-strong:#93A2B1;
-    --text-muted:#425466;
-    --text-soft:#5E6D7A;
-    --accent:#1F5F8B;
-    --accent-soft:#B9D2E6;
-    --accent-bg:#DCECF7;
-    --success:#176B49;
-    --success-bg:#CFEBDD;
-    --danger:#9A3338;
-    --danger-bg:#EFC9CC;
-    --warning:#8A5E16;
-    --warning-bg:#EAD19B;
-    --info:#1F5F8B;
-    --info-bg:#C8E0F1;
-    --input-bg:#FFFFFF;
-    --header-bg:#D2DEE8;
-    --table-row:#FFFFFF;
-    --table-row-alt:#EFF4F8;
-    --table-hover:#D8E7F2;
+    --meteo:#7FD4E5;
+    --meteo2:#52B9CF;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
@@ -322,9 +299,9 @@
   .log-subpanel.money{border-left:3px solid var(--acc);}
   .log-subpanel.warn{border-left:3px solid var(--short);}
   .main{padding:14px 22px;display:flex;flex-direction:column;gap:14px;}
-  .top-row{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start;}
+  .top-row{display:grid;grid-template-columns:1fr;gap:14px;align-items:start;}
   @media(max-width:1200px){.top-row{grid-template-columns:1fr;}}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:13px;position:relative;overflow:hidden;}
   .card:hover{border-color:var(--border2);}
   .cstripe{position:absolute;top:0;left:0;right:0;height:2px;}
@@ -530,13 +507,13 @@
 
   /* Panou logistic activ, varianta compatibila Mac / Windows */
   #logisticsDetail.log-card {
-    background:#303641 !important;
+    background:#343D49 !important;
     border-color:#64748b !important;
     box-shadow:0 0 0 1px rgba(148,163,184,.25), 0 14px 34px rgba(0,0,0,.24);
   }
 
   .log-active-header {
-    background:#353b46;
+    background:#3A4653;
     border:1px solid #667085;
     border-radius:6px;
     padding:12px 14px;
@@ -544,7 +521,7 @@
   }
 
   .log-client-focus {
-    background:#3b3324 !important;
+    background:#3B3427 !important;
     border:2px solid #e5b95c !important;
     border-left:7px solid #e5b95c !important;
     border-radius:7px !important;
@@ -580,7 +557,7 @@
   }
 
   #logisticsDetail .log-kpi {
-    background:#38404c !important;
+    background:#3B4653 !important;
     border-color:#667085 !important;
   }
 
@@ -590,7 +567,7 @@
 
   #logisticsDetail .log-subpanel,
   #logisticsDetail .log-table-wrap {
-    background:#2b313b !important;
+    background:#333D49 !important;
     border-color:#556070 !important;
   }
 
@@ -600,7 +577,7 @@
   .log-client-focus.compact .log-client-focus-label{font-size:8px;margin-bottom:4px;}
   .log-client-focus.compact .log-client-focus-name{font-size:18px;line-height:1.15;}
   .log-client-focus.compact .log-client-focus-meta{font-size:9px;margin-top:5px;line-height:1.35;}
-  .log-section-panel{background:#2b313b;border:1px solid #556070;border-left:5px solid #64748b;border-radius:6px;margin-top:12px;overflow:hidden;}
+  .log-section-panel{background:#333D49;border:1px solid #556070;border-left:5px solid #64748b;border-radius:6px;margin-top:12px;overflow:hidden;}
   .log-section-panel summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;background:rgba(255,255,255,.018);border-bottom:1px solid rgba(255,255,255,.06);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.35px;}
   .log-section-panel summary::-webkit-details-marker{display:none;}
   .log-section-panel summary::before{content:'▸';color:var(--dim);margin-right:4px;}
@@ -701,112 +678,14 @@
   .stock-progress-inner{height:100%;background:var(--acc);}
   .stock-form-actions{display:flex;gap:8px;align-items:center;}
 
-
-
-  /* Soft Blue Grey final overrides */
-  body{background:var(--bg);color:var(--text);}
-  .hdr{background:var(--header-bg);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(147,162,177,.18);}
-  .panel,.card,.log-card,.log-month-card,.meteo-card,.meteo-detail,.news-card,.login-box,.modal{background:var(--surface);border-color:var(--border);box-shadow:0 1px 2px rgba(31,41,51,.04);}
-  .ph,.tab,.fx-widget,.matif-widget,.log-kpi,.meteo-kpi,.meteo-day,.meteo-summary-box,.meteo-soil-box,.log-subpanel,.log-table-wrap,.filter-row td,.notes-input-row,.note-filter-row{background:var(--surface2);border-color:var(--border);}
-  input,select,textarea{background:var(--input-bg)!important;color:var(--text)!important;border-color:var(--border2)!important;}
-  input::placeholder,textarea::placeholder{color:var(--text-soft)!important;}
-  input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 2px rgba(47,111,159,.12);}
-  select option{background:#fff;color:var(--text);}
-  th,.tgt-th{background:var(--header-bg);color:var(--text-muted);border-color:var(--border);}
-  td{color:var(--text);border-color:var(--border);}
-  tbody tr:nth-child(even) td{background:var(--table-row-alt);}
-  tbody tr:hover td,.tr-click:hover td{background:var(--table-hover)!important;}
-  .btn-add,.btn-save,.login-btn{background:var(--accent)!important;color:#fff!important;}
-  .btn-sm,.btn-cancel,.btn-logout{background:var(--surface2);border-color:var(--border2);color:var(--text-muted);}
-  .btn-sm:hover,.btn-cancel:hover,.btn-logout:hover{background:var(--surface3);color:var(--text);}
-  .btn-import{background:var(--info-bg);border-color:#9DBBD2;color:var(--info);}
-  .btn-log{background:var(--accent-bg);border-color:#9DBBD2;color:var(--accent);}
-  .btn-log-green{background:var(--success-bg);border-color:#9BCDB7;color:var(--success);}
-  .btn-log-red{background:var(--danger-bg);border-color:#DFA9AC;color:var(--danger);}
-  .log-warning-line{background:var(--danger-bg);border-color:#DFA9AC;color:var(--danger);}
-  .log-ok-line{background:var(--success-bg);border-color:#9BCDB7;color:var(--success);}
-  .sync.saved,.tl,.al,.an-l,.log-month-diff-pos,.log-month-product-diff-pos{color:var(--success)!important;}
-  .sync.error,.ts2,.as2,.an-s,.log-month-diff-neg,.log-month-product-diff-neg{color:var(--danger)!important;}
-  .tdim,.pc,.sub,.ts,.fx-label,.matif-label,.log-muted,.log-month-label,.cml,.filter-label,.note-date,.empty{color:var(--text-muted)!important;}
-  .logo,.pt,.mtitle,.cname,.cnet,.aname,.log-title,.log-month-title,.log-source-title,.log-item-name,.meteo-name,.news-title,.wn-crop{color:var(--text)!important;}
-  .logo span{color:var(--accent)!important;}
-  .fx-rate,.matif-price,.tpar,.teur,.log-month-value.money,.log-month-value.rest,.basis-badge,.basis-qty{color:var(--warning)!important;}
-  .tab.old,.tab.new,.tab.log-tab-active,.tab.news-tab-active,.tab.meteo-tab-active{background:var(--accent-bg);color:var(--accent);border-color:#9DBBD2;}
-  .tab.old .tbadge,.tab.new .tbadge{background:var(--accent);color:#fff;}
-  .dbadge.long,.finished-badge,.note-tag.bid,.wn-status-ok{background:var(--success-bg);color:var(--success);border-color:#9BCDB7;}
-  .dbadge.short,.incomplete-badge,.note-tag.offer,.wn-status-deficit{background:var(--danger-bg);color:var(--danger);border-color:#DFA9AC;}
-  .dbadge.flat,.note-tag.todo,.wn-status-partial{background:var(--warning-bg);color:var(--warning);border-color:#D8B66F;}
-  .cbasis{background:var(--warning-bg);border-color:#D8B66F;}
-  .bartr{background:var(--surface3);}
-  .log-progress{background:var(--surface3);border-color:var(--border);}
-  .log-progress-inner{background:var(--accent);}
-  .overlay{background:rgba(31,41,51,.45);}
-  .import-zone{background:var(--surface);border-color:var(--border2);}
-  .news-card:hover,.log-source-item:hover,.log-item:hover,.log-month-overview-item:hover,.stock-site-row:hover{background:var(--table-hover);border-color:var(--accent);}
-  .news-desc,.meteo-country,.meteo-cond,.wn-target,.wn-note,.basis-note{color:var(--text-muted)!important;}
-  .filter-bar-inner select,.filter-bar-inner input{background:#fff!important;color:var(--text)!important;}
-  .matif-tooltip{background:var(--surface);border-color:var(--border2);box-shadow:0 8px 26px rgba(31,41,51,.18);}
-  .matif-tooltip::before{background:var(--surface);border-color:var(--border2);}
-  .log-month-planitem,.log-month-flowpill{background:#F7FAFC;border-color:var(--border);}
-  .log-client-focus,.log-client-focus.compact{background:var(--accent-bg)!important;border-color:#9DBBD2!important;border-left-color:var(--accent)!important;box-shadow:none!important;}
-  .log-client-focus-label,.log-client-focus-meta{color:var(--text-muted)!important;}
-  .log-client-focus-name{color:var(--text)!important;}
-  #logisticsDetail.log-card{background:var(--surface)!important;border-color:var(--border2)!important;box-shadow:0 4px 16px rgba(31,41,51,.08)!important;}
-  .log-active-header{background:var(--header-bg)!important;border-color:var(--border)!important;}
-  #logisticsDetail .log-kpi{background:var(--surface2)!important;border-color:var(--border)!important;}
-  #logisticsDetail .log-kpi-v{color:var(--text)!important;}
-  #logisticsDetail .log-subpanel,#logisticsDetail .log-table-wrap{background:var(--surface)!important;border-color:var(--border)!important;}
-  .log-section-panel{background:var(--surface);border-color:var(--border);}
-  .log-section-panel summary{background:var(--header-bg);border-color:var(--border);color:var(--text);}
-  .log-section-panel.pickup,.log-section-panel.delivery,.log-section-panel.plan,.log-section-panel.money,.log-section-panel.warn{background:var(--surface);}
-  .stock-site-badge.agrotex{background:var(--info-bg);color:var(--info);border-color:#9DBBD2;}
-  .stock-site-badge.tert{background:var(--warning-bg);color:var(--warning);border-color:#D8B66F;}
-
-  .tbadge,.btn-note-add{color:#fff!important;}
-
-
-  /* Soft Blue Grey - contrast boost */
-  body{font-weight:500;}
-  .hdr{background:#D2DEE8!important;border-bottom-color:#9AACBC!important;box-shadow:0 1px 4px rgba(17,24,39,.08)!important;}
-  .panel,.card,.log-card,.log-month-card,.meteo-card,.meteo-detail,.news-card,.login-box,.modal{border-color:#A7B6C4!important;box-shadow:0 2px 8px rgba(17,24,39,.06)!important;}
-  .ph,.tab,.fx-widget,.matif-widget,.log-kpi,.meteo-kpi,.meteo-day,.meteo-summary-box,.meteo-soil-box,.log-subpanel,.log-table-wrap,.filter-row td,.notes-input-row,.note-filter-row{background:#D7E1EA!important;border-color:#A7B6C4!important;}
-  .tab{color:#263544!important;font-weight:800;}
-  .tab.old,.tab.new,.tab.log-tab-active,.tab.news-tab-active,.tab.meteo-tab-active{background:#DCECF7!important;color:#164C73!important;border-color:#7EA3BF!important;}
-  .tab.old.active,.tab.new.active,.tab.log-tab-active,.tab.news-tab-active,.tab.meteo-tab-active{background:#C8E0F1!important;border-color:#1F5F8B!important;}
-  .logo,.pt,.mtitle,.cname,.cnet,.aname,.log-title,.log-month-title,.log-source-title,.log-item-name,.meteo-name,.news-title,.wn-crop,.meteo-temp{color:#111827!important;}
-  .tdim,.pc,.sub,.ts,.fx-label,.matif-label,.log-muted,.log-month-label,.cml,.filter-label,.note-date,.empty,.news-desc,.meteo-country,.meteo-cond,.wn-target,.wn-note,.basis-note{color:#425466!important;}
-  input,select,textarea{background:#FFFFFF!important;color:#111827!important;border-color:#6F8498!important;font-weight:600;}
-  input::placeholder,textarea::placeholder{color:#5E6D7A!important;opacity:1;}
-  input:focus,select:focus,textarea:focus{border-color:#1F5F8B!important;box-shadow:0 0 0 2px rgba(31,95,139,.18)!important;}
-  th,.tgt-th{background:#C8D5E0!important;color:#263544!important;border-color:#A7B6C4!important;font-weight:900;}
-  td{color:#111827!important;border-color:#A7B6C4!important;}
-  tbody tr:nth-child(even) td{background:#EFF4F8!important;}
-  tbody tr:hover td,.tr-click:hover td{background:#D8E7F2!important;}
-  .btn-sm,.btn-cancel,.btn-logout{background:#D7E1EA!important;border-color:#6F8498!important;color:#263544!important;font-weight:800;}
-  .btn-sm:hover,.btn-cancel:hover,.btn-logout:hover{background:#C8D5E0!important;color:#111827!important;}
-  .btn-add,.btn-save,.login-btn{background:#1F5F8B!important;color:#FFFFFF!important;}
-  .btn-log,.btn-import{background:#DCECF7!important;border-color:#7EA3BF!important;color:#164C73!important;font-weight:900;}
-  .btn-log-green{background:#CFEBDD!important;border-color:#6FAF92!important;color:#145C3F!important;}
-  .btn-log-red{background:#EFC9CC!important;border-color:#C77D82!important;color:#8A272C!important;}
-  .fx-rate,.matif-price,.tpar,.teur,.log-month-value.money,.basis-badge,.basis-qty{color:#8A5E16!important;}
-  .log-month-value.rest,.sync.error,.ts2,.as2,.an-s,.log-month-diff-neg,.log-month-product-diff-neg{color:#9A3338!important;}
-  .sync.saved,.tl,.al,.an-l,.log-month-diff-pos,.log-month-product-diff-pos{color:#176B49!important;}
-  .meteo-kpi,.meteo-day,.meteo-summary-box,.meteo-soil-box,.log-month-planitem,.log-month-flowpill{background:#EAF1F6!important;border-color:#A7B6C4!important;}
-  .meteo-day-temp,.meteo-kpi-v,.meteo-summary-v,.meteo-soil-v,.log-kpi-v,.log-month-planval{color:#111827!important;}
-  .meteo-day-rain,.meteo-badge{color:#164C73!important;}
-  .wn-status-ok,.dbadge.long,.finished-badge,.note-tag.bid{background:#CFEBDD!important;color:#145C3F!important;border-color:#6FAF92!important;}
-  .wn-status-deficit,.dbadge.short,.incomplete-badge,.note-tag.offer{background:#EFC9CC!important;color:#8A272C!important;border-color:#C77D82!important;}
-  .wn-status-partial,.dbadge.flat,.note-tag.todo{background:#EAD19B!important;color:#704A0B!important;border-color:#B9852E!important;}
-  .overlay{background:rgba(17,24,39,.42)!important;}
-
 </style>
 </head>
 <body>
 
 <div id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">AGR<span>O</span>TEX</div>
-    <div class="login-sub">Position Tracker</div>
+    <div class="login-logo">AGROTEX <span>GRAINEXEC</span></div>
+    <div class="login-sub">Physical Grain & Oilseed Trading</div>
     <div class="fg">
       <label class="fl" style="color:var(--dim)">Parolă de acces</label>
       <input type="password" id="loginPwd" onkeydown="if(event.key==='Enter')doLogin()">
@@ -819,9 +698,9 @@
 <div id="app">
 <header class="hdr">
   <div style="display:flex;align-items:center;gap:13px;">
-    <div class="logo">AGR<span>O</span>TEX</div>
+    <div class="logo">AGROTEX <span>GRAINEXEC</span></div>
     <div class="sep"></div>
-    <div class="sub">Position Tracker</div>
+    <div class="sub">Physical Grain & Oilseed Trading</div>
   </div>
   <div style="display:flex;align-items:center;gap:11px;flex-wrap:nowrap;">
     <div class="fx-widget" id="fxWidget">
@@ -1104,33 +983,6 @@
   <div class="top-row">
     <div class="cards" id="cards"></div>
 
-    <div class="panel notes-panel">
-      <div class="ph">
-        <div class="pt">📋 Notițe &amp; To-Do</div>
-        <div style="display:flex;align-items:center;gap:6px;" id="notesPanelStats"></div>
-      </div>
-      <div class="incomplete-contracts-box" id="incompleteContractsBox"></div>
-      <div class="notes-input-row">
-        <input type="text" id="noteInput" placeholder="Adaugă o notiță sau task..." onkeydown="if(event.key==='Enter')addNote()">
-        <select id="noteTag" style="width:100px;padding:5px 5px;font-size:10px;height:28px;">
-          <option value="todo">TO-DO</option>
-          <option value="waiting">WAITING FOR</option>
-          <option value="bid">BID</option>
-          <option value="offer">OFERTĂ</option>
-        </select>
-        <button class="btn-note-add" onclick="addNote()">+</button>
-      </div>
-      <div class="note-filter-row">
-        <button class="nf-btn active" id="nfAll" onclick="setNoteFilter('all')">Toate</button>
-        <button class="nf-btn" id="nfTodo" onclick="setNoteFilter('todo')">TO-DO</button>
-        <button class="nf-btn" id="nfWaiting" onclick="setNoteFilter('waiting')">WAITING</button>
-        <button class="nf-btn" id="nfBid" onclick="setNoteFilter('bid')">BID</button>
-        <button class="nf-btn" id="nfOffer" onclick="setNoteFilter('offer')">OFERTĂ</button>
-        <button class="nf-btn" id="nfOpen" onclick="setNoteFilter('open')">Deschise</button>
-        <button class="nf-btn" id="nfLogbook" onclick="setNoteFilter('logbook')" style="margin-left:auto" title="Istoric notițe rezolvate">📒</button>
-      </div>
-      <div class="notes-list" id="notesList"></div>
-    </div>
   </div>
 
   <div class="two-col">
@@ -1764,7 +1616,7 @@ async function loadAll(){
   populateProd();
   populateFilterProd();
   onFormChange();
-  loadNotes();
+  // Notes panel removed
   await loadLogistics();
   await loadStockSites();
   await loadStockEntries();
@@ -4197,13 +4049,11 @@ function importLogistics(event){
 
 
 /* Notes */
-function loadNotes(){
-  try{ notes=JSON.parse(localStorage.getItem('agrotex_notes') || '[]'); }catch(e){notes=[];}
-  renderNotes();
-}
+function loadNotes(){ notes=[]; }
 function saveNotes(){ localStorage.setItem('agrotex_notes', JSON.stringify(notes)); }
 function addNote(){
   const input=document.getElementById('noteInput');
+  if(!input) return;
   const tag=document.getElementById('noteTag').value;
   const text=input.value.trim();
   if(!text) return;
@@ -4233,6 +4083,7 @@ function setNoteFilter(f){
   renderNotes();
 }
 function renderNotes(){
+  if(!document.getElementById('notesList') || !document.getElementById('notesPanelStats')) return;
   const total=notes.length;
   const done=notes.filter(n=>n.done).length;
   const open=total-done;
