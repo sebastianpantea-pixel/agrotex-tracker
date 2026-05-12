@@ -9,62 +9,62 @@
 <style>
   :root {
     /* Soft Blue Grey */
-    --bg:#EEF2F5;
+    --bg:#E6ECF2;
     --surface:#FFFFFF;
-    --surface2:#E4EAF0;
-    --surface3:#D8E0E8;
+    --surface2:#D7E1EA;
+    --surface3:#C8D5E0;
 
-    --border:#C2CCD6;
-    --border2:#93A2B1;
+    --border:#A7B6C4;
+    --border2:#6F8498;
 
-    --text:#1F2933;
-    --dim:#66727F;
-    --bright:#1F2933;
-    --fg:#1F2933;
+    --text:#111827;
+    --dim:#425466;
+    --bright:#111827;
+    --fg:#111827;
 
-    --long:#2F8A63;
-    --long-dim:#9BCDB7;
-    --long-bg:#DDF1E8;
+    --long:#176B49;
+    --long-dim:#6FAF92;
+    --long-bg:#CFEBDD;
 
-    --short:#B64E52;
-    --short-dim:#DFA9AC;
-    --short-bg:#F4DDDF;
+    --short:#9A3338;
+    --short-dim:#C77D82;
+    --short-bg:#EFC9CC;
 
-    --neutral:#2F6F9F;
-    --neutral-dim:#AFC8DC;
+    --neutral:#1F5F8B;
+    --neutral-dim:#7EA3BF;
 
-    --acc:#2F6F9F;
-    --basis:#6E5FA8;
-    --transport:#B5822F;
+    --acc:#1F5F8B;
+    --basis:#51458F;
+    --transport:#8A5E16;
 
-    --old:#2F6F9F;
-    --new:#2F8A63;
-    --eur:#B5822F;
+    --old:#1F5F8B;
+    --new:#176B49;
+    --eur:#8A5E16;
 
-    --meteo:#2F6F9F;
-    --meteo2:#4B8CB8;
+    --meteo:#1F5F8B;
+    --meteo2:#2D78A8;
 
     --surface-2:#E4EAF0;
     --surface-3:#D8E0E8;
     --border-strong:#93A2B1;
-    --text-muted:#66727F;
-    --text-soft:#8A96A3;
-    --accent:#2F6F9F;
-    --accent-soft:#CFE1EF;
-    --accent-bg:#EAF4FB;
-    --success:#2F8A63;
-    --success-bg:#DDF1E8;
-    --danger:#B64E52;
-    --danger-bg:#F4DDDF;
-    --warning:#B5822F;
-    --warning-bg:#F3E5C6;
-    --info:#2F6F9F;
-    --info-bg:#DCECF7;
+    --text-muted:#425466;
+    --text-soft:#5E6D7A;
+    --accent:#1F5F8B;
+    --accent-soft:#B9D2E6;
+    --accent-bg:#DCECF7;
+    --success:#176B49;
+    --success-bg:#CFEBDD;
+    --danger:#9A3338;
+    --danger-bg:#EFC9CC;
+    --warning:#8A5E16;
+    --warning-bg:#EAD19B;
+    --info:#1F5F8B;
+    --info-bg:#C8E0F1;
     --input-bg:#FFFFFF;
-    --header-bg:#E1E8EF;
+    --header-bg:#D2DEE8;
     --table-row:#FFFFFF;
-    --table-row-alt:#F5F8FA;
-    --table-hover:#E8F0F6;
+    --table-row-alt:#EFF4F8;
+    --table-hover:#D8E7F2;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
@@ -763,6 +763,42 @@
   .stock-site-badge.tert{background:var(--warning-bg);color:var(--warning);border-color:#D8B66F;}
 
   .tbadge,.btn-note-add{color:#fff!important;}
+
+
+  /* Soft Blue Grey - contrast boost */
+  body{font-weight:500;}
+  .hdr{background:#D2DEE8!important;border-bottom-color:#9AACBC!important;box-shadow:0 1px 4px rgba(17,24,39,.08)!important;}
+  .panel,.card,.log-card,.log-month-card,.meteo-card,.meteo-detail,.news-card,.login-box,.modal{border-color:#A7B6C4!important;box-shadow:0 2px 8px rgba(17,24,39,.06)!important;}
+  .ph,.tab,.fx-widget,.matif-widget,.log-kpi,.meteo-kpi,.meteo-day,.meteo-summary-box,.meteo-soil-box,.log-subpanel,.log-table-wrap,.filter-row td,.notes-input-row,.note-filter-row{background:#D7E1EA!important;border-color:#A7B6C4!important;}
+  .tab{color:#263544!important;font-weight:800;}
+  .tab.old,.tab.new,.tab.log-tab-active,.tab.news-tab-active,.tab.meteo-tab-active{background:#DCECF7!important;color:#164C73!important;border-color:#7EA3BF!important;}
+  .tab.old.active,.tab.new.active,.tab.log-tab-active,.tab.news-tab-active,.tab.meteo-tab-active{background:#C8E0F1!important;border-color:#1F5F8B!important;}
+  .logo,.pt,.mtitle,.cname,.cnet,.aname,.log-title,.log-month-title,.log-source-title,.log-item-name,.meteo-name,.news-title,.wn-crop,.meteo-temp{color:#111827!important;}
+  .tdim,.pc,.sub,.ts,.fx-label,.matif-label,.log-muted,.log-month-label,.cml,.filter-label,.note-date,.empty,.news-desc,.meteo-country,.meteo-cond,.wn-target,.wn-note,.basis-note{color:#425466!important;}
+  input,select,textarea{background:#FFFFFF!important;color:#111827!important;border-color:#6F8498!important;font-weight:600;}
+  input::placeholder,textarea::placeholder{color:#5E6D7A!important;opacity:1;}
+  input:focus,select:focus,textarea:focus{border-color:#1F5F8B!important;box-shadow:0 0 0 2px rgba(31,95,139,.18)!important;}
+  th,.tgt-th{background:#C8D5E0!important;color:#263544!important;border-color:#A7B6C4!important;font-weight:900;}
+  td{color:#111827!important;border-color:#A7B6C4!important;}
+  tbody tr:nth-child(even) td{background:#EFF4F8!important;}
+  tbody tr:hover td,.tr-click:hover td{background:#D8E7F2!important;}
+  .btn-sm,.btn-cancel,.btn-logout{background:#D7E1EA!important;border-color:#6F8498!important;color:#263544!important;font-weight:800;}
+  .btn-sm:hover,.btn-cancel:hover,.btn-logout:hover{background:#C8D5E0!important;color:#111827!important;}
+  .btn-add,.btn-save,.login-btn{background:#1F5F8B!important;color:#FFFFFF!important;}
+  .btn-log,.btn-import{background:#DCECF7!important;border-color:#7EA3BF!important;color:#164C73!important;font-weight:900;}
+  .btn-log-green{background:#CFEBDD!important;border-color:#6FAF92!important;color:#145C3F!important;}
+  .btn-log-red{background:#EFC9CC!important;border-color:#C77D82!important;color:#8A272C!important;}
+  .fx-rate,.matif-price,.tpar,.teur,.log-month-value.money,.basis-badge,.basis-qty{color:#8A5E16!important;}
+  .log-month-value.rest,.sync.error,.ts2,.as2,.an-s,.log-month-diff-neg,.log-month-product-diff-neg{color:#9A3338!important;}
+  .sync.saved,.tl,.al,.an-l,.log-month-diff-pos,.log-month-product-diff-pos{color:#176B49!important;}
+  .meteo-kpi,.meteo-day,.meteo-summary-box,.meteo-soil-box,.log-month-planitem,.log-month-flowpill{background:#EAF1F6!important;border-color:#A7B6C4!important;}
+  .meteo-day-temp,.meteo-kpi-v,.meteo-summary-v,.meteo-soil-v,.log-kpi-v,.log-month-planval{color:#111827!important;}
+  .meteo-day-rain,.meteo-badge{color:#164C73!important;}
+  .wn-status-ok,.dbadge.long,.finished-badge,.note-tag.bid{background:#CFEBDD!important;color:#145C3F!important;border-color:#6FAF92!important;}
+  .wn-status-deficit,.dbadge.short,.incomplete-badge,.note-tag.offer{background:#EFC9CC!important;color:#8A272C!important;border-color:#C77D82!important;}
+  .wn-status-partial,.dbadge.flat,.note-tag.todo{background:#EAD19B!important;color:#704A0B!important;border-color:#B9852E!important;}
+  .overlay{background:rgba(17,24,39,.42)!important;}
+
 </style>
 </head>
 <body>
