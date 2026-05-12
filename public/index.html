@@ -8,40 +8,63 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg:#1b1d21;
-    --surface:#24272d;
-    --surface2:#2d3138;
-    --surface3:#363b44;
+    /* Soft Blue Grey */
+    --bg:#EEF2F5;
+    --surface:#FFFFFF;
+    --surface2:#E4EAF0;
+    --surface3:#D8E0E8;
 
-    --border:#404754;
-    --border2:#556070;
+    --border:#C2CCD6;
+    --border2:#93A2B1;
 
-    --text:#d5d9e0;
-    --dim:#9aa3af;
-    --bright:#f4f6f8;
-    --fg:#f4f6f8;
+    --text:#1F2933;
+    --dim:#66727F;
+    --bright:#1F2933;
+    --fg:#1F2933;
 
-    --long:#70d69c;
-    --long-dim:#3b6f52;
-    --long-bg:rgba(112,214,156,0.10);
+    --long:#2F8A63;
+    --long-dim:#9BCDB7;
+    --long-bg:#DDF1E8;
 
-    --short:#e98585;
-    --short-dim:#754141;
-    --short-bg:rgba(233,133,133,0.10);
+    --short:#B64E52;
+    --short-dim:#DFA9AC;
+    --short-bg:#F4DDDF;
 
-    --neutral:#8ab4f8;
-    --neutral-dim:#3e5f8a;
+    --neutral:#2F6F9F;
+    --neutral-dim:#AFC8DC;
 
-    --acc:#e5b95c;
-    --basis:#b9a7e8;
-    --transport:#e89a61;
+    --acc:#2F6F9F;
+    --basis:#6E5FA8;
+    --transport:#B5822F;
 
-    --old:#93bce8;
-    --new:#7ed6a5;
-    --eur:#e5b95c;
+    --old:#2F6F9F;
+    --new:#2F8A63;
+    --eur:#B5822F;
 
-    --meteo:#75c7d9;
-    --meteo2:#45acc4;
+    --meteo:#2F6F9F;
+    --meteo2:#4B8CB8;
+
+    --surface-2:#E4EAF0;
+    --surface-3:#D8E0E8;
+    --border-strong:#93A2B1;
+    --text-muted:#66727F;
+    --text-soft:#8A96A3;
+    --accent:#2F6F9F;
+    --accent-soft:#CFE1EF;
+    --accent-bg:#EAF4FB;
+    --success:#2F8A63;
+    --success-bg:#DDF1E8;
+    --danger:#B64E52;
+    --danger-bg:#F4DDDF;
+    --warning:#B5822F;
+    --warning-bg:#F3E5C6;
+    --info:#2F6F9F;
+    --info-bg:#DCECF7;
+    --input-bg:#FFFFFF;
+    --header-bg:#E1E8EF;
+    --table-row:#FFFFFF;
+    --table-row-alt:#F5F8FA;
+    --table-hover:#E8F0F6;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
@@ -678,6 +701,68 @@
   .stock-progress-inner{height:100%;background:var(--acc);}
   .stock-form-actions{display:flex;gap:8px;align-items:center;}
 
+
+
+  /* Soft Blue Grey final overrides */
+  body{background:var(--bg);color:var(--text);}
+  .hdr{background:var(--header-bg);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(147,162,177,.18);}
+  .panel,.card,.log-card,.log-month-card,.meteo-card,.meteo-detail,.news-card,.login-box,.modal{background:var(--surface);border-color:var(--border);box-shadow:0 1px 2px rgba(31,41,51,.04);}
+  .ph,.tab,.fx-widget,.matif-widget,.log-kpi,.meteo-kpi,.meteo-day,.meteo-summary-box,.meteo-soil-box,.log-subpanel,.log-table-wrap,.filter-row td,.notes-input-row,.note-filter-row{background:var(--surface2);border-color:var(--border);}
+  input,select,textarea{background:var(--input-bg)!important;color:var(--text)!important;border-color:var(--border2)!important;}
+  input::placeholder,textarea::placeholder{color:var(--text-soft)!important;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 2px rgba(47,111,159,.12);}
+  select option{background:#fff;color:var(--text);}
+  th,.tgt-th{background:var(--header-bg);color:var(--text-muted);border-color:var(--border);}
+  td{color:var(--text);border-color:var(--border);}
+  tbody tr:nth-child(even) td{background:var(--table-row-alt);}
+  tbody tr:hover td,.tr-click:hover td{background:var(--table-hover)!important;}
+  .btn-add,.btn-save,.login-btn{background:var(--accent)!important;color:#fff!important;}
+  .btn-sm,.btn-cancel,.btn-logout{background:var(--surface2);border-color:var(--border2);color:var(--text-muted);}
+  .btn-sm:hover,.btn-cancel:hover,.btn-logout:hover{background:var(--surface3);color:var(--text);}
+  .btn-import{background:var(--info-bg);border-color:#9DBBD2;color:var(--info);}
+  .btn-log{background:var(--accent-bg);border-color:#9DBBD2;color:var(--accent);}
+  .btn-log-green{background:var(--success-bg);border-color:#9BCDB7;color:var(--success);}
+  .btn-log-red{background:var(--danger-bg);border-color:#DFA9AC;color:var(--danger);}
+  .log-warning-line{background:var(--danger-bg);border-color:#DFA9AC;color:var(--danger);}
+  .log-ok-line{background:var(--success-bg);border-color:#9BCDB7;color:var(--success);}
+  .sync.saved,.tl,.al,.an-l,.log-month-diff-pos,.log-month-product-diff-pos{color:var(--success)!important;}
+  .sync.error,.ts2,.as2,.an-s,.log-month-diff-neg,.log-month-product-diff-neg{color:var(--danger)!important;}
+  .tdim,.pc,.sub,.ts,.fx-label,.matif-label,.log-muted,.log-month-label,.cml,.filter-label,.note-date,.empty{color:var(--text-muted)!important;}
+  .logo,.pt,.mtitle,.cname,.cnet,.aname,.log-title,.log-month-title,.log-source-title,.log-item-name,.meteo-name,.news-title,.wn-crop{color:var(--text)!important;}
+  .logo span{color:var(--accent)!important;}
+  .fx-rate,.matif-price,.tpar,.teur,.log-month-value.money,.log-month-value.rest,.basis-badge,.basis-qty{color:var(--warning)!important;}
+  .tab.old,.tab.new,.tab.log-tab-active,.tab.news-tab-active,.tab.meteo-tab-active{background:var(--accent-bg);color:var(--accent);border-color:#9DBBD2;}
+  .tab.old .tbadge,.tab.new .tbadge{background:var(--accent);color:#fff;}
+  .dbadge.long,.finished-badge,.note-tag.bid,.wn-status-ok{background:var(--success-bg);color:var(--success);border-color:#9BCDB7;}
+  .dbadge.short,.incomplete-badge,.note-tag.offer,.wn-status-deficit{background:var(--danger-bg);color:var(--danger);border-color:#DFA9AC;}
+  .dbadge.flat,.note-tag.todo,.wn-status-partial{background:var(--warning-bg);color:var(--warning);border-color:#D8B66F;}
+  .cbasis{background:var(--warning-bg);border-color:#D8B66F;}
+  .bartr{background:var(--surface3);}
+  .log-progress{background:var(--surface3);border-color:var(--border);}
+  .log-progress-inner{background:var(--accent);}
+  .overlay{background:rgba(31,41,51,.45);}
+  .import-zone{background:var(--surface);border-color:var(--border2);}
+  .news-card:hover,.log-source-item:hover,.log-item:hover,.log-month-overview-item:hover,.stock-site-row:hover{background:var(--table-hover);border-color:var(--accent);}
+  .news-desc,.meteo-country,.meteo-cond,.wn-target,.wn-note,.basis-note{color:var(--text-muted)!important;}
+  .filter-bar-inner select,.filter-bar-inner input{background:#fff!important;color:var(--text)!important;}
+  .matif-tooltip{background:var(--surface);border-color:var(--border2);box-shadow:0 8px 26px rgba(31,41,51,.18);}
+  .matif-tooltip::before{background:var(--surface);border-color:var(--border2);}
+  .log-month-planitem,.log-month-flowpill{background:#F7FAFC;border-color:var(--border);}
+  .log-client-focus,.log-client-focus.compact{background:var(--accent-bg)!important;border-color:#9DBBD2!important;border-left-color:var(--accent)!important;box-shadow:none!important;}
+  .log-client-focus-label,.log-client-focus-meta{color:var(--text-muted)!important;}
+  .log-client-focus-name{color:var(--text)!important;}
+  #logisticsDetail.log-card{background:var(--surface)!important;border-color:var(--border2)!important;box-shadow:0 4px 16px rgba(31,41,51,.08)!important;}
+  .log-active-header{background:var(--header-bg)!important;border-color:var(--border)!important;}
+  #logisticsDetail .log-kpi{background:var(--surface2)!important;border-color:var(--border)!important;}
+  #logisticsDetail .log-kpi-v{color:var(--text)!important;}
+  #logisticsDetail .log-subpanel,#logisticsDetail .log-table-wrap{background:var(--surface)!important;border-color:var(--border)!important;}
+  .log-section-panel{background:var(--surface);border-color:var(--border);}
+  .log-section-panel summary{background:var(--header-bg);border-color:var(--border);color:var(--text);}
+  .log-section-panel.pickup,.log-section-panel.delivery,.log-section-panel.plan,.log-section-panel.money,.log-section-panel.warn{background:var(--surface);}
+  .stock-site-badge.agrotex{background:var(--info-bg);color:var(--info);border-color:#9DBBD2;}
+  .stock-site-badge.tert{background:var(--warning-bg);color:var(--warning);border-color:#D8B66F;}
+
+  .tbadge,.btn-note-add{color:#fff!important;}
 </style>
 </head>
 <body>
