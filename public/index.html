@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agrotex GrainExec</title>
+<title>Agrotex Cereale</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -684,8 +684,8 @@
 
 <div id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">AGROTEX <span>GRAINEXEC</span></div>
-    <div class="login-sub">Physical Grain & Oilseed Trading</div>
+    <div class="login-logo">AGROTEX <span>CEREALE</span></div>
+    <div class="login-sub">Platformă execuție cereale</div>
     <div class="fg">
       <label class="fl" style="color:var(--dim)">Parolă de acces</label>
       <input type="password" id="loginPwd" onkeydown="if(event.key==='Enter')doLogin()">
@@ -698,9 +698,7 @@
 <div id="app">
 <header class="hdr">
   <div style="display:flex;align-items:center;gap:13px;">
-    <div class="logo">AGROTEX <span>GRAINEXEC</span></div>
-    <div class="sep"></div>
-    <div class="sub">Physical Grain & Oilseed Trading</div>
+    <div class="logo">AGROTEX <span>CEREALE</span></div>
   </div>
   <div style="display:flex;align-items:center;gap:11px;flex-wrap:nowrap;">
     <div class="fx-widget" id="fxWidget">
@@ -3290,6 +3288,7 @@ function renderLogisticsDetail(){
       </div>
       <div class="log-actions">
         <span class="log-badge ${st.cls}">${st.label}</span>
+        <button class="btn-log" onclick="exportSelectedLogisticsContract()">⬇ Export contract</button>
         <button class="btn-log ${c.manualClosed?'btn-log-green':'btn-log'}" onclick="toggleLogManualClosed()">${c.manualClosed?'Redeschide ctr':'Finalizează ctr'}</button>
         <button class="btn-log ${c.problem?'btn-log-green':'btn-log-red'}" onclick="toggleLogProblem()">${c.problem?'Scoate problema':'Marchează problemă'}</button>
         <button class="btn-log btn-log-red" onclick="deleteSelectedLogistics()">Șterge</button>
@@ -3712,6 +3711,105 @@ async function deleteSelectedLogistics(){
     alert('Eroare la ștergerea contractului logistic de pe server.');
   }
 }
+
+function safeFilePart(v){
+  return String(v||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9._-]+/g,'_')
+    .replace(/^_+|_+$/g,'')
+    .slice(0,80) || 'contract';
+}
+function exportSelectedLogisticsContract(){
+  const c=getLogContract(selectedLogisticsId);
+  if(!c){alert('Selectează un contract logistic pentru export.');return;}
+  const t=getLogTrade(c) || {};
+  const p=products[t.product] || {name:getTradeProductName ? getTradeProductName(t) : (t.product || '')};
+  const flow=logFlow(c);
+  const qty=Number(t.qty)||0;
+  const moved=movementQty(c);
+  const left=Math.max(0,qty-moved);
+  const wb=XLSX.utils.book_new();
+
+  const contractRows=[
+    ['Câmp','Valoare'],
+    ['Client / furnizor', t.cpty || ''],
+    ['Produs', p.name || t.product || ''],
+    ['Recoltă', t.crop || ''],
+    ['Flux', flow==='pickup' ? 'DE RIDICAT' : 'DE LIVRAT'],
+    ['Număr contract', logContractNo(c) || ''],
+    ['Cantitate contract t', Math.round(qty*1000)/1000],
+    ['Executat t', Math.round(moved*1000)/1000],
+    ['Rămas t', Math.round(left*1000)/1000],
+    ['Paritate', t.parity || ''],
+    ['Locație / bază', t.loc || ''],
+    ['Transport', c.transportMode || 'truck'],
+    ['Perioadă de la', c.deliveryStartMonth || ''],
+    ['Perioadă până la', c.deliveryEndMonth || ''],
+    ['Status', computedLogStatus(c).label || ''],
+    ['Problemă', c.problem ? 'DA' : 'NU'],
+    ['Finalizat manual', c.manualClosed ? 'DA' : 'NU']
+  ];
+  const wsContract=XLSX.utils.aoa_to_sheet(contractRows);
+  wsContract['!cols']=[{wch:24},{wch:42}];
+  XLSX.utils.book_append_sheet(wb,wsContract,'Contract');
+
+  const allocRows=[['Luna','Cantitate t']];
+  (c.allocations||[]).forEach(a=>allocRows.push([a.month||'', Math.round((Number(a.qty)||0)*1000)/1000]));
+  const wsAlloc=XLSX.utils.aoa_to_sheet(allocRows);
+  wsAlloc['!cols']=[{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsAlloc,'Alocari');
+
+  const moveRows=[flow==='delivery'
+    ? ['Data','Cantitate t','Transportator / camion','Bază plecare','Locație livrare','Observații']
+    : ['Data','Cantitate t','Transportator / camion','Gara încărcare','Locație / destinație','Livrare directă către','Observații']
+  ];
+  (c.movements||[]).forEach(m=>{
+    if(flow==='delivery'){
+      moveRows.push([m.date||'', Math.round((Number(m.qty)||0)*1000)/1000, m.carrier||'', m.departureBase||'', m.deliveryLocation||'', m.note||'']);
+    }else{
+      const dc=m.directDeliveryContractId ? getLogContract(m.directDeliveryContractId) : null;
+      const dt=dc ? getLogTrade(dc) : null;
+      const directLabel=dt ? `${dt.cpty||''} · ${dt.crop||''} · ${fmtN(dt.qty||0)} t` : '';
+      moveRows.push([m.date||'', Math.round((Number(m.qty)||0)*1000)/1000, m.carrier||'', m.station||'', m.deliveryLocation||'', directLabel, m.note||'']);
+    }
+  });
+  const wsMove=XLSX.utils.aoa_to_sheet(moveRows);
+  wsMove['!cols']=(flow==='delivery' ? [12,12,22,22,24,30] : [12,12,22,18,24,30,30]).map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,wsMove,flow==='delivery'?'Livrari':'Ridicari');
+
+  if(flow==='delivery'){
+    const invRows=[['Nr. factură','Data facturii','Scadență','Sumă','Monedă','Curs','Valoare RON','Status','Data încasării','Observații']];
+    (c.invoices||[]).forEach(inv=>{
+      invRows.push([
+        inv.invoiceNo||'',
+        inv.invoiceDate||'',
+        inv.dueDate||'',
+        Math.round((Number(inv.amount)||0)*100)/100,
+        inv.currency||'RON',
+        inv.currency==='EUR' ? (Number(inv.rate)||fxRates.eurRon||5) : 1,
+        Math.round(invoiceValueRon(inv)*100)/100,
+        inv.paid ? 'Încasată' : 'Neîncasată',
+        inv.paidDate||'',
+        inv.note||''
+      ]);
+    });
+    const wsInv=XLSX.utils.aoa_to_sheet(invRows);
+    wsInv['!cols']=[16,12,12,14,10,10,14,14,14,30].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb,wsInv,'Facturi');
+  }
+
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const ctr=logContractNo(c) || c.id || selectedLogisticsId;
+  a.href=url;
+  a.download=`agrotex_contract_logistic_${safeFilePart(t.cpty||'client')}_${safeFilePart(ctr)}_${today()}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1000);
+}
+
 function exportLogistics(){
   const wb=XLSX.utils.book_new();
 
