@@ -231,6 +231,11 @@
   .log-month-product-diff-pos{color:var(--long);}
   .log-month-product-diff-neg{color:var(--short);}
   .log-month-product-diff-flat{color:var(--dim);}
+  .log-create-wide{display:grid;grid-template-columns:1fr;gap:10px;}
+  .log-create-wide .log-create-results{max-height:240px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:7px;overflow:auto;padding-right:2px;}
+  .log-create-controls{display:grid;grid-template-columns:1fr 210px 210px 260px;gap:8px;align-items:end;}
+  @media(max-width:1200px){.log-create-controls{grid-template-columns:1fr 1fr;}.log-create-controls .btn-add{grid-column:1 / -1;}}
+  @media(max-width:760px){.log-create-controls{grid-template-columns:1fr;}}
   .log-grid{display:grid;grid-template-columns:430px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.log-grid{grid-template-columns:1fr;}}
   .log-left-stack{display:flex;flex-direction:column;gap:12px;}
@@ -905,47 +910,44 @@
   <div class="log-dashboard" id="logisticsDashboard"></div>
   <div class="log-filter-strip hidden" id="logisticsMonthFilterStrip"></div>
 
+  <div class="log-card log-card-create log-create-wide">
+    <div class="log-title">Creează contract logistic</div>
+    <div class="log-muted">Caută tranzacția sursă. Sistemul detectează automat dacă este marfă de ridicat sau de livrat.</div>
+
+    <div class="fg">
+      <label class="fl">Caută contract / tranzacție</label>
+      <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
+    </div>
+
+    <div class="log-search-results log-create-results" id="logSourceResults"></div>
+    <input type="hidden" id="logSelectedTradeId">
+
+    <div class="log-create-controls">
+      <div class="fg" id="logTransportModeWrap" style="display:none;">
+        <label class="fl">Transport pentru vânzare</label>
+        <select id="logTransportMode">
+          <option value="truck">Camion</option>
+          <option value="train">Tren</option>
+        </select>
+      </div>
+      <div class="fg" id="logDetectedFlowWrap" style="display:none;">
+        <label class="fl">Flux detectat</label>
+        <input id="logDetectedFlow" type="text" readonly>
+      </div>
+      <div class="fg">
+        <label class="fl">Perioadă de la</label>
+        <select id="logCreateStartMonth"></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Perioadă până la</label>
+        <select id="logCreateEndMonth"></select>
+      </div>
+      <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
+    </div>
+  </div>
+
   <div class="log-grid">
     <div class="log-left-stack">
-      <div class="log-card log-card-create">
-        <div class="log-title">Creează contract logistic</div>
-        <div class="log-muted">Caută tranzacția sursă. Sistemul detectează automat dacă este marfă de ridicat sau de livrat.</div>
-
-        <div class="fg">
-          <label class="fl">Caută contract / tranzacție</label>
-          <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
-        </div>
-        <div class="log-search-results log-create-results" id="logSourceResults"></div>
-        <input type="hidden" id="logSelectedTradeId">
-
-        <div class="fr fr2" id="logCreateTransportRow" style="display:none;">
-          <div class="fg" id="logTransportModeWrap">
-            <label class="fl">Transport pentru vânzare</label>
-            <select id="logTransportMode">
-              <option value="truck">Camion</option>
-              <option value="train">Tren</option>
-            </select>
-          </div>
-          <div class="fg" id="logDetectedFlowWrap">
-            <label class="fl">Flux detectat</label>
-            <input id="logDetectedFlow" type="text" readonly>
-          </div>
-        </div>
-
-        <div class="fr fr2">
-          <div class="fg">
-            <label class="fl">Perioadă de la</label>
-            <select id="logCreateStartMonth"></select>
-          </div>
-          <div class="fg">
-            <label class="fl">Perioadă până la</label>
-            <select id="logCreateEndMonth"></select>
-          </div>
-        </div>
-
-        <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
-      </div>
-
       <div class="log-card log-card-existing">
         <div class="log-existing-title-row">
           <div class="log-title">Contracte logistice</div>
@@ -969,13 +971,13 @@
 
         <div class="log-list" id="logisticsList"></div>
       </div>
+
     </div>
 
     <div class="log-card" id="logisticsDetail">
       <div class="log-empty">// selectează sau creează un contract logistic</div>
     </div>
   </div>
-</div>
 
 <div class="main">
   <div class="top-row">
