@@ -192,6 +192,39 @@
   .wn-status-deficit{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:rgba(239,68,68,.12);color:var(--short);border:1px solid rgba(239,68,68,.25);}
   .wn-note{font-size:10px;color:var(--dim);margin-top:8px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
 
+
+  /* Context global - IndexMundi */
+  .tab.context-tab-active{background:rgba(127,212,229,.10);color:var(--meteo);border-color:var(--meteo);}
+  #contextSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
+  .ctx-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .ctx-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .ctx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;}
+  .ctx-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .ctx-card:hover{border-color:var(--border2);}
+  .ctx-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .ctx-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1px;line-height:1.35;}
+  .ctx-source-link{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--meteo);text-decoration:none;border:1px solid rgba(127,212,229,.28);border-radius:10px;padding:2px 7px;background:rgba(127,212,229,.08);white-space:nowrap;}
+  .ctx-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .ctx-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:7px;}
+  .ctx-kpi-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;}
+  .ctx-kpi-v{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:900;color:var(--bright);margin-top:3px;}
+  .ctx-kpi-v.pos{color:var(--long);}
+  .ctx-kpi-v.neg{color:var(--short);}
+  .ctx-kpi-v.flat{color:var(--dim);}
+  .ctx-local-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .ctx-local-box{border:1px solid var(--border);border-radius:4px;padding:7px;background:rgba(255,255,255,.018);}
+  .ctx-signal{font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.45;border-radius:4px;padding:7px 8px;border:1px solid var(--border);background:rgba(255,255,255,.018);color:var(--text);}
+  .ctx-signal.good{border-color:rgba(114,211,154,.35);background:rgba(114,211,154,.08);}
+  .ctx-signal.warn{border-color:rgba(240,138,142,.35);background:rgba(240,138,142,.08);}
+  .ctx-signal.neutral{border-color:rgba(155,196,246,.30);background:rgba(155,196,246,.06);}
+  .ctx-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:5px;background:var(--surface);}
+  .ctx-table{width:100%;border-collapse:collapse;}
+  .ctx-table th{background:var(--surface2);}
+  .ctx-empty{padding:28px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;border:1px dashed var(--border2);border-radius:4px;background:var(--surface2);}
+  .ctx-mini-chart{height:46px;display:flex;align-items:flex-end;gap:3px;border:1px solid var(--border);border-radius:4px;padding:5px;background:rgba(255,255,255,.012);}
+  .ctx-bar{flex:1;min-width:8px;border-radius:2px 2px 0 0;background:var(--meteo);opacity:.75;}
+  .ctx-bar:last-child{background:var(--acc);opacity:1;}
+
   /* Logistics V4 */
   #logisticsSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
   .log-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;align-items:stretch;}
@@ -793,6 +826,7 @@
   <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
   <div class="tab" id="tabStock" onclick="setStockTab()" style="margin-left:auto;">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
+  <div class="tab" id="tabContext" onclick="setContextTab()">🌍 Context global</div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
 </div>
 
@@ -896,6 +930,38 @@
     </div>
   </div>
 </div>
+
+
+<div id="contextSection">
+  <div class="ctx-toolbar">
+    <button class="news-back-btn" onclick="closeContextTab()">← Înapoi</button>
+    <span class="meteo-badge" style="color:var(--meteo);border-color:rgba(127,212,229,.35);background:rgba(127,212,229,.08);">CONTEXT GLOBAL</span>
+    <button class="meteo-refresh-btn" onclick="loadGlobalContext(true)">↻ Refresh IndexMundi</button>
+    <button class="btn-import" onclick="exportGlobalContext()">⬇ Export context</button>
+    <span class="ctx-note" id="contextUpdated">Date lunare IndexMundi, utile pentru trend și comparație, nu pentru prețul zilei.</span>
+  </div>
+
+  <div class="ctx-grid" id="contextCards">
+    <div class="ctx-empty">// apasă Refresh IndexMundi pentru încărcare context global</div>
+  </div>
+
+  <div class="log-card" style="border-left:3px solid var(--meteo);">
+    <div class="log-title">Divergențe utile față de poziția locală</div>
+    <div class="ctx-note" style="margin-bottom:8px;">Compară benchmarkul global USD/t, convertit orientativ în EUR/t, cu media ta de cumpărare/vânzare din Poziție. Nu include paritate, transport, calitate sau bază locală.</div>
+    <div id="contextDivergences" class="ctx-empty">// fără date încă</div>
+  </div>
+
+  <div class="log-card" style="border-left:3px solid var(--acc);">
+    <div class="log-title">Serii urmărite</div>
+    <div class="ctx-table-wrap">
+      <table class="ctx-table">
+        <thead><tr><th>Produs local</th><th>Benchmark IndexMundi</th><th>Ce verifică</th><th>Link</th></tr></thead>
+        <tbody id="contextSourceRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 
 <div id="logisticsSection">
   <div class="meteo-toolbar">
@@ -1387,6 +1453,9 @@ let stockEntries = [];
 let stockSites = [];
 let stockTabActive = false;
 let meteoTabActive = false;
+let contextTabActive = false;
+let globalContextData = [];
+let globalContextLastLoad = null;
 let weatherPresets = [];
 let weatherSelected = null;
 let weatherSearchTimer = null;
@@ -1525,6 +1594,12 @@ function closeAllSideTabs(){
     meteoTabActive=false;
     document.getElementById('tabMeteo').className='tab';
     document.getElementById('meteoSection').style.display='none';
+  }
+  if(contextTabActive){
+    contextTabActive=false;
+    document.getElementById('tabContext').className='tab';
+    document.getElementById('contextSection').style.display='none';
+    setCropTabsVisible(true);
   }
   if(logisticsTabActive){
     logisticsTabActive=false;
@@ -5119,6 +5194,250 @@ function importStockEntries(event){
     }catch(err){alert('Eroare import stocuri: '+err.message);} finally{event.target.value='';}
   };
   reader.readAsArrayBuffer(file);
+}
+
+
+/* Context global - IndexMundi */
+const GLOBAL_CONTEXT_COMMODITIES = [
+  {key:'wheat', emoji:'🌾', local:['grau','grâu','wheat'], label:'Grâu', benchmark:'Wheat', commodity:'wheat', url:'https://www.indexmundi.com/commodities/?commodity=wheat', role:'Trend grâu global, USD/t, util ca busolă față de MATIF și piața fizică locală.'},
+  {key:'corn', emoji:'🌽', local:['porumb','corn','maize'], label:'Porumb', benchmark:'Maize (corn)', commodity:'corn', url:'https://www.indexmundi.com/commodities/?commodity=corn', role:'Trend porumb export US Gulf, relevant pentru direcția globală feed/industrial.'},
+  {key:'rapeseedOil', emoji:'🌿', local:['rapita','rapiță','rapeseed','canola'], label:'Rapiță', benchmark:'Rapeseed Oil', commodity:'rapeseed-oil', url:'https://www.indexmundi.com/commodities/?commodity=rapeseed-oil', role:'Pentru rapiță, uleiul de rapiță dă context mai bun decât boaba izolată.'},
+  {key:'soybeans', emoji:'🫘', local:['soia','soy','soybeans'], label:'Soia', benchmark:'Soybeans', commodity:'soybeans', url:'https://www.indexmundi.com/commodities/?commodity=soybeans', role:'Context pentru complexul proteic și oleaginoase.'},
+  {key:'soybeanOil', emoji:'🛢', local:['soia','soy','soybean oil'], label:'Ulei soia', benchmark:'Soybean Oil', commodity:'soybean-oil', url:'https://www.indexmundi.com/commodities/?commodity=soybean-oil', role:'Influențează rapița și floarea-soarelui prin complexul uleiurilor vegetale.'},
+  {key:'sunflowerOil', emoji:'🌻', local:['floarea','floarea-soarelui','sunflower'], label:'Floarea-soarelui', benchmark:'Sunflower oil', commodity:'sunflower-oil', url:'https://www.indexmundi.com/commodities/?commodity=sunflower-oil', role:'Benchmark global pentru ulei de floarea-soarelui, util pentru piața de semințe.'},
+  {key:'palmOil', emoji:'🌴', local:['rapita','rapiță','floarea','sunflower'], label:'Palmier', benchmark:'Palm oil', commodity:'palm-oil', url:'https://www.indexmundi.com/commodities/?commodity=palm-oil', role:'Barometru pentru uleiuri vegetale, mai ales când rapița/floarea se mișcă pe ulei.'},
+  {key:'urea', emoji:'🧪', local:['grau','grâu','porumb','rapita','rapiță'], label:'Uree', benchmark:'Urea', commodity:'urea', url:'https://www.indexmundi.com/commodities/?commodity=urea', role:'Context costuri inputuri, util în discuțiile cu fermierii.'}
+];
+
+function setContextTab(){
+  closeAllSideTabs();
+  contextTabActive=true;
+  document.getElementById('tabContext').className='tab context-tab-active';
+  setCropTabsVisible(false);
+  document.querySelector('.main').style.display='none';
+  document.getElementById('contextSection').style.display='flex';
+  renderContextSources();
+  if(!globalContextData.length) loadGlobalContext();
+  else renderGlobalContext();
+}
+function closeContextTab(){
+  contextTabActive=false;
+  document.getElementById('tabContext').className='tab';
+  document.getElementById('contextSection').style.display='none';
+  setCropTabsVisible(true);
+  document.querySelector('.main').style.display='flex';
+}
+function renderContextSources(){
+  const tb=document.getElementById('contextSourceRows');
+  if(!tb) return;
+  tb.innerHTML=GLOBAL_CONTEXT_COMMODITIES.map(c=>`
+    <tr>
+      <td>${c.emoji} ${escHtml(c.label)}</td>
+      <td>${escHtml(c.benchmark)}</td>
+      <td class="tdim" style="white-space:normal;line-height:1.45;">${escHtml(c.role)}</td>
+      <td><a class="ctx-source-link" href="${c.url}" target="_blank" rel="noopener">IndexMundi</a></td>
+    </tr>
+  `).join('');
+}
+function parseIndexMundiRows(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const bodyText=(doc.body?.innerText || '').replace(/\u00a0/g,' ');
+  let unit=(bodyText.match(/Unit:\s*([^\n]+)/i)||[])[1] || 'US Dollars per Metric Ton';
+  let dataAsOf=(bodyText.match(/Data as of\s+([A-Za-z]+\s+\d{4})/i)||[])[1] || '';
+  let rows=[];
+  doc.querySelectorAll('table').forEach(tbl=>{
+    const head=(tbl.innerText||'').replace(/\s+/g,' ').toLowerCase();
+    if(!head.includes('month') || !head.includes('price')) return;
+    tbl.querySelectorAll('tr').forEach(tr=>{
+      const cells=[...tr.querySelectorAll('td,th')].map(td=>td.textContent.trim());
+      if(cells.length>=2 && /^[A-Z][a-z]{2}\s+\d{4}$/.test(cells[0])){
+        const price=parseFloat((cells[1]||'').replace(/,/g,''));
+        const change=parseFloat((cells[2]||'').replace('%',''));
+        if(!isNaN(price)) rows.push({month:cells[0],price,change:isNaN(change)?null:change});
+      }
+    });
+  });
+  if(!rows.length){
+    const after=(bodyText.split(/Month\s+Price\s+Change/i)[1] || '').split(/Export table|Commodities Market|Buyers:/i)[0] || '';
+    const re=/([A-Z][a-z]{2}\s+\d{4})\s+([\d,]+(?:\.\d+)?)(?:\s*([-+]?\d+(?:\.\d+)?)%)?/g;
+    let m;
+    while((m=re.exec(after))){
+      const price=parseFloat(m[2].replace(/,/g,''));
+      const change=m[3]==null?null:parseFloat(m[3]);
+      if(!isNaN(price)) rows.push({month:m[1],price,change:isNaN(change)?null:change});
+    }
+  }
+  return {rows,unit,dataAsOf};
+}
+async function fetchIndexMundiCommodity(c){
+  const target=c.url;
+  const proxy='https://api.allorigins.win/raw?url='+encodeURIComponent(target);
+  const res=await fetch(proxy,{signal:AbortSignal.timeout(12000)});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const html=await res.text();
+  const parsed=parseIndexMundiRows(html);
+  return {...c,...parsed,ok:parsed.rows.length>0,error:parsed.rows.length?'':'nu am găsit tabelul de prețuri'};
+}
+async function loadGlobalContext(force=false){
+  const grid=document.getElementById('contextCards');
+  if(grid) grid.innerHTML='<div class="ctx-empty">// se încarcă datele lunare IndexMundi...</div>';
+  const out=[];
+  for(const c of GLOBAL_CONTEXT_COMMODITIES){
+    try{ out.push(await fetchIndexMundiCommodity(c)); }
+    catch(err){ out.push({...c,rows:[],unit:'US Dollars per Metric Ton',dataAsOf:'',ok:false,error:err.message}); }
+  }
+  globalContextData=out;
+  globalContextLastLoad=new Date();
+  renderGlobalContext();
+}
+function pctChangeFromRows(rows, back){
+  if(!rows || rows.length<2) return null;
+  const last=rows[rows.length-1]?.price;
+  const prev=rows[Math.max(0,rows.length-1-back)]?.price;
+  if(!last || !prev) return null;
+  return ((last/prev)-1)*100;
+}
+function fmtPct(v){
+  if(v==null || isNaN(v)) return '—';
+  const s=(v>=0?'+':'')+v.toFixed(1)+'%';
+  return s;
+}
+function pctCls(v){
+  if(v==null || isNaN(v)) return 'flat';
+  if(v>1) return 'pos';
+  if(v<-1) return 'neg';
+  return 'flat';
+}
+function productMatchesBenchmark(t,cfg){
+  const p=products[t.product] || {};
+  const txt=((t.product||'')+' '+(p.name||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return (cfg.local||[]).some(k=>txt.includes(String(k).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')));
+}
+function localBenchmarkStats(cfg){
+  const rate=fxRates.eurRon || 5;
+  const rows=trades.filter(t=>productMatchesBenchmark(t,cfg) && String(t.crop||'')===String(crop) && t.ptype==='fix' && Number(t.price)>0 && Number(t.qty)>0);
+  const calc=(dir)=>{
+    const r=rows.filter(t=>t.dir===dir);
+    const qty=r.reduce((s,t)=>s+Number(t.qty||0),0);
+    if(!qty) return null;
+    const ron=r.reduce((s,t)=>s+Number(t.price||0)*Number(t.qty||0),0)/qty;
+    return {qty,ron,eur:ron/rate};
+  };
+  return {buy:calc('long'),sell:calc('short')};
+}
+function contextSignal(cfg,item,local){
+  if(!item.ok || !item.rows.length) return {cls:'neutral',txt:'Datele nu s-au încărcat. Deschide linkul IndexMundi sau încearcă refresh.'};
+  const ch3=pctChangeFromRows(item.rows,3);
+  const latest=item.rows[item.rows.length-1]?.price;
+  const globalEur=(fxRates.eurUsd && latest)? latest/fxRates.eurUsd : null;
+  const localSell=local.sell?.eur || null;
+  if(localSell && globalEur){
+    const diff=((localSell/globalEur)-1)*100;
+    if(diff>12) return {cls:'warn',txt:`Local vânzare este cu ${diff.toFixed(1)}% peste benchmarkul global convertit. Verifică dacă diferența vine din paritate, calitate, cerere locală sau risc de corecție.`};
+    if(diff<-12) return {cls:'good',txt:`Local vânzare este cu ${Math.abs(diff).toFixed(1)}% sub benchmarkul global convertit. Verifică dacă există spațiu de îmbunătățire la destinații externe.`};
+  }
+  if(ch3!=null && ch3>5) return {cls:'good',txt:`Trend global 3 luni pozitiv (${fmtPct(ch3)}). Bun ca argument de context, dar verifică baza locală și MATIF.`};
+  if(ch3!=null && ch3<-5) return {cls:'warn',txt:`Trend global 3 luni negativ (${fmtPct(ch3)}). Atenție la poziții long și la ritmul de vânzare.`};
+  return {cls:'neutral',txt:'Context global relativ neutru. Decizia rămâne în paritate locală, cerere fizică și logistică.'};
+}
+function renderMiniChart(rows){
+  if(!rows || rows.length<2) return '<div class="ctx-mini-chart"><span class="tdim">// fără serie</span></div>';
+  const vals=rows.slice(-6).map(r=>r.price);
+  const min=Math.min(...vals), max=Math.max(...vals);
+  const span=Math.max(1,max-min);
+  return `<div class="ctx-mini-chart">${vals.map(v=>`<div class="ctx-bar" style="height:${Math.max(10,Math.round(((v-min)/span)*36)+8)}px" title="${fmtN(v)}"></div>`).join('')}</div>`;
+}
+function renderGlobalContext(){
+  renderContextSources();
+  const grid=document.getElementById('contextCards');
+  const div=document.getElementById('contextDivergences');
+  const upd=document.getElementById('contextUpdated');
+  if(upd){
+    upd.textContent=globalContextLastLoad
+      ? `Ultima încărcare: ${globalContextLastLoad.toLocaleString('ro-RO')} · sursă IndexMundi, prin proxy public.`
+      : 'Date lunare IndexMundi, utile pentru trend și comparație, nu pentru prețul zilei.';
+  }
+  if(!grid) return;
+  if(!globalContextData.length){
+    grid.innerHTML='<div class="ctx-empty">// apasă Refresh IndexMundi pentru încărcare context global</div>';
+    if(div) div.innerHTML='// fără date încă';
+    return;
+  }
+  const cards=[];
+  const divergences=[];
+  globalContextData.forEach(item=>{
+    const rows=item.rows || [];
+    const latest=rows[rows.length-1] || null;
+    const ch1=pctChangeFromRows(rows,1);
+    const ch3=pctChangeFromRows(rows,3);
+    const ch6=pctChangeFromRows(rows,6);
+    const local=localBenchmarkStats(item);
+    const sig=contextSignal(item,item,local);
+    const globalEur=(latest && fxRates.eurUsd)? latest.price/fxRates.eurUsd : null;
+    if(item.ok && (local.sell || local.buy) && globalEur){
+      const ref=local.sell?.eur || local.buy?.eur;
+      const dir=local.sell?'vânzare':'cumpărare';
+      const diff=((ref/globalEur)-1)*100;
+      if(Math.abs(diff)>10) divergences.push({item,dir,diff,ref,globalEur,sig});
+    }
+    cards.push(`
+      <div class="ctx-card">
+        <div class="ctx-card-head">
+          <div>
+            <div class="ctx-title">${item.emoji} ${escHtml(item.label)}</div>
+            <div class="tdim">${escHtml(item.benchmark)} · ${escHtml(item.dataAsOf || 'fără dată')}</div>
+          </div>
+          <a class="ctx-source-link" href="${item.url}" target="_blank" rel="noopener">sursă</a>
+        </div>
+        ${renderMiniChart(rows)}
+        <div class="ctx-kpi-grid">
+          <div class="ctx-kpi"><div class="ctx-kpi-l">Ultim</div><div class="ctx-kpi-v">${latest?fmtN(latest.price):'—'} <span class="tdim">USD/t</span></div></div>
+          <div class="ctx-kpi"><div class="ctx-kpi-l">3 luni</div><div class="ctx-kpi-v ${pctCls(ch3)}">${fmtPct(ch3)}</div></div>
+          <div class="ctx-kpi"><div class="ctx-kpi-l">6 luni</div><div class="ctx-kpi-v ${pctCls(ch6)}">${fmtPct(ch6)}</div></div>
+        </div>
+        <div class="ctx-local-row">
+          <div class="ctx-local-box"><div class="ctx-kpi-l">Local cump.</div><div class="ctx-kpi-v">${local.buy?`${fmtN(local.buy.eur)} EUR/t`: '—'}</div><div class="tdim">${local.buy?fmtN(local.buy.qty)+' t':''}</div></div>
+          <div class="ctx-local-box"><div class="ctx-kpi-l">Local vânz.</div><div class="ctx-kpi-v">${local.sell?`${fmtN(local.sell.eur)} EUR/t`: '—'}</div><div class="tdim">${local.sell?fmtN(local.sell.qty)+' t':''}</div></div>
+        </div>
+        <div class="ctx-signal ${sig.cls}">${escHtml(sig.txt)}</div>
+        ${!item.ok?`<div class="log-warning-line">Nu am putut încărca automat: ${escHtml(item.error||'eroare')}</div>`:''}
+      </div>
+    `);
+  });
+  grid.innerHTML=cards.join('');
+  if(div){
+    if(!divergences.length){
+      div.className='ctx-empty';
+      div.innerHTML='// nicio divergență majoră detectată față de mediile locale curente';
+    } else {
+      div.className='ctx-table-wrap';
+      div.innerHTML=`<table class="ctx-table"><thead><tr><th>Produs</th><th>Local</th><th>Global conv.</th><th>Dif.</th><th>Interpretare</th></tr></thead><tbody>
+        ${divergences.map(d=>`<tr>
+          <td>${d.item.emoji} ${escHtml(d.item.label)}</td>
+          <td>${escHtml(d.dir)} ${fmtN(d.ref)} EUR/t</td>
+          <td>${fmtN(d.globalEur)} EUR/t</td>
+          <td class="${d.diff>=0?'tl':'ts2'}">${d.diff>=0?'+':''}${d.diff.toFixed(1)}%</td>
+          <td class="tdim" style="white-space:normal;">${escHtml(d.sig.txt)}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+    }
+  }
+}
+function exportGlobalContext(){
+  if(!globalContextData.length){alert('Nu există date de exportat. Apasă Refresh IndexMundi.');return;}
+  const rows=[['produs','benchmark','data_as_of','ultima_luna','pret_usd_t','trend_1l_%','trend_3l_%','trend_6l_%','local_cump_eur_t','local_vanz_eur_t','link']];
+  globalContextData.forEach(item=>{
+    const latest=item.rows?.[item.rows.length-1] || {};
+    const local=localBenchmarkStats(item);
+    rows.push([
+      item.label,item.benchmark,item.dataAsOf||'',latest.month||'',latest.price||'',
+      pctChangeFromRows(item.rows,1),pctChangeFromRows(item.rows,3),pctChangeFromRows(item.rows,6),
+      local.buy?.eur||'',local.sell?.eur||'',item.url
+    ]);
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Context global');
+  XLSX.writeFile(wb,`context_global_${today()}.xlsx`);
 }
 
 /* News */
