@@ -5269,24 +5269,56 @@ function parseIndexMundiRows(html){
   }
   return {rows,unit,dataAsOf};
 }
+function fetchWithHardTimeout(url, ms=8000){
+  return new Promise((resolve,reject)=>{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>{
+      try{ctrl.abort();}catch(e){}
+      reject(new Error('timeout'));
+    },ms);
+    fetch(url,{signal:ctrl.signal,cache:'no-store'})
+      .then(res=>{clearTimeout(timer);resolve(res);})
+      .catch(err=>{clearTimeout(timer);reject(err);});
+  });
+}
+function indexMundiProxyUrls(target){
+  const enc=encodeURIComponent(target);
+  return [
+    'https://api.allorigins.win/raw?url='+enc,
+    'https://corsproxy.io/?'+enc,
+    'https://api.codetabs.com/v1/proxy?quest='+enc
+  ];
+}
 async function fetchIndexMundiCommodity(c){
   const target=c.url;
-  const proxy='https://api.allorigins.win/raw?url='+encodeURIComponent(target);
-  const res=await fetch(proxy,{signal:AbortSignal.timeout(12000)});
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  const html=await res.text();
-  const parsed=parseIndexMundiRows(html);
-  return {...c,...parsed,ok:parsed.rows.length>0,error:parsed.rows.length?'':'nu am găsit tabelul de prețuri'};
+  const urls=indexMundiProxyUrls(target);
+  let lastErr=null;
+  for(const url of urls){
+    try{
+      const res=await fetchWithHardTimeout(url,8500);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const html=await res.text();
+      const parsed=parseIndexMundiRows(html);
+      if(parsed.rows.length){
+        return {...c,...parsed,ok:true,error:''};
+      }
+      lastErr=new Error('tabel negăsit');
+    }catch(err){
+      lastErr=err;
+    }
+  }
+  return {...c,rows:[],unit:'US Dollars per Metric Ton',dataAsOf:'',ok:false,error:(lastErr&&lastErr.message)||'nu s-a putut încărca'};
 }
 async function loadGlobalContext(force=false){
   const grid=document.getElementById('contextCards');
-  if(grid) grid.innerHTML='<div class="ctx-empty">// se încarcă datele lunare IndexMundi...</div>';
-  const out=[];
-  for(const c of GLOBAL_CONTEXT_COMMODITIES){
-    try{ out.push(await fetchIndexMundiCommodity(c)); }
-    catch(err){ out.push({...c,rows:[],unit:'US Dollars per Metric Ton',dataAsOf:'',ok:false,error:err.message}); }
-  }
-  globalContextData=out;
+  if(grid) grid.innerHTML='<div class="ctx-empty">// se încearcă încărcarea IndexMundi. Dacă proxy-ul nu răspunde, apar carduri cu link direct.</div>';
+  const promises=GLOBAL_CONTEXT_COMMODITIES.map(c=>fetchIndexMundiCommodity(c));
+  const results=await Promise.allSettled(promises);
+  globalContextData=results.map((r,i)=>{
+    if(r.status==='fulfilled') return r.value;
+    const c=GLOBAL_CONTEXT_COMMODITIES[i];
+    return {...c,rows:[],unit:'US Dollars per Metric Ton',dataAsOf:'',ok:false,error:r.reason?.message || 'nu s-a putut încărca'};
+  });
   globalContextLastLoad=new Date();
   renderGlobalContext();
 }
