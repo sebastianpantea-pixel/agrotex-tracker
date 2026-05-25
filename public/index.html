@@ -5201,10 +5201,12 @@ function importStockEntries(event){
 const GLOBAL_CONTEXT_COMMODITIES = [
   {key:'wheat', emoji:'🌾', directLocal:true, local:['grau','grâu','wheat'], label:'Grâu', benchmark:'Wheat', commodity:'wheat', url:'https://www.indexmundi.com/commodities/?commodity=wheat', role:'Trend grâu global, USD/t, util ca busolă față de MATIF și piața fizică locală.'},
   {key:'corn', emoji:'🌽', directLocal:true, local:['porumb','corn','maize'], label:'Porumb', benchmark:'Maize (corn)', commodity:'corn', url:'https://www.indexmundi.com/commodities/?commodity=corn', role:'Trend porumb export US Gulf, relevant pentru direcția globală feed/industrial.'},
-  {key:'rapeseedOil', emoji:'🌿', directLocal:false, indicatorFor:'Rapiță', local:[], label:'Rapiță / ulei rapiță', benchmark:'Rapeseed Oil', commodity:'rapeseed-oil', url:'https://www.indexmundi.com/commodities/?commodity=rapeseed-oil', role:'Indicator pentru rapiță prin complexul uleiurilor. Nu se compară direct cu poziția locală de boabe.'},
+  {key:'rapeseedLocal', emoji:'🌿', directLocal:true, localOnly:true, local:['rapita','rapiță','rapeseed'], label:'Rapiță', benchmark:'Poziție locală directă', commodity:null, url:'#', role:'Referință directă din book pentru rapiță. Se calculează din contractele locale introduse în Poziție.'},
+  {key:'rapeseedOil', emoji:'🛢', directLocal:false, indicatorFor:'Rapiță', local:[], label:'Ulei rapiță', benchmark:'Rapeseed Oil', commodity:'rapeseed-oil', url:'https://www.indexmundi.com/commodities/?commodity=rapeseed-oil', role:'Indicator separat pentru rapiță prin complexul uleiurilor. Nu se compară direct cu prețul local de boabe.'},
   {key:'soybeans', emoji:'🫘', directLocal:true, local:['soia','soy','soybeans'], label:'Soia', benchmark:'Soybeans', commodity:'soybeans', url:'https://www.indexmundi.com/commodities/?commodity=soybeans', role:'Context pentru complexul proteic și oleaginoase.'},
   {key:'soybeanOil', emoji:'🛢', directLocal:false, indicatorFor:'Rapiță / floarea-soarelui', local:[], label:'Ulei soia', benchmark:'Soybean Oil', commodity:'soybean-oil', url:'https://www.indexmundi.com/commodities/?commodity=soybean-oil', role:'Indicator pentru complexul uleiurilor vegetale. Nu se compară direct cu poziția locală.'},
-  {key:'sunflowerOil', emoji:'🌻', directLocal:false, indicatorFor:'Floarea-soarelui', local:[], label:'Floarea-soarelui / ulei', benchmark:'Sunflower oil', commodity:'sunflower-oil', url:'https://www.indexmundi.com/commodities/?commodity=sunflower-oil', role:'Indicator pentru floarea-soarelui prin ulei. Nu se compară direct cu poziția locală de semințe.'},
+  {key:'sunflowerLocal', emoji:'🌻', directLocal:true, localOnly:true, local:['floarea-soarelui','floarea soarelui','floarea','sunflower'], label:'Floarea-soarelui', benchmark:'Poziție locală directă', commodity:null, url:'#', role:'Referință directă din book pentru floarea-soarelui. Se calculează din contractele locale introduse în Poziție.'},
+  {key:'sunflowerOil', emoji:'🛢', directLocal:false, indicatorFor:'Floarea-soarelui', local:[], label:'Ulei floarea-soarelui', benchmark:'Sunflower oil', commodity:'sunflower-oil', url:'https://www.indexmundi.com/commodities/?commodity=sunflower-oil', role:'Indicator separat pentru floarea-soarelui prin ulei. Nu se compară direct cu prețul local de semințe.'},
   {key:'palmOil', emoji:'🌴', directLocal:false, indicatorFor:'Uleiuri vegetale', local:[], label:'Palmier', benchmark:'Palm oil', commodity:'palm-oil', url:'https://www.indexmundi.com/commodities/?commodity=palm-oil', role:'Barometru pentru uleiuri vegetale. Nu există poziție locală directă în aplicație.'},
   {key:'urea', emoji:'🧪', directLocal:false, indicatorFor:'Inputuri', local:[], label:'Uree', benchmark:'Urea', commodity:'urea', url:'https://www.indexmundi.com/commodities/?commodity=urea', role:'Indicator de costuri inputuri, util în discuțiile cu fermierii. Nu se compară cu poziția de cereale.'}
 ];
@@ -5290,6 +5292,9 @@ function indexMundiProxyUrls(target){
   ];
 }
 async function fetchIndexMundiCommodity(c){
+  if(c.localOnly){
+    return {...c,rows:[],unit:'',dataAsOf:'book local',ok:true,error:''};
+  }
   const target=c.url;
   const urls=indexMundiProxyUrls(target);
   let lastErr=null;
@@ -5359,6 +5364,10 @@ function localBenchmarkStats(cfg){
   return {buy:calc('long'),sell:calc('short'),direct:true};
 }
 function contextSignal(cfg,item,local){
+  if(cfg.localOnly){
+    if(local.sell || local.buy) return {cls:'neutral',txt:'Referință directă din book. Compară media locală de cumpărare/vânzare cu MATIF, paritatea și cererea fizică, nu cu IndexMundi.'};
+    return {cls:'neutral',txt:'Nu există încă poziție locală directă pentru acest produs în recolta selectată.'};
+  }
   if(!item.ok || !item.rows.length) return {cls:'neutral',txt:'Datele nu s-au încărcat. Deschide linkul IndexMundi sau încearcă refresh.'};
   const ch3=pctChangeFromRows(item.rows,3);
   const latest=item.rows[item.rows.length-1]?.price;
@@ -5412,7 +5421,7 @@ function renderGlobalContext(){
     const local=localBenchmarkStats(item);
     const sig=contextSignal(item,item,local);
     const globalEur=(latest && fxRates.eurUsd)? latest.price/fxRates.eurUsd : null;
-    if(item.ok && (local.sell || local.buy) && globalEur){
+    if(!item.localOnly && item.ok && (local.sell || local.buy) && globalEur){
       const ref=local.sell?.eur || local.buy?.eur;
       const dir=local.sell?'vânzare':'cumpărare';
       const diff=((ref/globalEur)-1)*100;
@@ -5425,14 +5434,17 @@ function renderGlobalContext(){
             <div class="ctx-title">${item.emoji} ${escHtml(item.label)}</div>
             <div class="tdim">${escHtml(item.benchmark)} · ${escHtml(item.dataAsOf || 'fără dată')}</div>
           </div>
-          <a class="ctx-source-link" href="${item.url}" target="_blank" rel="noopener">sursă</a>
+          ${item.localOnly?'<span class="ctx-source-link">book local</span>':`<a class="ctx-source-link" href="${item.url}" target="_blank" rel="noopener">sursă</a>`}
         </div>
+        ${item.localOnly ? `
+        <div class="ctx-signal neutral">Poziție locală directă. Nu are benchmark IndexMundi separat pe boabe/semințe în acest modul.</div>
+        ` : `
         ${renderMiniChart(rows)}
         <div class="ctx-kpi-grid">
           <div class="ctx-kpi"><div class="ctx-kpi-l">Ultim</div><div class="ctx-kpi-v">${latest?fmtN(latest.price):'—'} <span class="tdim">USD/t</span></div></div>
           <div class="ctx-kpi"><div class="ctx-kpi-l">3 luni</div><div class="ctx-kpi-v ${pctCls(ch3)}">${fmtPct(ch3)}</div></div>
           <div class="ctx-kpi"><div class="ctx-kpi-l">6 luni</div><div class="ctx-kpi-v ${pctCls(ch6)}">${fmtPct(ch6)}</div></div>
-        </div>
+        </div>`}
         ${item.directLocal ? `
         <div class="ctx-local-row">
           <div class="ctx-local-box"><div class="ctx-kpi-l">Local cump.</div><div class="ctx-kpi-v">${local.buy?`${fmtN(local.buy.eur)} EUR/t`: '—'}</div><div class="tdim">${local.buy?fmtN(local.buy.qty)+' t':''}</div></div>
@@ -5446,7 +5458,7 @@ function renderGlobalContext(){
           </div>
         </div>`}
         <div class="ctx-signal ${sig.cls}">${escHtml(sig.txt)}</div>
-        ${!item.ok?`<div class="log-warning-line">Nu am putut încărca automat: ${escHtml(item.error||'eroare')}</div>`:''}
+        ${(!item.localOnly && !item.ok)?`<div class="log-warning-line">Nu am putut încărca automat: ${escHtml(item.error||'eroare')}</div>`:''}
       </div>
     `);
   });
@@ -5478,7 +5490,7 @@ function exportGlobalContext(){
     rows.push([
       item.label,item.benchmark,item.dataAsOf||'',latest.month||'',latest.price||'',
       pctChangeFromRows(item.rows,1),pctChangeFromRows(item.rows,3),pctChangeFromRows(item.rows,6),
-      local.buy?.eur||'',local.sell?.eur||'',item.url
+      local.buy?.eur||'',local.sell?.eur||'',item.localOnly?'book local':item.url
     ]);
   });
   const wb=XLSX.utils.book_new();
