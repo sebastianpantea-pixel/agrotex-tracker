@@ -5199,14 +5199,14 @@ function importStockEntries(event){
 
 /* Context global - IndexMundi */
 const GLOBAL_CONTEXT_COMMODITIES = [
-  {key:'wheat', emoji:'🌾', local:['grau','grâu','wheat'], label:'Grâu', benchmark:'Wheat', commodity:'wheat', url:'https://www.indexmundi.com/commodities/?commodity=wheat', role:'Trend grâu global, USD/t, util ca busolă față de MATIF și piața fizică locală.'},
-  {key:'corn', emoji:'🌽', local:['porumb','corn','maize'], label:'Porumb', benchmark:'Maize (corn)', commodity:'corn', url:'https://www.indexmundi.com/commodities/?commodity=corn', role:'Trend porumb export US Gulf, relevant pentru direcția globală feed/industrial.'},
-  {key:'rapeseedOil', emoji:'🌿', local:['rapita','rapiță','rapeseed','canola'], label:'Rapiță', benchmark:'Rapeseed Oil', commodity:'rapeseed-oil', url:'https://www.indexmundi.com/commodities/?commodity=rapeseed-oil', role:'Pentru rapiță, uleiul de rapiță dă context mai bun decât boaba izolată.'},
-  {key:'soybeans', emoji:'🫘', local:['soia','soy','soybeans'], label:'Soia', benchmark:'Soybeans', commodity:'soybeans', url:'https://www.indexmundi.com/commodities/?commodity=soybeans', role:'Context pentru complexul proteic și oleaginoase.'},
-  {key:'soybeanOil', emoji:'🛢', local:['soia','soy','soybean oil'], label:'Ulei soia', benchmark:'Soybean Oil', commodity:'soybean-oil', url:'https://www.indexmundi.com/commodities/?commodity=soybean-oil', role:'Influențează rapița și floarea-soarelui prin complexul uleiurilor vegetale.'},
-  {key:'sunflowerOil', emoji:'🌻', local:['floarea','floarea-soarelui','sunflower'], label:'Floarea-soarelui', benchmark:'Sunflower oil', commodity:'sunflower-oil', url:'https://www.indexmundi.com/commodities/?commodity=sunflower-oil', role:'Benchmark global pentru ulei de floarea-soarelui, util pentru piața de semințe.'},
-  {key:'palmOil', emoji:'🌴', local:['rapita','rapiță','floarea','sunflower'], label:'Palmier', benchmark:'Palm oil', commodity:'palm-oil', url:'https://www.indexmundi.com/commodities/?commodity=palm-oil', role:'Barometru pentru uleiuri vegetale, mai ales când rapița/floarea se mișcă pe ulei.'},
-  {key:'urea', emoji:'🧪', local:['grau','grâu','porumb','rapita','rapiță'], label:'Uree', benchmark:'Urea', commodity:'urea', url:'https://www.indexmundi.com/commodities/?commodity=urea', role:'Context costuri inputuri, util în discuțiile cu fermierii.'}
+  {key:'wheat', emoji:'🌾', directLocal:true, local:['grau','grâu','wheat'], label:'Grâu', benchmark:'Wheat', commodity:'wheat', url:'https://www.indexmundi.com/commodities/?commodity=wheat', role:'Trend grâu global, USD/t, util ca busolă față de MATIF și piața fizică locală.'},
+  {key:'corn', emoji:'🌽', directLocal:true, local:['porumb','corn','maize'], label:'Porumb', benchmark:'Maize (corn)', commodity:'corn', url:'https://www.indexmundi.com/commodities/?commodity=corn', role:'Trend porumb export US Gulf, relevant pentru direcția globală feed/industrial.'},
+  {key:'rapeseedOil', emoji:'🌿', directLocal:false, indicatorFor:'Rapiță', local:[], label:'Rapiță / ulei rapiță', benchmark:'Rapeseed Oil', commodity:'rapeseed-oil', url:'https://www.indexmundi.com/commodities/?commodity=rapeseed-oil', role:'Indicator pentru rapiță prin complexul uleiurilor. Nu se compară direct cu poziția locală de boabe.'},
+  {key:'soybeans', emoji:'🫘', directLocal:true, local:['soia','soy','soybeans'], label:'Soia', benchmark:'Soybeans', commodity:'soybeans', url:'https://www.indexmundi.com/commodities/?commodity=soybeans', role:'Context pentru complexul proteic și oleaginoase.'},
+  {key:'soybeanOil', emoji:'🛢', directLocal:false, indicatorFor:'Rapiță / floarea-soarelui', local:[], label:'Ulei soia', benchmark:'Soybean Oil', commodity:'soybean-oil', url:'https://www.indexmundi.com/commodities/?commodity=soybean-oil', role:'Indicator pentru complexul uleiurilor vegetale. Nu se compară direct cu poziția locală.'},
+  {key:'sunflowerOil', emoji:'🌻', directLocal:false, indicatorFor:'Floarea-soarelui', local:[], label:'Floarea-soarelui / ulei', benchmark:'Sunflower oil', commodity:'sunflower-oil', url:'https://www.indexmundi.com/commodities/?commodity=sunflower-oil', role:'Indicator pentru floarea-soarelui prin ulei. Nu se compară direct cu poziția locală de semințe.'},
+  {key:'palmOil', emoji:'🌴', directLocal:false, indicatorFor:'Uleiuri vegetale', local:[], label:'Palmier', benchmark:'Palm oil', commodity:'palm-oil', url:'https://www.indexmundi.com/commodities/?commodity=palm-oil', role:'Barometru pentru uleiuri vegetale. Nu există poziție locală directă în aplicație.'},
+  {key:'urea', emoji:'🧪', directLocal:false, indicatorFor:'Inputuri', local:[], label:'Uree', benchmark:'Urea', commodity:'urea', url:'https://www.indexmundi.com/commodities/?commodity=urea', role:'Indicator de costuri inputuri, util în discuțiile cu fermierii. Nu se compară cu poziția de cereale.'}
 ];
 
 function setContextTab(){
@@ -5346,6 +5346,7 @@ function productMatchesBenchmark(t,cfg){
   return (cfg.local||[]).some(k=>txt.includes(String(k).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')));
 }
 function localBenchmarkStats(cfg){
+  if(!cfg.directLocal) return {buy:null,sell:null,direct:false};
   const rate=fxRates.eurRon || 5;
   const rows=trades.filter(t=>productMatchesBenchmark(t,cfg) && String(t.crop||'')===String(crop) && t.ptype==='fix' && Number(t.price)>0 && Number(t.qty)>0);
   const calc=(dir)=>{
@@ -5355,13 +5356,18 @@ function localBenchmarkStats(cfg){
     const ron=r.reduce((s,t)=>s+Number(t.price||0)*Number(t.qty||0),0)/qty;
     return {qty,ron,eur:ron/rate};
   };
-  return {buy:calc('long'),sell:calc('short')};
+  return {buy:calc('long'),sell:calc('short'),direct:true};
 }
 function contextSignal(cfg,item,local){
   if(!item.ok || !item.rows.length) return {cls:'neutral',txt:'Datele nu s-au încărcat. Deschide linkul IndexMundi sau încearcă refresh.'};
   const ch3=pctChangeFromRows(item.rows,3);
   const latest=item.rows[item.rows.length-1]?.price;
   const globalEur=(fxRates.eurUsd && latest)? latest/fxRates.eurUsd : null;
+  if(!cfg.directLocal){
+    if(ch3!=null && ch3>5) return {cls:'good',txt:`Indicator de context, fără comparație locală directă. Trend 3 luni pozitiv (${fmtPct(ch3)}). Urmărește impactul asupra ${cfg.indicatorFor || 'pieței relevante'}.`};
+    if(ch3!=null && ch3<-5) return {cls:'warn',txt:`Indicator de context, fără comparație locală directă. Trend 3 luni negativ (${fmtPct(ch3)}). Urmărește impactul asupra ${cfg.indicatorFor || 'pieței relevante'}.`};
+    return {cls:'neutral',txt:`Indicator de context pentru ${cfg.indicatorFor || 'piața relevantă'}. Nu se compară direct cu poziția locală din aplicație.`};
+  }
   const localSell=local.sell?.eur || null;
   if(localSell && globalEur){
     const diff=((localSell/globalEur)-1)*100;
@@ -5427,10 +5433,18 @@ function renderGlobalContext(){
           <div class="ctx-kpi"><div class="ctx-kpi-l">3 luni</div><div class="ctx-kpi-v ${pctCls(ch3)}">${fmtPct(ch3)}</div></div>
           <div class="ctx-kpi"><div class="ctx-kpi-l">6 luni</div><div class="ctx-kpi-v ${pctCls(ch6)}">${fmtPct(ch6)}</div></div>
         </div>
+        ${item.directLocal ? `
         <div class="ctx-local-row">
           <div class="ctx-local-box"><div class="ctx-kpi-l">Local cump.</div><div class="ctx-kpi-v">${local.buy?`${fmtN(local.buy.eur)} EUR/t`: '—'}</div><div class="tdim">${local.buy?fmtN(local.buy.qty)+' t':''}</div></div>
           <div class="ctx-local-box"><div class="ctx-kpi-l">Local vânz.</div><div class="ctx-kpi-v">${local.sell?`${fmtN(local.sell.eur)} EUR/t`: '—'}</div><div class="tdim">${local.sell?fmtN(local.sell.qty)+' t':''}</div></div>
-        </div>
+        </div>` : `
+        <div class="ctx-local-row">
+          <div class="ctx-local-box" style="grid-column:1 / -1;">
+            <div class="ctx-kpi-l">Comparație locală</div>
+            <div class="ctx-kpi-v">fără poziție directă</div>
+            <div class="tdim">Folosit ca indicator pentru ${escHtml(item.indicatorFor || 'piața relevantă')}.</div>
+          </div>
+        </div>`}
         <div class="ctx-signal ${sig.cls}">${escHtml(sig.txt)}</div>
         ${!item.ok?`<div class="log-warning-line">Nu am putut încărca automat: ${escHtml(item.error||'eroare')}</div>`:''}
       </div>
