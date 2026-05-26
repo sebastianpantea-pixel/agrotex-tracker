@@ -684,6 +684,57 @@ app.get('/api/admin/audit', requireAdmin, (req, res) => {
   }
 });
 
+app.get('/api/admin/db-status', requireAdmin, (req, res) => {
+  try {
+    const tables = ['trades', 'logistics_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log'];
+    const counts = {};
+
+    for (const table of tables) {
+      const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+      const total = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get().c;
+      let active = total;
+      let deleted = 0;
+
+      if (cols.includes('deleted_at')) {
+        active = db.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE deleted_at IS NULL`).get().c;
+        deleted = db.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE deleted_at IS NOT NULL`).get().c;
+      }
+
+      counts[table] = { total, active, deleted, columns: cols };
+    }
+
+    res.json({
+      ok: true,
+      dbDir: DB_DIR,
+      dbPath,
+      backupDir: BACKUP_DIR,
+      dbExists: fs.existsSync(dbPath),
+      dbSizeBytes: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
+      counts,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/undelete-all', requireAdmin, (req, res) => {
+  try {
+    const tables = ['trades', 'logistics_contracts', 'stock_locations', 'stock_entries'];
+    const result = {};
+    makeBackup('before-undelete-all');
+
+    for (const table of tables) {
+      const info = db.prepare(`UPDATE ${table} SET deleted_at = NULL, deleted_by = NULL WHERE deleted_at IS NOT NULL`).run();
+      result[table] = info.changes;
+    }
+
+    audit(req, 'undelete_all', 'database', null, result);
+    res.json({ ok: true, restored: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── MATIF QUOTES ─────────────────────────────────────────────────────────────
 let matifCache = { data: null, ts: 0 };
 const MATIF_TTL = 5 * 60 * 1000;
