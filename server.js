@@ -684,7 +684,7 @@ app.get('/api/admin/audit', requireAdmin, (req, res) => {
   }
 });
 
-app.get('/api/admin/db-status', requireAdmin, (req, res) => {
+app.get('/api/admin/db-status', requireAuth, (req, res) => {
   try {
     const tables = ['trades', 'logistics_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log'];
     const counts = {};
@@ -717,7 +717,7 @@ app.get('/api/admin/db-status', requireAdmin, (req, res) => {
   }
 });
 
-app.post('/api/admin/undelete-all', requireAdmin, (req, res) => {
+app.post('/api/admin/undelete-all', requireAuth, (req, res) => {
   try {
     const tables = ['trades', 'logistics_contracts', 'stock_locations', 'stock_entries'];
     const result = {};
