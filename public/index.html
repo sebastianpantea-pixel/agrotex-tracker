@@ -227,7 +227,7 @@
 
 
   /* Admin / Securitate */
-  .tab.admin-tab-active{background:rgba(229,185,92,.10);color:var(--acc);border-color:var(--acc);}
+  .tab.admin-tab-active,.btn-sm.admin-tab-active{background:rgba(229,185,92,.10);color:var(--acc);border-color:var(--acc);}
   #adminSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
   .admin-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
@@ -858,7 +858,6 @@
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabContext" onclick="setContextTab()">🌍 Context global</div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
-  <div class="tab" id="tabAdmin" onclick="setAdminTab()">🔐 Admin</div>
 </div>
 
 
@@ -1282,7 +1281,10 @@
 
 <footer class="footer">
   <div>Agrotex SRL · Physical Grain &amp; Oilseed Trading</div>
-  <div id="ftotal"></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div id="ftotal"></div>
+    <button id="tabAdmin" onclick="setAdminTab()" class="btn-sm" style="font-size:9px;padding:3px 8px;opacity:.72;">🔐 Admin</button>
+  </div>
 </footer>
 </div>
 
@@ -1698,7 +1700,7 @@ function closeAllSideTabs(){
   }
   if(adminTabActive){
     adminTabActive=false;
-    document.getElementById('tabAdmin').className='tab';
+    document.getElementById('tabAdmin').className='btn-sm';
     document.getElementById('adminSection').style.display='none';
     setCropTabsVisible(true);
   }
@@ -5310,7 +5312,7 @@ const GLOBAL_CONTEXT_COMMODITIES = [
 function setAdminTab(){
   closeAllSideTabs();
   adminTabActive=true;
-  document.getElementById('tabAdmin').className='tab admin-tab-active';
+  document.getElementById('tabAdmin').className='btn-sm admin-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display='none';
   document.getElementById('adminSection').style.display='flex';
@@ -5320,7 +5322,7 @@ function setAdminTab(){
 
 function closeAdminTab(){
   adminTabActive=false;
-  document.getElementById('tabAdmin').className='tab';
+  document.getElementById('tabAdmin').className='btn-sm';
   document.getElementById('adminSection').style.display='none';
   setCropTabsVisible(true);
   document.querySelector('.main').style.display='flex';
@@ -5370,8 +5372,8 @@ async function loadAdminStatus(){
       const c=counts[k]||{};
       return `<div class="admin-card">
         <div class="admin-kpi-l">${labels[k]}</div>
-        <div class="admin-kpi-v">${fmtNum(c.active ?? c.total ?? 0)}</div>
-        <div class="admin-kpi-s">total ${fmtNum(c.total ?? 0)}${c.deleted?` · șterse ${fmtNum(c.deleted)}`:''}</div>
+        <div class="admin-kpi-v">${fmtN(c.active ?? c.total ?? 0)}</div>
+        <div class="admin-kpi-s">total ${fmtN(c.total ?? 0)}${c.deleted?` · șterse ${fmtN(c.deleted)}`:''}</div>
       </div>`;
     }).join('');
     adminSetStatus(`OK · DB: ${data.dbPath || '-'} · mărime: ${fmtAdminBytes(data.dbSizeBytes)} · backup: ${data.backupDir || '-'}`,'ok');
