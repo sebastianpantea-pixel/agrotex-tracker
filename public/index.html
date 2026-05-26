@@ -225,6 +225,36 @@
   .ctx-bar{flex:1;min-width:8px;border-radius:2px 2px 0 0;background:var(--meteo);opacity:.75;}
   .ctx-bar:last-child{background:var(--acc);opacity:1;}
 
+
+  /* Admin / Securitate */
+  .tab.admin-tab-active{background:rgba(229,185,92,.10);color:var(--acc);border-color:var(--acc);}
+  #adminSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
+  .admin-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
+  .admin-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:6px;}
+  .admin-card:hover{border-color:var(--border2);}
+  .admin-kpi-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .admin-kpi-v{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:900;color:var(--bright);}
+  .admin-kpi-s{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .admin-status-line{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);line-height:1.5;border:1px solid var(--border);background:rgba(255,255,255,.018);border-radius:4px;padding:8px 10px;}
+  .admin-status-line.ok{color:var(--long);border-color:rgba(114,211,154,.35);background:rgba(114,211,154,.08);}
+  .admin-status-line.err{color:var(--short);border-color:rgba(240,138,142,.35);background:rgba(240,138,142,.08);}
+  .admin-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+  .admin-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .admin-panel-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;}
+  .admin-panel-body{padding:10px;}
+  .admin-table-wrap{overflow:auto;max-height:360px;}
+  .admin-table{width:100%;border-collapse:collapse;}
+  .admin-table th{background:var(--surface2);}
+  .admin-table td{white-space:nowrap;}
+  .admin-table td.details{white-space:normal;max-width:520px;font-size:10px;color:var(--dim);line-height:1.35;}
+  .admin-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+  .btn-admin{padding:5px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;cursor:pointer;border:1px solid rgba(229,185,92,.40);background:rgba(229,185,92,.10);color:var(--acc);transition:all .15s;white-space:nowrap;}
+  .btn-admin:hover{background:rgba(229,185,92,.18);}
+  .btn-admin.secondary{border-color:var(--border2);background:var(--surface2);color:var(--dim);}
+  .btn-admin.secondary:hover{color:var(--bright);border-color:var(--border2);}
+  .admin-muted{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.5;}
+
   /* Logistics V4 */
   #logisticsSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
   .log-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;align-items:stretch;}
@@ -828,6 +858,64 @@
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabContext" onclick="setContextTab()">🌍 Context global</div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
+  <div class="tab" id="tabAdmin" onclick="setAdminTab()">🔐 Admin</div>
+</div>
+
+
+<div id="adminSection">
+  <div class="admin-toolbar">
+    <button class="news-back-btn" onclick="closeAdminTab()">← Înapoi</button>
+    <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
+    <button class="btn-admin" onclick="createAdminBackup()">Creează backup acum</button>
+    <button class="btn-admin secondary" onclick="loadAdminStatus()">Refresh status</button>
+    <button class="btn-admin secondary" onclick="loadAdminBackups()">Încarcă backupuri</button>
+    <button class="btn-admin secondary" onclick="loadAdminAudit()">Încarcă audit log</button>
+    <span class="admin-muted" id="adminLastUpdated"></span>
+  </div>
+
+  <div class="admin-status-line" id="adminStatusLine">
+    // modul admin pregătit. Apasă Refresh status pentru verificarea bazei de date.
+  </div>
+
+  <div class="admin-grid" id="adminDbCards">
+    <div class="admin-card"><div class="admin-kpi-l">Status</div><div class="admin-kpi-v">-</div><div class="admin-kpi-s">Se încarcă la cerere.</div></div>
+  </div>
+
+  <div class="admin-panel">
+    <div class="admin-panel-head">
+      <div class="admin-panel-title">Backupuri DB</div>
+      <div class="admin-actions">
+        <button class="btn-admin" onclick="createAdminBackup()">Creează backup</button>
+        <button class="btn-admin secondary" onclick="loadAdminBackups()">Refresh</button>
+      </div>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Fișier</th><th>Mărime</th><th>Modificat</th></tr></thead>
+          <tbody id="adminBackupsRows"><tr><td colspan="3" class="tdim">Nu sunt încărcate.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="admin-muted" style="margin-top:8px;">Backupurile sunt salvate pe discul persistent Render, în /data/backups.</div>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <div class="admin-panel-head">
+      <div class="admin-panel-title">Audit log</div>
+      <div class="admin-actions">
+        <button class="btn-admin secondary" onclick="loadAdminAudit()">Refresh audit</button>
+      </div>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Data</th><th>User</th><th>Acțiune</th><th>Entitate</th><th>ID</th><th>Detalii</th></tr></thead>
+          <tbody id="adminAuditRows"><tr><td colspan="6" class="tdim">Nu este încărcat.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="newsSection">
@@ -1454,6 +1542,7 @@ let stockSites = [];
 let stockTabActive = false;
 let meteoTabActive = false;
 let contextTabActive = false;
+let adminTabActive = false;
 let globalContextData = [];
 let globalContextLastLoad = null;
 let weatherPresets = [];
@@ -1605,6 +1694,12 @@ function closeAllSideTabs(){
     logisticsTabActive=false;
     document.getElementById('tabLogistics').className='tab';
     document.getElementById('logisticsSection').style.display='none';
+    setCropTabsVisible(true);
+  }
+  if(adminTabActive){
+    adminTabActive=false;
+    document.getElementById('tabAdmin').className='tab';
+    document.getElementById('adminSection').style.display='none';
     setCropTabsVisible(true);
   }
   document.querySelector('.main').style.display='flex';
@@ -5210,6 +5305,147 @@ const GLOBAL_CONTEXT_COMMODITIES = [
   {key:'palmOil', emoji:'🌴', directLocal:false, indicatorFor:'Uleiuri vegetale', local:[], label:'Palmier', benchmark:'Palm oil', commodity:'palm-oil', url:'https://www.indexmundi.com/commodities/?commodity=palm-oil', role:'Barometru pentru uleiuri vegetale. Nu există poziție locală directă în aplicație.'},
   {key:'urea', emoji:'🧪', directLocal:false, indicatorFor:'Inputuri', local:[], label:'Uree', benchmark:'Urea', commodity:'urea', url:'https://www.indexmundi.com/commodities/?commodity=urea', role:'Indicator de costuri inputuri, util în discuțiile cu fermierii. Nu se compară cu poziția de cereale.'}
 ];
+
+
+function setAdminTab(){
+  closeAllSideTabs();
+  adminTabActive=true;
+  document.getElementById('tabAdmin').className='tab admin-tab-active';
+  setCropTabsVisible(false);
+  document.querySelector('.main').style.display='none';
+  document.getElementById('adminSection').style.display='flex';
+  loadAdminStatus();
+  loadAdminBackups();
+}
+
+function closeAdminTab(){
+  adminTabActive=false;
+  document.getElementById('tabAdmin').className='tab';
+  document.getElementById('adminSection').style.display='none';
+  setCropTabsVisible(true);
+  document.querySelector('.main').style.display='flex';
+}
+
+function adminSetStatus(msg,type=''){
+  const el=document.getElementById('adminStatusLine');
+  if(!el) return;
+  el.className='admin-status-line'+(type?(' '+type):'');
+  el.textContent=msg;
+}
+
+function fmtAdminBytes(n){
+  const x=Number(n)||0;
+  if(x<1024) return x+' B';
+  if(x<1024*1024) return (x/1024).toFixed(1)+' KB';
+  return (x/(1024*1024)).toFixed(2)+' MB';
+}
+
+function adminDetailsPreview(d){
+  if(!d) return '';
+  try{
+    const s=typeof d==='string'?d:JSON.stringify(d);
+    return s.length>220?s.slice(0,220)+'…':s;
+  }catch{return '';}
+}
+
+async function loadAdminStatus(){
+  adminSetStatus('Se încarcă statusul bazei de date...');
+  const cards=document.getElementById('adminDbCards');
+  try{
+    const res=await fetch('/api/admin/db-status');
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
+    const counts=data.counts||{};
+    const labels={
+      trades:'Poziții',
+      logistics_contracts:'Contracte logistice',
+      stock_locations:'Locații stoc',
+      stock_entries:'Stocuri',
+      products:'Produse',
+      target:'Target',
+      weather_cache:'Cache meteo',
+      audit_log:'Audit log'
+    };
+    cards.innerHTML=Object.keys(labels).map(k=>{
+      const c=counts[k]||{};
+      return `<div class="admin-card">
+        <div class="admin-kpi-l">${labels[k]}</div>
+        <div class="admin-kpi-v">${fmtNum(c.active ?? c.total ?? 0)}</div>
+        <div class="admin-kpi-s">total ${fmtNum(c.total ?? 0)}${c.deleted?` · șterse ${fmtNum(c.deleted)}`:''}</div>
+      </div>`;
+    }).join('');
+    adminSetStatus(`OK · DB: ${data.dbPath || '-'} · mărime: ${fmtAdminBytes(data.dbSizeBytes)} · backup: ${data.backupDir || '-'}`,'ok');
+    const lu=document.getElementById('adminLastUpdated');
+    if(lu) lu.textContent='Actualizat: '+new Date().toLocaleString('ro-RO');
+  }catch(err){
+    cards.innerHTML='<div class="admin-card"><div class="admin-kpi-l">Eroare</div><div class="admin-kpi-v">!</div><div class="admin-kpi-s">'+escHtml(err.message)+'</div></div>';
+    adminSetStatus('Eroare status DB: '+err.message,'err');
+  }
+}
+
+async function createAdminBackup(){
+  if(!confirm('Creezi un backup nou al bazei de date acum?')) return;
+  adminSetStatus('Se creează backup...');
+  try{
+    const res=await fetch('/api/admin/backup',{method:'POST'});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
+    adminSetStatus('Backup creat: '+(data.backup?.filename || 'ok'),'ok');
+    await loadAdminBackups();
+    await loadAdminStatus();
+  }catch(err){
+    adminSetStatus('Eroare backup: '+err.message,'err');
+  }
+}
+
+async function loadAdminBackups(){
+  const tb=document.getElementById('adminBackupsRows');
+  if(!tb) return;
+  tb.innerHTML='<tr><td colspan="3" class="tdim">Se încarcă...</td></tr>';
+  try{
+    const res=await fetch('/api/admin/backups');
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error || ('HTTP '+res.status));
+    const backups=data.backups||[];
+    if(!backups.length){
+      tb.innerHTML='<tr><td colspan="3" class="tdim">Nu există backupuri încă.</td></tr>';
+      return;
+    }
+    tb.innerHTML=backups.map(b=>`<tr>
+      <td>${escHtml(b.filename||'')}</td>
+      <td>${fmtAdminBytes(b.size)}</td>
+      <td>${escHtml(b.modifiedAt||'')}</td>
+    </tr>`).join('');
+  }catch(err){
+    tb.innerHTML='<tr><td colspan="3" class="tdim">Eroare: '+escHtml(err.message)+'</td></tr>';
+  }
+}
+
+async function loadAdminAudit(){
+  const tb=document.getElementById('adminAuditRows');
+  if(!tb) return;
+  tb.innerHTML='<tr><td colspan="6" class="tdim">Se încarcă...</td></tr>';
+  try{
+    const res=await fetch('/api/admin/audit?limit=200');
+    const rows=await res.json();
+    if(!res.ok) throw new Error(rows.error || ('HTTP '+res.status));
+    if(!Array.isArray(rows) || !rows.length){
+      tb.innerHTML='<tr><td colspan="6" class="tdim">Nu există acțiuni în audit log.</td></tr>';
+      return;
+    }
+    tb.innerHTML=rows.map(r=>`<tr>
+      <td>${escHtml(r.ts||'')}</td>
+      <td>${escHtml(r.user||'')}</td>
+      <td>${escHtml(r.action||'')}</td>
+      <td>${escHtml(r.entity||'')}</td>
+      <td>${escHtml(r.entity_id||'')}</td>
+      <td class="details">${escHtml(adminDetailsPreview(r.details))}</td>
+    </tr>`).join('');
+  }catch(err){
+    tb.innerHTML='<tr><td colspan="6" class="tdim">Eroare: '+escHtml(err.message)+'</td></tr>';
+  }
+}
+
 
 function setContextTab(){
   closeAllSideTabs();
