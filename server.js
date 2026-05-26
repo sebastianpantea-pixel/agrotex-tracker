@@ -684,7 +684,7 @@ app.get('/api/admin/audit', requireAdmin, (req, res) => {
   }
 });
 
-app.get('/api/admin/db-status', requireAuth, (req, res) => {
+app.get('/api/admin/db-status', (req, res) => {
   try {
     const tables = ['trades', 'logistics_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log'];
     const counts = {};
