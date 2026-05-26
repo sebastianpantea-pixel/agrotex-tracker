@@ -1,29 +1,65 @@
 const express = require('express');
 const session = require('express-session');
+const SQLiteStoreFactory = require('connect-sqlite3');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const app = express();
+const SQLiteStore = SQLiteStoreFactory(session);
+
 const PORT = process.env.PORT || 3000;
-const APP_PASSWORD = process.env.APP_PASSWORD || 'agrotex2025';
-const SESSION_SECRET = process.env.SESSION_SECRET || 'agrotex-secret-key-change-me';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PROD = NODE_ENV === 'production';
+
+const APP_USER = process.env.APP_USER || 'admin';
+const APP_PASSWORD_HASH = process.env.APP_PASSWORD_HASH || '';
+const LEGACY_APP_PASSWORD = process.env.APP_PASSWORD || '';
+const SESSION_SECRET = process.env.SESSION_SECRET || '';
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+
+if (IS_PROD && !SESSION_SECRET) {
+  throw new Error('SESSION_SECRET lipseste. Seteaza SESSION_SECRET in Render Environment.');
+}
+
+if (IS_PROD && !APP_PASSWORD_HASH) {
+  throw new Error('APP_PASSWORD_HASH lipseste. Seteaza APP_PASSWORD_HASH in Render Environment.');
+}
+
+if (TRUST_PROXY) app.set('trust proxy', 1);
 
 // DB setup — Render persistent disk mounts at /data, fallback to local
 const DB_DIR = fs.existsSync('/data') ? '/data' : __dirname;
-const db = new Database(path.join(DB_DIR, 'agrotex.db'));
+const BACKUP_DIR = path.join(DB_DIR, 'backups');
+const dbPath = path.join(DB_DIR, 'agrotex.db');
+const sessionDbPath = path.join(DB_DIR, 'sessions.sqlite');
+
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS trades (
     id INTEGER PRIMARY KEY,
     data TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT,
+    deleted_by TEXT
   );
+
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     data TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+
   CREATE TABLE IF NOT EXISTS target (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year INTEGER NOT NULL,
@@ -31,30 +67,65 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(year)
   );
+
   CREATE TABLE IF NOT EXISTS weather_cache (
     location_name TEXT PRIMARY KEY,
     data TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+
   CREATE TABLE IF NOT EXISTS logistics_contracts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     data TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    updated_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT,
+    deleted_by TEXT
   );
+
   CREATE TABLE IF NOT EXISTS stock_locations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     data TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    updated_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT,
+    deleted_by TEXT
   );
+
   CREATE TABLE IF NOT EXISTS stock_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     data TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    updated_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT,
+    deleted_by TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT DEFAULT (datetime('now')),
+    user TEXT,
+    ip TEXT,
+    action TEXT NOT NULL,
+    entity TEXT,
+    entity_id TEXT,
+    details TEXT
   );
 `);
+
+// Safe migrations for older databases
+function ensureColumn(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  if (!cols.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+['trades', 'logistics_contracts', 'stock_locations', 'stock_entries'].forEach(table => {
+  ensureColumn(table, 'updated_at', "TEXT DEFAULT (datetime('now'))");
+  ensureColumn(table, 'deleted_at', 'TEXT');
+  ensureColumn(table, 'deleted_by', 'TEXT');
+});
 
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
 if (!prodRow) {
@@ -67,103 +138,274 @@ if (!prodRow) {
   db.prepare('INSERT INTO products (data) VALUES (?)').run(defaultProducts);
 }
 
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+}
+
+function audit(req, action, entity, entityId, details = null) {
+  try {
+    db.prepare(`
+      INSERT INTO audit_log (user, ip, action, entity, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      req?.session?.user || null,
+      req ? getClientIp(req) : null,
+      action,
+      entity || null,
+      entityId == null ? null : String(entityId),
+      details == null ? null : JSON.stringify(details)
+    );
+  } catch (err) {
+    console.error('Audit log error:', err.message);
+  }
+}
+
+function safeJsonParse(text, fallback = {}) {
+  try { return JSON.parse(text || '{}'); } catch { return fallback; }
+}
+
+function sanitizeObjectForStorage(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  const copy = { ...obj };
+  delete copy.id;
+  delete copy._createdAt;
+  delete copy._updatedAt;
+  delete copy.deleted_at;
+  delete copy.deleted_by;
+  return copy;
+}
+
+function validateId(raw) {
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function makeBackup(reason = 'manual') {
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[:.]/g, '-');
+  const filename = `agrotex-${reason}-${stamp}.db`;
+  const target = path.join(BACKUP_DIR, filename);
+  db.pragma('wal_checkpoint(TRUNCATE)');
+  fs.copyFileSync(dbPath, target);
+  return { filename, path: target, createdAt: now.toISOString() };
+}
+
+function cleanupBackups(maxFiles = 30) {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.endsWith('.db'))
+      .map(f => ({ name: f, full: path.join(BACKUP_DIR, f), stat: fs.statSync(path.join(BACKUP_DIR, f)) }))
+      .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs);
+
+    files.slice(maxFiles).forEach(f => fs.unlinkSync(f.full));
+  } catch (err) {
+    console.error('Backup cleanup error:', err.message);
+  }
+}
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
+
 app.use(session({
-  secret: SESSION_SECRET,
+  store: new SQLiteStore({ db: path.basename(sessionDbPath), dir: DB_DIR }),
+  secret: SESSION_SECRET || 'dev-only-change-me',
+  name: 'agrotex.sid',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: 'lax',
+    maxAge: 12 * 60 * 60 * 1000,
+  },
 }));
+
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Prea multe incercari. Incearca din nou peste cateva minute.' },
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Prea multe cereri. Incearca din nou imediat.' },
+});
+
+app.use('/api', apiLimiter);
 
 function requireAuth(req, res, next) {
   if (req.session.authenticated) return next();
   res.status(401).json({ error: 'Unauthorized' });
 }
 
-app.post('/api/login', (req, res) => {
-  const { password } = req.body;
-  if (password === APP_PASSWORD) {
-    req.session.authenticated = true;
-    res.json({ ok: true });
-  } else {
-    res.status(401).json({ error: 'Parolă incorectă' });
+function requireAdmin(req, res, next) {
+  if (req.session.authenticated && req.session.role === 'admin') return next();
+  res.status(403).json({ error: 'Forbidden' });
+}
+
+function requireSameOriginForWrites(req, res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+
+  if (!origin) return next();
+
+  try {
+    const originHost = new URL(origin).host;
+    if (originHost === host) return next();
+  } catch {}
+
+  return res.status(403).json({ error: 'Cross-origin write blocked' });
+}
+
+app.use('/api', requireSameOriginForWrites);
+
+async function passwordMatches(password) {
+  if (!password || typeof password !== 'string') return false;
+
+  if (APP_PASSWORD_HASH) {
+    return bcrypt.compare(password, APP_PASSWORD_HASH);
+  }
+
+  // Development-only legacy fallback. Do not use in production.
+  if (!IS_PROD && LEGACY_APP_PASSWORD) {
+    return crypto.timingSafeEqual(
+      Buffer.from(password),
+      Buffer.from(LEGACY_APP_PASSWORD)
+    );
+  }
+
+  return false;
+}
+
+app.post('/api/login', loginLimiter, async (req, res) => {
+  try {
+    const { password } = req.body;
+    const ok = await passwordMatches(password);
+
+    if (ok) {
+      req.session.authenticated = true;
+      req.session.user = APP_USER;
+      req.session.role = 'admin';
+      audit(req, 'login_success', 'auth', APP_USER);
+      return res.json({ ok: true, user: APP_USER, role: 'admin' });
+    }
+
+    audit(req, 'login_failed', 'auth', APP_USER);
+    return res.status(401).json({ error: 'Parola incorecta' });
+  } catch (err) {
+    console.error('Login error:', err);
+    return res.status(500).json({ error: 'Login error' });
   }
 });
 
 app.post('/api/logout', (req, res) => {
-  req.session.destroy();
-  res.json({ ok: true });
+  audit(req, 'logout', 'auth', req.session?.user || null);
+  req.session.destroy(() => {
+    res.clearCookie('agrotex.sid');
+    res.json({ ok: true });
+  });
 });
 
 app.get('/api/me', (req, res) => {
-  res.json({ authenticated: !!req.session.authenticated });
+  res.json({
+    authenticated: !!req.session.authenticated,
+    user: req.session.user || null,
+    role: req.session.role || null,
+  });
 });
 
+// ── TRADES ───────────────────────────────────────────────────────────────────
 app.get('/api/trades', requireAuth, (req, res) => {
-  const rows = db.prepare('SELECT id, data FROM trades ORDER BY id DESC').all();
-  const trades = rows.map(r => ({ ...JSON.parse(r.data), id: r.id }));
+  const rows = db.prepare('SELECT id, data, created_at, updated_at FROM trades WHERE deleted_at IS NULL ORDER BY id DESC').all();
+  const trades = rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _createdAt: r.created_at, _updatedAt: r.updated_at }));
   res.json(trades);
 });
 
 app.post('/api/trades', requireAuth, (req, res) => {
-  const trade = req.body;
-  delete trade.id;
-  const info = db.prepare('INSERT INTO trades (data) VALUES (?)').run(JSON.stringify(trade));
+  const trade = sanitizeObjectForStorage(req.body);
+  const info = db.prepare('INSERT INTO trades (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))').run(JSON.stringify(trade));
+  audit(req, 'create', 'trade', info.lastInsertRowid, { trade });
   res.json({ id: info.lastInsertRowid });
 });
 
 app.post('/api/trades/bulk', requireAuth, (req, res) => {
-  const { trades } = req.body;
+  const { trades, mode } = req.body;
   if (!Array.isArray(trades)) return res.status(400).json({ error: 'Invalid' });
-  const insert = db.prepare('INSERT INTO trades (data) VALUES (?)');
+
+  if (mode === 'replace') {
+    makeBackup('before-trades-replace');
+    cleanupBackups();
+  }
+
+  const insert = db.prepare('INSERT INTO trades (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))');
   const many = db.transaction((items) => {
-    for (const t of items) {
-      const copy = { ...t };
-      delete copy.id;
-      insert.run(JSON.stringify(copy));
+    if (mode === 'replace') {
+      db.prepare('UPDATE trades SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE deleted_at IS NULL').run(req.session.user || null);
     }
+    for (const t of items) insert.run(JSON.stringify(sanitizeObjectForStorage(t)));
   });
+
   many(trades);
+  audit(req, 'bulk_import', 'trades', null, { count: trades.length, mode: mode || 'append' });
   res.json({ ok: true, count: trades.length });
 });
 
 app.put('/api/trades/:id', requireAuth, (req, res) => {
-  const trade = req.body;
-  delete trade.id;
-  db.prepare('UPDATE trades SET data = ? WHERE id = ?').run(JSON.stringify(trade), req.params.id);
+  const id = validateId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+  const before = db.prepare('SELECT data FROM trades WHERE id = ? AND deleted_at IS NULL').get(id);
+  if (!before) return res.status(404).json({ error: 'Not found' });
+
+  const trade = sanitizeObjectForStorage(req.body);
+  db.prepare('UPDATE trades SET data = ?, updated_at = datetime(\'now\') WHERE id = ?').run(JSON.stringify(trade), id);
+  audit(req, 'update', 'trade', id, { before: safeJsonParse(before.data), after: trade });
   res.json({ ok: true });
 });
 
 app.delete('/api/trades/:id', requireAuth, (req, res) => {
-  db.prepare('DELETE FROM trades WHERE id = ?').run(req.params.id);
+  const id = validateId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+  const info = db.prepare('UPDATE trades SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL').run(req.session.user || null, id);
+  if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+
+  audit(req, 'soft_delete', 'trade', id);
   res.json({ ok: true });
 });
 
+// ── PRODUCTS ─────────────────────────────────────────────────────────────────
 app.get('/api/products', requireAuth, (req, res) => {
   const row = db.prepare('SELECT data FROM products LIMIT 1').get();
-  res.json(JSON.parse(row.data));
+  res.json(safeJsonParse(row?.data, {}));
 });
 
 app.put('/api/products', requireAuth, (req, res) => {
+  const before = db.prepare('SELECT data FROM products LIMIT 1').get();
   db.prepare('UPDATE products SET data = ?, updated_at = datetime(\'now\') WHERE id = (SELECT id FROM products LIMIT 1)')
     .run(JSON.stringify(req.body));
+  audit(req, 'update', 'products', 'singleton', { before: safeJsonParse(before?.data), after: req.body });
   res.json({ ok: true });
 });
 
-// ── LOGISTICS CONTRACTS — SERVER STORAGE / SQLITE ───────────────────────────
+// ── LOGISTICS CONTRACTS ──────────────────────────────────────────────────────
 app.get('/api/logistics/contracts', requireAuth, (req, res) => {
   try {
-    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM logistics_contracts ORDER BY id DESC').all();
-    const contracts = rows.map(r => {
-      const parsed = JSON.parse(r.data || '{}');
-      return {
-        ...parsed,
-        id: r.id,
-        _createdAt: r.created_at,
-        _updatedAt: r.updated_at,
-      };
-    });
+    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM logistics_contracts WHERE deleted_at IS NULL ORDER BY id DESC').all();
+    const contracts = rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _createdAt: r.created_at, _updatedAt: r.updated_at }));
     res.json(contracts);
   } catch (err) {
     console.error('Logistics GET error:', err);
@@ -173,12 +415,10 @@ app.get('/api/logistics/contracts', requireAuth, (req, res) => {
 
 app.post('/api/logistics/contracts', requireAuth, (req, res) => {
   try {
-    const contract = { ...req.body };
-    delete contract.id;
-    delete contract._createdAt;
-    delete contract._updatedAt;
+    const contract = sanitizeObjectForStorage(req.body);
     const info = db.prepare('INSERT INTO logistics_contracts (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))')
       .run(JSON.stringify(contract));
+    audit(req, 'create', 'logistics_contract', info.lastInsertRowid, { contract });
     res.json({ id: info.lastInsertRowid, ok: true });
   } catch (err) {
     console.error('Logistics POST error:', err);
@@ -188,18 +428,17 @@ app.post('/api/logistics/contracts', requireAuth, (req, res) => {
 
 app.put('/api/logistics/contracts/:id', requireAuth, (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
 
-    const contract = { ...req.body };
-    delete contract.id;
-    delete contract._createdAt;
-    delete contract._updatedAt;
+    const before = db.prepare('SELECT data FROM logistics_contracts WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!before) return res.status(404).json({ error: 'Not found' });
 
-    const info = db.prepare('UPDATE logistics_contracts SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    const contract = sanitizeObjectForStorage(req.body);
+    db.prepare('UPDATE logistics_contracts SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
       .run(JSON.stringify(contract), id);
 
-    if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+    audit(req, 'update', 'logistics_contract', id, { before: safeJsonParse(before.data), after: contract });
     res.json({ ok: true });
   } catch (err) {
     console.error('Logistics PUT error:', err);
@@ -209,11 +448,14 @@ app.put('/api/logistics/contracts/:id', requireAuth, (req, res) => {
 
 app.delete('/api/logistics/contracts/:id', requireAuth, (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
 
-    const info = db.prepare('DELETE FROM logistics_contracts WHERE id = ?').run(id);
+    const info = db.prepare('UPDATE logistics_contracts SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+      .run(req.session.user || null, id);
     if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+
+    audit(req, 'soft_delete', 'logistics_contract', id);
     res.json({ ok: true });
   } catch (err) {
     console.error('Logistics DELETE error:', err);
@@ -226,22 +468,22 @@ app.post('/api/logistics/contracts/bulk', requireAuth, (req, res) => {
     const { contracts, mode } = req.body;
     if (!Array.isArray(contracts)) return res.status(400).json({ error: 'contracts must be an array' });
 
+    if (mode === 'replace') {
+      makeBackup('before-logistics-replace');
+      cleanupBackups();
+    }
+
     const insert = db.prepare('INSERT INTO logistics_contracts (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))');
 
     const runBulk = db.transaction((items) => {
       if (mode === 'replace') {
-        db.prepare('DELETE FROM logistics_contracts').run();
+        db.prepare('UPDATE logistics_contracts SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE deleted_at IS NULL').run(req.session.user || null);
       }
-      for (const item of items) {
-        const copy = { ...item };
-        delete copy.id;
-        delete copy._createdAt;
-        delete copy._updatedAt;
-        insert.run(JSON.stringify(copy));
-      }
+      for (const item of items) insert.run(JSON.stringify(sanitizeObjectForStorage(item)));
     });
 
     runBulk(contracts);
+    audit(req, 'bulk_import', 'logistics_contracts', null, { count: contracts.length, mode: mode === 'replace' ? 'replace' : 'append' });
     res.json({ ok: true, count: contracts.length, mode: mode === 'replace' ? 'replace' : 'append' });
   } catch (err) {
     console.error('Logistics BULK error:', err);
@@ -249,19 +491,11 @@ app.post('/api/logistics/contracts/bulk', requireAuth, (req, res) => {
   }
 });
 
-// ── STOCK LOCATIONS — legacy endpoint, kept for compatibility ───────────────
+// ── STOCK LOCATIONS ──────────────────────────────────────────────────────────
 app.get('/api/stock/locations', requireAuth, (req, res) => {
   try {
-    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM stock_locations ORDER BY id DESC').all();
-    const locations = rows.map(r => {
-      const parsed = JSON.parse(r.data || '{}');
-      return {
-        ...parsed,
-        id: r.id,
-        _createdAt: r.created_at,
-        _updatedAt: r.updated_at,
-      };
-    });
+    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM stock_locations WHERE deleted_at IS NULL ORDER BY id DESC').all();
+    const locations = rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _CreatedAt: r.created_at, _UpdatedAt: r.updated_at, _createdAt: r.created_at, _updatedAt: r.updated_at }));
     res.json(locations);
   } catch (err) {
     console.error('Stock locations GET error:', err);
@@ -271,14 +505,10 @@ app.get('/api/stock/locations', requireAuth, (req, res) => {
 
 app.post('/api/stock/locations', requireAuth, (req, res) => {
   try {
-    const location = { ...req.body };
-    delete location.id;
-    delete location._createdAt;
-    delete location._updatedAt;
-
+    const location = sanitizeObjectForStorage(req.body);
     const info = db.prepare('INSERT INTO stock_locations (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))')
       .run(JSON.stringify(location));
-
+    audit(req, 'create', 'stock_location', info.lastInsertRowid, { location });
     res.json({ ok: true, id: info.lastInsertRowid });
   } catch (err) {
     console.error('Stock locations POST error:', err);
@@ -288,18 +518,17 @@ app.post('/api/stock/locations', requireAuth, (req, res) => {
 
 app.put('/api/stock/locations/:id', requireAuth, (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
 
-    const location = { ...req.body };
-    delete location.id;
-    delete location._createdAt;
-    delete location._updatedAt;
+    const before = db.prepare('SELECT data FROM stock_locations WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!before) return res.status(404).json({ error: 'Not found' });
 
-    const info = db.prepare('UPDATE stock_locations SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    const location = sanitizeObjectForStorage(req.body);
+    db.prepare('UPDATE stock_locations SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
       .run(JSON.stringify(location), id);
 
-    if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+    audit(req, 'update', 'stock_location', id, { before: safeJsonParse(before.data), after: location });
     res.json({ ok: true });
   } catch (err) {
     console.error('Stock locations PUT error:', err);
@@ -309,11 +538,14 @@ app.put('/api/stock/locations/:id', requireAuth, (req, res) => {
 
 app.delete('/api/stock/locations/:id', requireAuth, (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
 
-    const info = db.prepare('DELETE FROM stock_locations WHERE id = ?').run(id);
+    const info = db.prepare('UPDATE stock_locations SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+      .run(req.session.user || null, id);
     if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+
+    audit(req, 'soft_delete', 'stock_location', id);
     res.json({ ok: true });
   } catch (err) {
     console.error('Stock locations DELETE error:', err);
@@ -321,19 +553,11 @@ app.delete('/api/stock/locations/:id', requireAuth, (req, res) => {
   }
 });
 
-// ── STOCK ENTRIES — manual stock register / SQLITE ──────────────────────────
+// ── STOCK ENTRIES ────────────────────────────────────────────────────────────
 app.get('/api/stock/entries', requireAuth, (req, res) => {
   try {
-    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM stock_entries ORDER BY id DESC').all();
-    const entries = rows.map(r => {
-      const parsed = JSON.parse(r.data || '{}');
-      return {
-        ...parsed,
-        id: r.id,
-        _createdAt: r.created_at,
-        _updatedAt: r.updated_at,
-      };
-    });
+    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM stock_entries WHERE deleted_at IS NULL ORDER BY id DESC').all();
+    const entries = rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _CreatedAt: r.created_at, _UpdatedAt: r.updated_at, _createdAt: r.created_at, _updatedAt: r.updated_at }));
     res.json(entries);
   } catch (err) {
     console.error('Stock entries GET error:', err);
@@ -343,14 +567,10 @@ app.get('/api/stock/entries', requireAuth, (req, res) => {
 
 app.post('/api/stock/entries', requireAuth, (req, res) => {
   try {
-    const entry = { ...req.body };
-    delete entry.id;
-    delete entry._createdAt;
-    delete entry._updatedAt;
-
+    const entry = sanitizeObjectForStorage(req.body);
     const info = db.prepare('INSERT INTO stock_entries (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))')
       .run(JSON.stringify(entry));
-
+    audit(req, 'create', 'stock_entry', info.lastInsertRowid, { entry });
     res.json({ ok: true, id: info.lastInsertRowid });
   } catch (err) {
     console.error('Stock entries POST error:', err);
@@ -360,18 +580,17 @@ app.post('/api/stock/entries', requireAuth, (req, res) => {
 
 app.put('/api/stock/entries/:id', requireAuth, (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
 
-    const entry = { ...req.body };
-    delete entry.id;
-    delete entry._createdAt;
-    delete entry._updatedAt;
+    const before = db.prepare('SELECT data FROM stock_entries WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!before) return res.status(404).json({ error: 'Not found' });
 
-    const info = db.prepare('UPDATE stock_entries SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    const entry = sanitizeObjectForStorage(req.body);
+    db.prepare('UPDATE stock_entries SET data = ?, updated_at = datetime(\'now\') WHERE id = ?')
       .run(JSON.stringify(entry), id);
 
-    if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+    audit(req, 'update', 'stock_entry', id, { before: safeJsonParse(before.data), after: entry });
     res.json({ ok: true });
   } catch (err) {
     console.error('Stock entries PUT error:', err);
@@ -381,11 +600,14 @@ app.put('/api/stock/entries/:id', requireAuth, (req, res) => {
 
 app.delete('/api/stock/entries/:id', requireAuth, (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
 
-    const info = db.prepare('DELETE FROM stock_entries WHERE id = ?').run(id);
+    const info = db.prepare('UPDATE stock_entries SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+      .run(req.session.user || null, id);
     if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+
+    audit(req, 'soft_delete', 'stock_entry', id);
     res.json({ ok: true });
   } catch (err) {
     console.error('Stock entries DELETE error:', err);
@@ -398,24 +620,22 @@ app.post('/api/stock/entries/bulk', requireAuth, (req, res) => {
     const { entries, mode } = req.body;
     if (!Array.isArray(entries)) return res.status(400).json({ error: 'entries must be an array' });
 
+    if (mode === 'replace') {
+      makeBackup('before-stock-entries-replace');
+      cleanupBackups();
+    }
+
     const insert = db.prepare('INSERT INTO stock_entries (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))');
 
     const runBulk = db.transaction((items) => {
       if (mode === 'replace') {
-        db.prepare('DELETE FROM stock_entries').run();
+        db.prepare('UPDATE stock_entries SET deleted_at = datetime(\'now\'), deleted_by = ? WHERE deleted_at IS NULL').run(req.session.user || null);
       }
-      for (const item of items) {
-        const copy = { ...item };
-        delete copy.id;
-        delete copy._CreatedAt;
-        delete copy._UpdatedAt;
-        delete copy._createdAt;
-        delete copy._updatedAt;
-        insert.run(JSON.stringify(copy));
-      }
+      for (const item of items) insert.run(JSON.stringify(sanitizeObjectForStorage(item)));
     });
 
     runBulk(entries);
+    audit(req, 'bulk_import', 'stock_entries', null, { count: entries.length, mode: mode === 'replace' ? 'replace' : 'append' });
     res.json({ ok: true, count: entries.length, mode: mode === 'replace' ? 'replace' : 'append' });
   } catch (err) {
     console.error('Stock entries BULK error:', err);
@@ -423,7 +643,45 @@ app.post('/api/stock/entries/bulk', requireAuth, (req, res) => {
   }
 });
 
-// ── MATIF QUOTES ──────────────────────────────────────────────────────────────
+// ── ADMIN / BACKUP / AUDIT ───────────────────────────────────────────────────
+app.post('/api/admin/backup', requireAdmin, (req, res) => {
+  try {
+    const backup = makeBackup('manual');
+    cleanupBackups();
+    audit(req, 'backup_manual', 'database', backup.filename);
+    res.json({ ok: true, backup: { filename: backup.filename, createdAt: backup.createdAt } });
+  } catch (err) {
+    console.error('Backup error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/backups', requireAdmin, (req, res) => {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.endsWith('.db'))
+      .map(f => {
+        const stat = fs.statSync(path.join(BACKUP_DIR, f));
+        return { filename: f, size: stat.size, modifiedAt: stat.mtime.toISOString() };
+      })
+      .sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
+    res.json({ backups: files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/audit', requireAdmin, (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '200', 10), 1), 1000);
+    const rows = db.prepare('SELECT * FROM audit_log ORDER BY id DESC LIMIT ?').all(limit);
+    res.json(rows.map(r => ({ ...r, details: safeJsonParse(r.details, null) })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── MATIF QUOTES ─────────────────────────────────────────────────────────────
 let matifCache = { data: null, ts: 0 };
 const MATIF_TTL = 5 * 60 * 1000;
 
@@ -502,12 +760,7 @@ app.get('/api/matif', requireAuth, async (req, res) => {
         try {
           const rows = await fetchMatifContract(code);
           const front = rows.find(r => r.bid !== null || r.settl !== null) || rows[0] || null;
-          results[key] = {
-            name,
-            code,
-            front,
-            allRows: rows.slice(0, 6),
-          };
+          results[key] = { name, code, front, allRows: rows.slice(0, 6) };
         } catch (e) {
           errors[key] = e.message;
           results[key] = { name, code, front: null, allRows: [], error: e.message };
@@ -515,14 +768,7 @@ app.get('/api/matif', requireAuth, async (req, res) => {
       })
     );
 
-    const payload = {
-      quotes: results,
-      errors,
-      fetchedAt: new Date().toISOString(),
-      cached: false,
-      age: 0,
-    };
-
+    const payload = { quotes: results, errors, fetchedAt: new Date().toISOString(), cached: false, age: 0 };
     const hasData = Object.values(results).some(r => r.front !== null);
     if (hasData) matifCache = { data: payload, ts: now };
 
@@ -533,23 +779,28 @@ app.get('/api/matif', requireAuth, async (req, res) => {
   }
 });
 
-// ── TARGET / BUDGET ───────────────────────────────────────────────────────────
+// ── TARGET / BUDGET ──────────────────────────────────────────────────────────
 app.get('/api/target/:year', requireAuth, (req, res) => {
   const row = db.prepare('SELECT data FROM target WHERE year = ?').get(req.params.year);
-  res.json(row ? JSON.parse(row.data) : null);
+  res.json(row ? safeJsonParse(row.data) : null);
 });
 
 app.put('/api/target/:year', requireAuth, (req, res) => {
   const year = parseInt(req.params.year, 10);
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) return res.status(400).json({ error: 'Invalid year' });
+
+  const before = db.prepare('SELECT data FROM target WHERE year = ?').get(year);
   const data = JSON.stringify(req.body);
   db.prepare(`
     INSERT INTO target (year, data, updated_at) VALUES (?, ?, datetime('now'))
     ON CONFLICT(year) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
   `).run(year, data);
+
+  audit(req, 'update', 'target', year, { before: safeJsonParse(before?.data, null), after: req.body });
   res.json({ ok: true });
 });
 
-// ── NEWS ──────────────────────────────────────────────────────────────────────
+// ── NEWS ─────────────────────────────────────────────────────────────────────
 let newsCache = { data: null, ts: 0 };
 const NEWS_TTL = 15 * 60 * 1000;
 
@@ -566,12 +817,7 @@ const NEWS_SOURCES = [
   { name: 'Farm Progress', url: 'https://www.farmprogress.com/rss/all', lang: 'en', tag: 'INT', filter: null },
 ];
 
-const USDA_GRAIN_KEYWORDS = [
-  'wheat','corn','grain','soybean','soy','rapeseed','canola','sunflower',
-  'oilseed','barley','crop','harvest','export','wasde','comodity','commodity',
-  'cereale','porumb','grau','rapita'
-];
-
+const USDA_GRAIN_KEYWORDS = ['wheat','corn','grain','soybean','soy','rapeseed','canola','sunflower','oilseed','barley','crop','harvest','export','wasde','comodity','commodity','cereale','porumb','grau','rapita'];
 const KEYWORDS_HIGH = ['grâu','wheat','porumb','corn','rapiță','rapeseed','canola','cereale','grain','oleaginoase','oilseed','MATIF','CBOT','futures','recoltă','harvest','export','import','USDA','IGC','Euronext'];
 const KEYWORDS_MED = ['agricol','agricultură','agriculture','fermier','farmer','piață','market','preț','price','România','Romania','UE','EU','subvenț','subsid'];
 
@@ -585,10 +831,7 @@ function scoreItem(title, desc) {
 
 async function fetchRSS(source) {
   const res = await fetch(source.url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader',
-      'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-    },
+    headers: { 'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader', 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -596,23 +839,16 @@ async function fetchRSS(source) {
 
   const items = [];
   const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
-
   const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
   let m;
+
   while ((m = itemRegex.exec(xml)) !== null) {
     const block = m[1];
     const get = (tag) => {
       const r = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i');
       const match = r.exec(block);
       return match
-        ? match[1]
-            .replace(/<[^>]+>/g, '')
-            .replace(/&amp;/g,'&')
-            .replace(/&lt;/g,'<')
-            .replace(/&gt;/g,'>')
-            .replace(/&quot;/g,'"')
-            .replace(/&#39;/g,"'")
-            .trim()
+        ? match[1].replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim()
         : '';
     };
 
@@ -631,16 +867,7 @@ async function fetchRSS(source) {
       if (!isGrain) continue;
     }
 
-    items.push({
-      title,
-      link: link.trim(),
-      desc,
-      date: date.toISOString(),
-      source: source.name,
-      tag: source.tag,
-      lang: source.lang,
-      score: scoreItem(title, desc),
-    });
+    items.push({ title, link: link.trim(), desc, date: date.toISOString(), source: source.name, tag: source.tag, lang: source.lang, score: scoreItem(title, desc) });
   }
   return items;
 }
@@ -654,31 +881,13 @@ app.get('/api/news', requireAuth, async (req, res) => {
 
     const allItems = [];
     const sourceResults = await Promise.allSettled(
-      NEWS_SOURCES.map(s =>
-        fetchRSS(s)
-          .then(items => ({ source: s.name, items, ok: true }))
-          .catch(e => ({ source: s.name, items: [], ok: false, error: e.message }))
-      )
+      NEWS_SOURCES.map(s => fetchRSS(s).then(items => ({ source: s.name, items, ok: true })).catch(e => ({ source: s.name, items: [], ok: false, error: e.message })))
     );
 
-    sourceResults.forEach(r => {
-      if (r.status === 'fulfilled') allItems.push(...r.value.items);
-    });
+    sourceResults.forEach(r => { if (r.status === 'fulfilled') allItems.push(...r.value.items); });
+    allItems.sort((a, b) => b.score !== a.score ? b.score - a.score : new Date(b.date) - new Date(a.date));
 
-    allItems.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return new Date(b.date) - new Date(a.date);
-    });
-
-    const payload = {
-      items: allItems.slice(0, 60),
-      total: allItems.length,
-      sources: sourceResults.map(r => r.value || r.reason),
-      fetchedAt: new Date().toISOString(),
-      cached: false,
-      age: 0,
-    };
-
+    const payload = { items: allItems.slice(0, 60), total: allItems.length, sources: sourceResults.map(r => r.value || r.reason), fetchedAt: new Date().toISOString(), cached: false, age: 0 };
     if (allItems.length > 0) newsCache = { data: payload, ts: now };
     res.json(payload);
   } catch (err) {
@@ -693,10 +902,7 @@ app.get('/api/news/test', requireAuth, async (req, res) => {
     NEWS_SOURCES.map(async (s) => {
       const start = Date.now();
       try {
-        const r = await fetch(s.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader' },
-          signal: AbortSignal.timeout(10000),
-        });
+        const r = await fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0 RSS Reader' }, signal: AbortSignal.timeout(10000) });
         const text = await r.text();
         const totalItems = (text.match(/<item/gi) || []).length;
         const pubDates = [...text.matchAll(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/gi)].map(m => new Date(m[1]));
@@ -725,11 +931,7 @@ let weatherPresetMemCache = { ts: 0, items: null };
 function dbGetWeatherCache(locationName) {
   const row = db.prepare('SELECT data, updated_at FROM weather_cache WHERE location_name = ?').get(locationName);
   if (!row) return null;
-  try {
-    return { ...JSON.parse(row.data), _dbUpdatedAt: row.updated_at };
-  } catch {
-    return null;
-  }
+  try { return { ...JSON.parse(row.data), _dbUpdatedAt: row.updated_at }; } catch { return null; }
 }
 
 function dbSetWeatherCache(locationName, payload) {
@@ -739,62 +941,14 @@ function dbSetWeatherCache(locationName, payload) {
   `).run(locationName, JSON.stringify(payload));
 }
 
-function round2(n) {
-  const x = Number(n);
-  return Number.isFinite(x) ? Math.round(x * 100) / 100 : null;
-}
-
-function averageOrNull(values) {
-  const vals = values.filter(v => Number.isFinite(v));
-  if (!vals.length) return null;
-  return vals.reduce((a, b) => a + b, 0) / vals.length;
-}
-
-function sumOrZero(values) {
-  return values.reduce((a, b) => a + (Number(b) || 0), 0);
-}
-
-function maxOrNull(values) {
-  const vals = values.filter(v => Number.isFinite(v));
-  return vals.length ? Math.max(...vals) : null;
-}
-
-function minOrNull(values) {
-  const vals = values.filter(v => Number.isFinite(v));
-  return vals.length ? Math.min(...vals) : null;
-}
+function round2(n) { const x = Number(n); return Number.isFinite(x) ? Math.round(x * 100) / 100 : null; }
+function averageOrNull(values) { const vals = values.filter(v => Number.isFinite(v)); return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null; }
+function sumOrZero(values) { return values.reduce((a, b) => a + (Number(b) || 0), 0); }
+function maxOrNull(values) { const vals = values.filter(v => Number.isFinite(v)); return vals.length ? Math.max(...vals) : null; }
+function minOrNull(values) { const vals = values.filter(v => Number.isFinite(v)); return vals.length ? Math.min(...vals) : null; }
 
 function weatherCodeToLabel(code) {
-  const map = {
-    0: 'senin',
-    1: 'mai mult senin',
-    2: 'variabil',
-    3: 'noros',
-    45: 'ceață',
-    48: 'ceață depusă',
-    51: 'burniță',
-    53: 'burniță',
-    55: 'burniță densă',
-    56: 'lapoviță fină',
-    57: 'lapoviță densă',
-    61: 'ploaie slabă',
-    63: 'ploaie',
-    65: 'ploaie puternică',
-    66: 'ploaie înghețată',
-    67: 'ploaie înghețată',
-    71: 'ninsoare',
-    73: 'ninsoare',
-    75: 'ninsoare puternică',
-    77: 'grăunțe de zăpadă',
-    80: 'averse',
-    81: 'averse',
-    82: 'averse puternice',
-    85: 'averse ninsoare',
-    86: 'averse ninsoare',
-    95: 'furtună',
-    96: 'furtună cu grindină',
-    99: 'furtună cu grindină',
-  };
+  const map = { 0:'senin',1:'mai mult senin',2:'variabil',3:'noros',45:'ceață',48:'ceață depusă',51:'burniță',53:'burniță',55:'burniță densă',56:'lapoviță fină',57:'lapoviță densă',61:'ploaie slabă',63:'ploaie',65:'ploaie puternică',66:'ploaie înghețată',67:'ploaie înghețată',71:'ninsoare',73:'ninsoare',75:'ninsoare puternică',77:'grăunțe de zăpadă',80:'averse',81:'averse',82:'averse puternice',85:'averse ninsoare',86:'averse ninsoare',95:'furtună',96:'furtună cu grindină',99:'furtună cu grindină' };
   return map[code] || 'necunoscut';
 }
 
@@ -804,7 +958,6 @@ function buildRiskFlags({ daily, current }) {
   const maxWind = maxOrNull(daily.wind_speed_10m_max || []);
   const maxRain = maxOrNull(daily.precipitation_sum || []);
   const currentTemp = Number(current.temperature_2m);
-
   if (Number.isFinite(minTemp) && minTemp <= 0) risks.push('risc îngheț');
   if (Number.isFinite(maxWind) && maxWind >= 45) risks.push('vânt puternic');
   if (Number.isFinite(maxRain) && maxRain >= 20) risks.push('ploaie semnificativă');
@@ -816,9 +969,7 @@ function daysSinceLastMeaningfulRain(pastDaily) {
   if (!pastDaily || !Array.isArray(pastDaily.precipitation_sum)) return null;
   for (let i = pastDaily.precipitation_sum.length - 1; i >= 0; i--) {
     const mm = Number(pastDaily.precipitation_sum[i] || 0);
-    if (mm >= 0.5) {
-      return pastDaily.precipitation_sum.length - 1 - i;
-    }
+    if (mm >= 0.5) return pastDaily.precipitation_sum.length - 1 - i;
   }
   return null;
 }
@@ -827,11 +978,8 @@ function groupHourlySoilByDate(hourly) {
   const byDate = {};
   const times = hourly.time || [];
   for (let i = 0; i < times.length; i++) {
-    const ts = times[i];
-    const date = String(ts).slice(0, 10);
-    if (!byDate[date]) {
-      byDate[date] = { s01: [], s13: [], s39: [], s927: [], s2781: [] };
-    }
+    const date = String(times[i]).slice(0, 10);
+    if (!byDate[date]) byDate[date] = { s01: [], s13: [], s39: [], s927: [], s2781: [] };
     byDate[date].s01.push(hourly.soil_moisture_0_to_1cm?.[i]);
     byDate[date].s13.push(hourly.soil_moisture_1_to_3cm?.[i]);
     byDate[date].s39.push(hourly.soil_moisture_3_to_9cm?.[i]);
@@ -919,10 +1067,7 @@ async function fetchWeatherForLocation(location) {
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'AgrotexTracker/1.0' },
-    signal: AbortSignal.timeout(15000),
-  });
+  const res = await fetch(url, { headers: { 'User-Agent': 'AgrotexTracker/1.0' }, signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
   const raw = await res.json();
 
@@ -933,7 +1078,6 @@ async function fetchWeatherForLocation(location) {
 
   const dailyIndexesFuture = [];
   const dailyIndexesPast = [];
-
   allDates.forEach((d, idx) => {
     if (d < todayStr) dailyIndexesPast.push(idx);
     else if (d >= todayStr && dailyIndexesFuture.length < 7) dailyIndexesFuture.push(idx);
@@ -949,11 +1093,7 @@ async function fetchWeatherForLocation(location) {
     relative_humidity_2m_mean: dailyIndexesFuture.map(i => raw.daily.relative_humidity_2m_mean?.[i]),
   };
 
-  const pastDaily = {
-    time: dailyIndexesPast.map(i => raw.daily.time?.[i]),
-    precipitation_sum: dailyIndexesPast.map(i => raw.daily.precipitation_sum?.[i]),
-  };
-
+  const pastDaily = { time: dailyIndexesPast.map(i => raw.daily.time?.[i]), precipitation_sum: dailyIndexesPast.map(i => raw.daily.precipitation_sum?.[i]) };
   return buildWeatherPayload(location, { current: raw.current, daily: futureDaily, pastDaily, hourly: raw.hourly || {} });
 }
 
@@ -961,14 +1101,8 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
   try {
     const forceRefresh = req.query.refresh === '1';
     const now = Date.now();
-
     if (!forceRefresh && weatherPresetMemCache.items && (now - weatherPresetMemCache.ts) < WEATHER_PRESET_TTL) {
-      return res.json({
-        items: weatherPresetMemCache.items,
-        fetchedAt: new Date(weatherPresetMemCache.ts).toISOString(),
-        cached: true,
-        age: Math.round((now - weatherPresetMemCache.ts) / 1000),
-      });
+      return res.json({ items: weatherPresetMemCache.items, fetchedAt: new Date(weatherPresetMemCache.ts).toISOString(), cached: true, age: Math.round((now - weatherPresetMemCache.ts) / 1000) });
     }
 
     const results = await Promise.allSettled(
@@ -986,24 +1120,16 @@ app.get('/api/weather/presets', requireAuth, async (req, res) => {
       })
     );
 
-    const items = results.map(r => r.status === 'fulfilled' ? r.value : {
-      location: { name: 'Necunoscut', country: '' },
-      summary: null, dailyForecast: [], fetchedAt: new Date().toISOString(), _source: 'error', _error: r.reason?.message || 'Unknown error',
-    });
-
+    const items = results.map(r => r.status === 'fulfilled' ? r.value : { location: { name: 'Necunoscut', country: '' }, summary: null, dailyForecast: [], fetchedAt: new Date().toISOString(), _source: 'error', _error: r.reason?.message || 'Unknown error' });
     const hasFresh = items.some(i => i._source === 'fresh');
     if (hasFresh || !weatherPresetMemCache.items) weatherPresetMemCache = { ts: now, items };
-
     res.json({ items, fetchedAt: new Date().toISOString(), cached: false, age: 0 });
   } catch (err) {
     console.error('Weather presets error:', err);
     try {
-      const items = WEATHER_PRESET_LOCATIONS.map(loc => {
-        const cached = dbGetWeatherCache(loc.name);
-        return cached || { location: loc, summary: null, dailyForecast: [], fetchedAt: new Date().toISOString(), _source: 'error', _error: 'Server error + no DB cache' };
-      });
+      const items = WEATHER_PRESET_LOCATIONS.map(loc => dbGetWeatherCache(loc.name) || { location: loc, summary: null, dailyForecast: [], fetchedAt: new Date().toISOString(), _source: 'error', _error: 'Server error + no DB cache' });
       res.json({ items, fetchedAt: new Date().toISOString(), cached: true, age: -1 });
-    } catch (dbErr) {
+    } catch {
       res.status(500).json({ error: err.message });
     }
   }
@@ -1015,23 +1141,11 @@ app.get('/api/weather/search', requireAuth, async (req, res) => {
     if (!q || q.length < 2) return res.json({ results: [] });
 
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=ro&format=json`;
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'AgrotexTracker/1.0' },
-      signal: AbortSignal.timeout(12000),
-    });
+    const r = await fetch(url, { headers: { 'User-Agent': 'AgrotexTracker/1.0' }, signal: AbortSignal.timeout(12000) });
     if (!r.ok) throw new Error(`Geocoding HTTP ${r.status}`);
     const data = await r.json();
 
-    const results = (data.results || []).map(item => ({
-      name: item.name,
-      country: item.country || '',
-      admin1: item.admin1 || '',
-      admin2: item.admin2 || '',
-      latitude: item.latitude,
-      longitude: item.longitude,
-      timezone: item.timezone || 'auto',
-    }));
-
+    const results = (data.results || []).map(item => ({ name: item.name, country: item.country || '', admin1: item.admin1 || '', admin2: item.admin2 || '', latitude: item.latitude, longitude: item.longitude, timezone: item.timezone || 'auto' }));
     res.json({ results });
   } catch (err) {
     console.error('Weather search error:', err);
@@ -1047,10 +1161,7 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
     const country = String(req.query.country || '');
     const timezone = String(req.query.timezone || 'auto');
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      return res.status(400).json({ error: 'lat/lon invalid' });
-    }
-
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(400).json({ error: 'lat/lon invalid' });
     const payload = await fetchWeatherForLocation({ name, country, latitude: lat, longitude: lon, timezone });
     res.json(payload);
   } catch (err) {
@@ -1059,7 +1170,7 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
   }
 });
 
-// ── STATIC ────────────────────────────────────────────────────────────────────
+// ── STATIC ───────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
