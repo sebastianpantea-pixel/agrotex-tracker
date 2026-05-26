@@ -122,9 +122,12 @@ function ensureColumn(table, column, definition) {
 }
 
 ['trades', 'logistics_contracts', 'stock_locations', 'stock_entries'].forEach(table => {
-  ensureColumn(table, 'updated_at', "TEXT DEFAULT (datetime('now'))");
+  // SQLite nu permite ALTER TABLE ADD COLUMN cu DEFAULT datetime('now').
+  // De aceea adăugăm coloana simplu și completăm valorile existente separat.
+  ensureColumn(table, 'updated_at', 'TEXT');
   ensureColumn(table, 'deleted_at', 'TEXT');
   ensureColumn(table, 'deleted_by', 'TEXT');
+  db.prepare(`UPDATE ${table} SET updated_at = COALESCE(updated_at, created_at, datetime('now')) WHERE updated_at IS NULL`).run();
 });
 
 const prodRow = db.prepare('SELECT id FROM products LIMIT 1').get();
