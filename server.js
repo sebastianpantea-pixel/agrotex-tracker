@@ -221,12 +221,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   rolling: true,
-cookie: {
-  httpOnly: true,
-  secure: false,
-  sameSite: 'lax',
-  maxAge: 12 * 60 * 60 * 1000,
-},
+  cookie: {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 12 * 60 * 60 * 1000,
   },
 }));
 
