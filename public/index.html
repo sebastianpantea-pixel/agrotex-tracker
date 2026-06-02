@@ -2793,16 +2793,45 @@ function logFlow(c){
 function logFlowLabel(c){
   return logFlow(c)==='pickup' ? 'DE RIDICAT' : 'DE LIVRAT';
 }
+function getLogRealTrade(c){
+  const ids=[
+    c?.tradeId,
+    c?.source_trade_id,
+    c?.sourceTradeId,
+    c?.trade_id
+  ].filter(v=>v!==undefined && v!==null && String(v).trim()!=='');
+  for(const id of ids){
+    const found=trades.find(t=>String(t.id)===String(id));
+    if(found) return found;
+  }
+  return null;
+}
 function logContractNo(c){
-  const t=getLogTrade(c) || {};
-  return String(c?.contractNo || c?.contractNumber || c?.note || t.note || '').trim();
+  const snap=c?.tradeSnapshot || {};
+  const realTrade=getLogRealTrade(c) || {};
+  const displayedTrade=getLogTrade(c) || {};
+  return String(
+    c?.contractNo ||
+    c?.contractNumber ||
+    c?.numarContract ||
+    c?.number ||
+    snap?.note ||
+    snap?.contractNo ||
+    snap?.contractNumber ||
+    realTrade?.note ||
+    realTrade?.contractNo ||
+    realTrade?.contractNumber ||
+    displayedTrade?.note ||
+    ''
+  ).trim();
 }
 function logContractName(c){
   const t=getLogTrade(c);
   if(!t) return 'Tranzacție lipsă';
   const p=products[t.product] || {name:getTradeProductName(t),emoji:'📦'};
   const ctr=logContractNo(c);
-  return `${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}${ctr ? ' · ' + ctr : ''}`;
+  const prefix=ctr ? `${ctr} · ` : '';
+  return `${prefix}${p.emoji} ${p.name} ${t.crop} · ${fmtN(t.qty)} t · ${t.cpty || '—'}`;
 }
 function movementQty(c){
   return (c.movements||c.deliveries||[]).reduce((s,d)=>s+(Number(d.qty)||0),0);
