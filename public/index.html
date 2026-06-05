@@ -2928,9 +2928,9 @@ async function apiLoadTrainContracts(){
   if(!res.ok) throw new Error('Nu pot încărca trenurile de pe server.');
   return await res.json();
 }
-async function apiSaveTrainContract(c){
-  const method = c && c.id ? 'PUT' : 'POST';
-  const url = c && c.id ? '/api/train/contracts/' + encodeURIComponent(c.id) : '/api/train/contracts';
+async function apiSaveTrainContract(c, isNew){
+  const method = isNew ? 'POST' : 'PUT';
+  const url = isNew ? '/api/train/contracts' : '/api/train/contracts/' + encodeURIComponent(c.id);
   const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(c)});
   if(!res.ok) throw new Error(await res.text());
   const data = await res.json();
@@ -3444,6 +3444,7 @@ async function saveTrainContract(){
     if(!qty || qty<=0){ alert('Completează cantitatea contractată.'); return; }
 
     let saved = null;
+    const isNewTrainContract = !id;
 
     if(id){
       const c = trGetContract(id);
@@ -3477,7 +3478,7 @@ async function saveTrainContract(){
       selectedTrainId = saved.id;
     }
 
-    await apiSaveTrainContract(saved);
+    await apiSaveTrainContract(saved, isNewTrainContract);
     await loadTrainContracts();
     if(saved && saved.id) selectedTrainId = saved.id;
     closeModal('trainContractModal');
