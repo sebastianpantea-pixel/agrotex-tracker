@@ -2256,7 +2256,7 @@ async function addTrade(){
   const newId=await apiAddTrade(t);
   t.id=newId;
   trades.unshift(t);
-  syncTrainContractFromTrade(t);
+  await syncTrainContractFromTrade(t);
   document.getElementById('btnAdd').disabled=false;
   render();
   checkCfoAlert(t);
@@ -2680,7 +2680,7 @@ async function saveEdit(){
   setSyncStatus('saved','● saved');
   const idx=trades.findIndex(x=>x.id===id);
   if(idx>=0) trades[idx]={...t,id};
-  syncTrainContractFromTrade({...t,id});
+  await syncTrainContractFromTrade({...t,id});
   closeModal('modEdit');
   render();
   checkCfoAlert({...t,id});
@@ -2923,16 +2923,59 @@ function closeLogisticsTab(){
    ==================================================== */
 const TRAIN_STORAGE_KEY = 'agrotex_train_contracts_v1';
 
-function loadTrainContracts(){
+async function apiLoadTrainContracts(){
+  const res = await fetch('/api/train/contracts');
+  if(!res.ok) throw new Error('Nu pot încărca trenurile de pe server.');
+  return await res.json();
+}
+async function apiSaveTrainContract(c){
+  const method = c && c.id ? 'PUT' : 'POST';
+  const url = c && c.id ? '/api/train/contracts/' + encodeURIComponent(c.id) : '/api/train/contracts';
+  const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(c)});
+  if(!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return data.id || c.id;
+}
+async function apiDeleteTrainContract(id){
+  const res = await fetch('/api/train/contracts/' + encodeURIComponent(id), {method:'DELETE'});
+  if(!res.ok) throw new Error(await res.text());
+}
+async function apiBulkTrainContracts(contracts, mode){
+  const res = await fetch('/api/train/contracts/bulk', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contracts, mode:mode||'upsert'})});
+  if(!res.ok) throw new Error(await res.text());
+  return await res.json();
+}
+
+async function loadTrainContracts(){
   try{
-    const raw = localStorage.getItem(TRAIN_STORAGE_KEY);
-    trainContracts = raw ? JSON.parse(raw) : [];
-  }catch(e){ trainContracts = []; }
+    trainContracts = await apiLoadTrainContracts();
+
+    // Migrare o singură dată din localStorage, pentru transporturile salvate local înainte de mutarea pe server.
+    const migratedFlag = localStorage.getItem('agrotex_train_server_migrated_v1');
+    if(!trainContracts.length && !migratedFlag){
+      let localData = [];
+      try{ localData = JSON.parse(localStorage.getItem(TRAIN_STORAGE_KEY) || '[]'); }catch(e){ localData = []; }
+      if(Array.isArray(localData) && localData.length){
+        await apiBulkTrainContracts(localData, 'upsert');
+        localStorage.setItem('agrotex_train_server_migrated_v1','1');
+        trainContracts = await apiLoadTrainContracts();
+      }
+    }
+  }catch(e){
+    console.error('Train server load failed:', e);
+    trainContracts = [];
+    alert('Eroare la încărcarea modulului Trenuri de pe server: ' + e.message);
+  }
   updateTrainBadge();
 }
-function saveTrainContracts(){
-  localStorage.setItem(TRAIN_STORAGE_KEY, JSON.stringify(trainContracts));
-  updateTrainBadge();
+async function saveTrainContracts(){
+  try{
+    await apiBulkTrainContracts(trainContracts, 'upsert');
+    updateTrainBadge();
+  }catch(e){
+    console.error('Train server save failed:', e);
+    alert('Eroare la salvarea trenurilor pe server: ' + e.message);
+  }
 }
 function updateTrainBadge(){
   const badge = document.getElementById('bTrain');
@@ -2985,9 +3028,9 @@ function trainWriteMeta(prefix, t){
   const st = document.getElementById(prefix+'TrainStation'); if(st) st.value = t?.trainStation || '';
   onTrainFlagChange(prefix);
 }
-function syncTrainContractFromTrade(t){
+async function syncTrainContractFromTrade(t){
   if(!t || !t.id || !t.isTrain) return;
-  loadTrainContracts();
+  if(!Array.isArray(trainContracts) || !trainContracts.length) await loadTrainContracts();
   const tradeId = String(t.id);
   const existing = trainContracts.find(c=>String(c.sourceTradeId || '')===tradeId);
   const name = trainContractNameFromTrade(t);
@@ -3019,17 +3062,18 @@ function syncTrainContractFromTrade(t){
     trainContracts.push(newC);
     selectedTrainId = newC.id;
   }
-  saveTrainContracts();
+  await apiSaveTrainContract(existing || newC);
+  await loadTrainContracts();
 }
 
-function setTrainTab(){
+async function setTrainTab(){
   closeAllSideTabs();
   trainTabActive = true;
   document.getElementById('tabTrain').className = 'tab train-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display = 'none';
   document.getElementById('trainSection').style.display = 'flex';
-  loadTrainContracts();
+  await loadTrainContracts();
   renderTrainTab();
 }
 function closeTrainTab(){
@@ -3142,7 +3186,7 @@ function trResetQuickForm(){
   if(stationEl && c?.defaultStation) stationEl.value = c.defaultStation;
 }
 function trCalcQty(){ /* placeholder for future auto-calc */ }
-function trAddShipment(){
+async function trAddShipment(){
   if(!selectedTrainId){ alert('Selectează mai întâi un contract.'); return; }
   const c = trGetContract(selectedTrainId);
   if(!c){ return; }
@@ -3164,25 +3208,28 @@ function trAddShipment(){
     status: 'plan',
     createdAt: new Date().toISOString()
   });
-  saveTrainContracts();
+  await apiSaveTrainContract(c);
+  await loadTrainContracts();
   trResetQuickForm();
   renderTrainTab();
 }
 
 /* ---- Shipment status cycle ---- */
-function trCycleStatus(contractId, shipmentId){
+async function trCycleStatus(contractId, shipmentId){
   const c = trGetContract(contractId); if(!c) return;
   const sh = (c.shipments||[]).find(s=>s.id===shipmentId); if(!sh) return;
   const cycle = ['plan','transit','done'];
   const idx = cycle.indexOf(sh.status||'plan');
   sh.status = cycle[(idx+1)%cycle.length];
-  saveTrainContracts();
+  await apiSaveTrainContract(c);
+  await loadTrainContracts();
   renderTrainTab();
 }
-function trDeleteShipment(contractId, shipmentId){
+async function trDeleteShipment(contractId, shipmentId){
   const c = trGetContract(contractId); if(!c) return;
   c.shipments = (c.shipments||[]).filter(s=>s.id!==shipmentId);
-  saveTrainContracts();
+  await apiSaveTrainContract(c);
+  await loadTrainContracts();
   renderTrainTab();
 }
 
@@ -3398,7 +3445,7 @@ function openTrainContractModal(id){
   }
   document.getElementById('trainContractModal').classList.add('open');
 }
-function saveTrainContract(){
+async function saveTrainContract(){
   const id = document.getElementById('trModalId').value;
   const name = document.getElementById('trModalName').value.trim();
   const qty = parseFloat(document.getElementById('trModalQty').value);
@@ -3433,19 +3480,21 @@ function saveTrainContract(){
     trainContracts.push(newC);
     selectedTrainId = newC.id;
   }
-  saveTrainContracts();
+  const saved = id ? c : newC;
+  await apiSaveTrainContract(saved);
+  await loadTrainContracts();
   closeModal('trainContractModal');
   renderTrainTab();
 }
-function deleteTrainContract(){
+async function deleteTrainContract(){
   const id = document.getElementById('trModalId').value;
   if(!id) return;
   const c = trGetContract(id);
   if(!c) return;
   if(!confirm(`Ștergi contractul "${c.name}"? Se vor șterge și toate transporturile asociate.`)) return;
-  trainContracts = trainContracts.filter(x=>x.id!==id);
+  await apiDeleteTrainContract(id);
+  await loadTrainContracts();
   if(selectedTrainId===id) selectedTrainId = trainContracts[0]?.id||null;
-  saveTrainContracts();
   closeModal('trainContractModal');
   renderTrainTab();
 }
@@ -7051,7 +7100,7 @@ async function bootApp(){
   loadMatif();
   loadNews();
   loadWeatherPresets();
-  loadTrainContracts();
+  await loadTrainContracts();
   setInterval(loadFxRates, 3*60*60*1000);
   setInterval(loadMatif, 5*60*1000);
   setInterval(loadNews, 15*60*1000);
