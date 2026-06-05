@@ -334,7 +334,9 @@
   .train-day.in-window{box-shadow:inset 0 0 0 1px rgba(232,160,106,.35);}
   .train-day.today{border-color:var(--acc);}
   .train-day-num{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);}
-  .train-day-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--transport);}
+  .train-day-contract{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.25;border-left:2px solid rgba(232,160,106,.45);padding-left:4px;margin-top:1px;}
+  .train-day-contract b{display:block;color:var(--bright);font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .train-day-contract span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .train-nom-pill{border:1px solid rgba(232,160,106,.35);background:rgba(232,160,106,.10);color:var(--bright);border-radius:4px;padding:3px 4px;font-family:'IBM Plex Mono',monospace;font-size:8px;line-height:1.25;}
   .train-nom-pill.done{border-color:rgba(114,211,154,.35);background:rgba(114,211,154,.10);}
   .train-window-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;margin-top:8px;}
@@ -3347,6 +3349,11 @@ function renderTrainGantt(){
   const contractStart = c.start || '';
   const contractEnd = c.end || c.start || '';
   const shipments = c.shipments || [];
+  const prod = products[c.product] || { name: c.product || 'Produs', emoji: '📦' };
+  const contractClient = String(c.client || c.counterparty || c.cpty || c.name || '—').replace(/^.*·\s*/, '').trim() || '—';
+  const contractStation = String(c.defaultStation || c.station || 'fără gară').trim();
+  const contractLine1 = `${prod.emoji || ''} ${prod.name || c.product || 'Produs'}`.trim();
+  const contractLine2 = `${contractClient}${contractStation ? ' · ' + contractStation : ''}`;
   const dows = ['L','Ma','Mi','J','V','S','D'];
 
   let html = `<div class="train-calendar-toolbar">
@@ -3369,8 +3376,8 @@ function renderTrainGantt(){
     });
     html += `<div class="train-day${out?' out':''}${inWindow?' in-window':''}${key===todayKey?' today':''}" onclick="trSetQuickDates('${key}','${key}');document.getElementById('trQuickForm')?.scrollIntoView({behavior:'smooth'})">
       <div class="train-day-num">${d.getDate()}</div>
-      ${inWindow?'<div class="train-day-tag">livrare</div>':''}
-      ${dayShipments.map(sh=>`<div class="train-nom-pill ${sh.status==='done'?'done':''}" title="${escHtml(trShipmentDateLabel(sh))}"><b>${fmtN(sh.qty)} t</b><br>${escHtml(sh.station||'—')}</div>`).join('')}
+      ${inWindow?`<div class="train-day-contract"><b>${escHtml(contractLine1)}</b><span>${escHtml(contractLine2)}</span></div>`:''}
+      ${dayShipments.map(sh=>`<div class="train-nom-pill ${sh.status==='done'?'done':''}" title="${escHtml(trShipmentDateLabel(sh))}"><b>${fmtN(sh.qty)} t</b><br>${escHtml(sh.station||contractStation||'—')}</div>`).join('')}
     </div>`;
   }
   html += '</div>';
