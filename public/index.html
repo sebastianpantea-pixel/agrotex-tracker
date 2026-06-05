@@ -308,6 +308,14 @@
   .tr-list-name{font-size:12px;font-weight:600;color:var(--bright);}
   .tr-list-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
   .tr-list-qty{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:800;color:var(--transport);text-align:right;}
+
+  .train-link-row{display:grid;grid-template-columns:160px 160px 1fr;gap:8px;margin:7px 0;}
+  .train-link-box{border:1px solid rgba(232,160,106,.35);background:rgba(232,160,106,.06);border-radius:4px;padding:8px;display:none;}
+  .train-link-box.open{display:block;}
+  .train-link-check{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;color:var(--transport);letter-spacing:.5px;margin-bottom:7px;}
+  .train-badge{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:800;background:rgba(232,160,106,.12);color:var(--transport);border:1px solid rgba(232,160,106,.35);vertical-align:middle;}
+  @media(max-width:900px){.train-link-row{grid-template-columns:1fr;}}
+
   /* Admin / Securitate */
   .tab.admin-tab-active,.btn-sm.admin-tab-active{background:rgba(229,185,92,.10);color:var(--acc);border-color:var(--acc);}
   #adminSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
@@ -1502,6 +1510,17 @@
           <input id="fIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
         </label>
 
+        <div class="train-link-box" id="fTrainBox">
+          <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
+            <input id="fIsTrain" type="checkbox" onchange="onTrainFlagChange('f')"> 🚂 Tren
+          </label>
+          <div class="train-link-row" id="fTrainMeta" style="display:none;">
+            <div class="fg"><label class="fl">Livrare de la</label><input id="fTrainStart" type="month"></div>
+            <div class="fg"><label class="fl">Livrare până la</label><input id="fTrainEnd" type="month"></div>
+            <div class="fg"><label class="fl">Gara încărcare implicită</label><input id="fTrainStation" type="text" placeholder="ex: Carei CFR"></div>
+          </div>
+        </div>
+
         <button class="btn-add" id="btnAdd" onclick="addTrade()">+ Adaugă Tranzacție</button>
       </div>
 
@@ -1670,6 +1689,17 @@
     <label class="contract-check-row" title="Rămâne evidențiat până debifezi manual">
       <input id="eIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
     </label>
+
+    <div class="train-link-box open" id="eTrainBox">
+      <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
+        <input id="eIsTrain" type="checkbox" onchange="onTrainFlagChange('e')"> 🚂 Tren
+      </label>
+      <div class="train-link-row" id="eTrainMeta" style="display:none;">
+        <div class="fg"><label class="fl">Livrare de la</label><input id="eTrainStart" type="month"></div>
+        <div class="fg"><label class="fl">Livrare până la</label><input id="eTrainEnd" type="month"></div>
+        <div class="fg"><label class="fl">Gara încărcare implicită</label><input id="eTrainStation" type="text" placeholder="ex: Carei CFR"></div>
+      </div>
+    </div>
 
     <div class="mbtns">
       <button class="btn-cancel" onclick="closeModal('modEdit')">Anulează</button>
@@ -2154,6 +2184,13 @@ function onFormChange(){
   const prod=document.getElementById('fProd').value;
   const showBonif=dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
   document.getElementById('grpBonif').style.display=showBonif?'':'none';
+  const trainBox=document.getElementById('fTrainBox');
+  if(trainBox) trainBox.classList.toggle('open', dir==='short');
+  if(dir!=='short'){
+    const chk=document.getElementById('fIsTrain');
+    if(chk) chk.checked=false;
+    onTrainFlagChange('f');
+  }
   if(isEur && fxRates.eurRon && !document.getElementById('fCursEur').value) document.getElementById('fCursEur').value=fxRates.eurRon.toFixed(4);
 }
 function setCurrency(cur){
@@ -2180,7 +2217,7 @@ async function addTrade(){
   const needT=chosen.transport;
   const isEur=(dir==='short' && ptype==='fix' && formCurrency==='eur');
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('f')};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -2219,6 +2256,7 @@ async function addTrade(){
   const newId=await apiAddTrade(t);
   t.id=newId;
   trades.unshift(t);
+  syncTrainContractFromTrade(t);
   document.getElementById('btnAdd').disabled=false;
   render();
   checkCfoAlert(t);
@@ -2410,10 +2448,11 @@ function renderTable(){
     const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
+    const trainBadge=t.isTrain?`<span class="train-badge">🚂 tren</span>`:'';
     const finishedBadge=isTradeLogisticsFinished(t.id)?`<span class="finished-badge">✓ finalizat</span>`:'';
     const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
     return `<tr class="tr-click${t.incomplete?' tr-incomplete':''}" onclick="openEdit(${t.id})">
-      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}${finishedBadge}</td>
+      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}${trainBadge}${finishedBadge}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
       <td style="color:var(--bright)">${fmtN(t.qty)}</td>
@@ -2531,6 +2570,7 @@ function openEdit(id){
   document.getElementById('eNote').value=t.note||'';
   const eInc=document.getElementById('eIncomplete');
   if(eInc) eInc.checked=!!t.incomplete;
+  trainWriteMeta('e', t);
 
   document.getElementById('ePrice').value=(t.currency==='eur'?'':t.price)||'';
   document.getElementById('eDate').value=t.date||today();
@@ -2604,7 +2644,7 @@ async function saveEdit(){
   const chosen=rules.find(r=>r.val===parity)||rules[0];
   const needT=chosen.transport;
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('e')};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -2640,6 +2680,7 @@ async function saveEdit(){
   setSyncStatus('saved','● saved');
   const idx=trades.findIndex(x=>x.id===id);
   if(idx>=0) trades[idx]={...t,id};
+  syncTrainContractFromTrade({...t,id});
   closeModal('modEdit');
   render();
   checkCfoAlert({...t,id});
@@ -2904,6 +2945,83 @@ function updateTrainBadge(){
 function makeTrainId(){ return 'tr_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
 function makeShipmentId(){ return 'sh_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
 
+function getTradeContractNumber(t){
+  return String(t?.note || t?.contractNumber || t?.numarContract || '').trim();
+}
+function trainContractNameFromTrade(t){
+  const p = products[t.product] || {name:t.product,emoji:'📦'};
+  const nr = getTradeContractNumber(t);
+  const client = String(t.cpty || '—').trim();
+  const prefix = nr ? `${nr} · ` : '';
+  return `${prefix}${p.emoji} ${p.name} ${t.crop || ''} · ${fmtN(t.qty || 0)} t · ${client}`.trim();
+}
+function onTrainFlagChange(prefix){
+  const chk = document.getElementById(prefix+'IsTrain');
+  const meta = document.getElementById(prefix+'TrainMeta');
+  if(meta) meta.style.display = chk && chk.checked ? 'grid' : 'none';
+  if(chk && chk.checked){
+    const s = document.getElementById(prefix+'TrainStart');
+    const e = document.getElementById(prefix+'TrainEnd');
+    const d = new Date();
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(s && !s.value) s.value = ym;
+    if(e && !e.value) e.value = s?.value || ym;
+  }
+}
+function trainReadMeta(prefix){
+  const checked = !!document.getElementById(prefix+'IsTrain')?.checked;
+  return {
+    isTrain: checked,
+    trainStart: document.getElementById(prefix+'TrainStart')?.value || '',
+    trainEnd: document.getElementById(prefix+'TrainEnd')?.value || '',
+    trainStation: document.getElementById(prefix+'TrainStation')?.value.trim() || ''
+  };
+}
+function trainWriteMeta(prefix, t){
+  const chk = document.getElementById(prefix+'IsTrain');
+  if(chk) chk.checked = !!t?.isTrain;
+  const s = document.getElementById(prefix+'TrainStart'); if(s) s.value = t?.trainStart || '';
+  const e = document.getElementById(prefix+'TrainEnd'); if(e) e.value = t?.trainEnd || '';
+  const st = document.getElementById(prefix+'TrainStation'); if(st) st.value = t?.trainStation || '';
+  onTrainFlagChange(prefix);
+}
+function syncTrainContractFromTrade(t){
+  if(!t || !t.id || !t.isTrain) return;
+  loadTrainContracts();
+  const tradeId = String(t.id);
+  const existing = trainContracts.find(c=>String(c.sourceTradeId || '')===tradeId);
+  const name = trainContractNameFromTrade(t);
+  const payload = {
+    name,
+    product: t.product,
+    crop: t.crop,
+    qty: Number(t.qty)||0,
+    client: t.cpty || '',
+    start: t.trainStart || '',
+    end: t.trainEnd || t.trainStart || '',
+    defaultStation: t.trainStation || '',
+    sourceTradeId: tradeId,
+    sourceContractNo: getTradeContractNumber(t),
+    autoFromTrade: true,
+    note: t.note || ''
+  };
+  if(existing){
+    Object.assign(existing, payload, { updatedAt: new Date().toISOString() });
+    selectedTrainId = existing.id;
+  } else {
+    const newC = {
+      id: makeTrainId(),
+      ...payload,
+      closed: false,
+      shipments: [],
+      createdAt: new Date().toISOString()
+    };
+    trainContracts.push(newC);
+    selectedTrainId = newC.id;
+  }
+  saveTrainContracts();
+}
+
 function setTrainTab(){
   closeAllSideTabs();
   trainTabActive = true;
@@ -3011,12 +3129,17 @@ function renderTrainQuickForm(){
   if(lbl) lbl.textContent = c.name||'Contract selectat';
   const dateEl = document.getElementById('trAddDate');
   if(dateEl && !dateEl.value) dateEl.value = today();
+  const stationEl = document.getElementById('trAddStation');
+  if(stationEl && !stationEl.value && c.defaultStation) stationEl.value = c.defaultStation;
 }
 function trResetQuickForm(){
   ['trAddDate','trAddStation','trAddQty','trAddDest','trAddCIM','trAddNote'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('trAddDate').value = today();
+  const c = trGetContract(selectedTrainId);
+  const stationEl = document.getElementById('trAddStation');
+  if(stationEl && c?.defaultStation) stationEl.value = c.defaultStation;
 }
 function trCalcQty(){ /* placeholder for future auto-calc */ }
 function trAddShipment(){
