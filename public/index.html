@@ -309,14 +309,14 @@
   .tr-list-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
   .tr-list-qty{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:800;color:var(--transport);text-align:right;}
 
-  .train-link-row{display:grid;grid-template-columns:150px 150px 1fr;gap:7px;margin-top:8px;}
-  .train-link-box{border:1px solid rgba(232,160,106,.35);background:rgba(232,160,106,.055);border-radius:4px;padding:8px 9px;display:none;margin:7px 0;}
+  .train-link-row{display:grid;grid-template-columns:150px 150px 1fr;gap:7px;margin-top:7px;}
+  .train-link-box{border:none;background:transparent;border-radius:0;padding:0;display:block;margin:5px 0 7px;}
   .train-link-box.open{display:block;}
-  .train-link-box.compact{padding:7px 9px;}
-  .train-link-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-  .train-link-check{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--transport);letter-spacing:.5px;margin:0;white-space:nowrap;}
+  .train-link-box.compact{padding:0;}
+  .train-link-head{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:wrap;}
+  .train-link-check{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;color:var(--text);letter-spacing:.2px;margin:0;white-space:nowrap;}
   .train-link-check input{width:auto;accent-color:var(--transport);}
-  .train-link-help{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;}
+  .train-link-help{display:none;}
   .train-link-box input[type="month"],.train-link-box input[type="text"]{height:26px;padding:4px 7px;font-size:10px;}
   .train-badge{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:800;background:rgba(232,160,106,.12);color:var(--transport);border:1px solid rgba(232,160,106,.35);vertical-align:middle;}
   @media(max-width:900px){.train-link-row{grid-template-columns:1fr;}.train-link-head{align-items:flex-start;}}
@@ -1515,10 +1515,10 @@
           <input id="fIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
         </label>
 
-        <div class="train-link-box compact" id="fTrainBox">
+        <div class="train-link-box compact open" id="fTrainBox">
           <div class="train-link-head">
             <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
-              <input id="fIsTrain" type="checkbox" onchange="onTrainFlagChange('f')"> 🚂 Contract tren
+              <input id="fIsTrain" type="checkbox" onchange="onTrainFlagChange('f')"> Tren
             </label>
             <div class="train-link-help">Apare automat în tab-ul Trenuri. Acolo planifici trenurile individuale.</div>
           </div>
@@ -1701,7 +1701,7 @@
     <div class="train-link-box compact open" id="eTrainBox">
       <div class="train-link-head">
         <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
-          <input id="eIsTrain" type="checkbox" onchange="onTrainFlagChange('e')"> 🚂 Contract tren
+          <input id="eIsTrain" type="checkbox" onchange="onTrainFlagChange('e')"> Tren
         </label>
         <div class="train-link-help">Activ doar pentru contractele pe tren. Perioada ajută la Gantt și planificare.</div>
       </div>
@@ -2196,12 +2196,8 @@ function onFormChange(){
   const showBonif=dir==='short' && ptype==='fix' && (prod==='rapeseed'||prod==='sunflower');
   document.getElementById('grpBonif').style.display=showBonif?'':'none';
   const trainBox=document.getElementById('fTrainBox');
-  if(trainBox) trainBox.classList.toggle('open', dir==='short');
-  if(dir!=='short'){
-    const chk=document.getElementById('fIsTrain');
-    if(chk) chk.checked=false;
-    onTrainFlagChange('f');
-  }
+  if(trainBox) trainBox.classList.add('open');
+  onTrainFlagChange('f');
   if(isEur && fxRates.eurRon && !document.getElementById('fCursEur').value) document.getElementById('fCursEur').value=fxRates.eurRon.toFixed(4);
 }
 function setCurrency(cur){
