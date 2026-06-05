@@ -3436,45 +3436,56 @@ function openTrainContractModal(id){
   document.getElementById('trainContractModal').classList.add('open');
 }
 async function saveTrainContract(){
-  const id = document.getElementById('trModalId').value;
-  const name = document.getElementById('trModalName').value.trim();
-  const qty = parseFloat(document.getElementById('trModalQty').value);
-  if(!name){ alert('Introdu denumirea contractului.'); return; }
-  if(!qty || qty<=0){ alert('Completează cantitatea contractată.'); return; }
-  if(id){
-    const c = trGetContract(id);
-    if(!c) return;
-    c.name = name;
-    c.product = document.getElementById('trModalProduct').value;
-    c.crop = document.getElementById('trModalCrop').value;
-    c.qty = qty;
-    c.client = document.getElementById('trModalClient').value.trim();
-    c.start = document.getElementById('trModalStart').value;
-    c.end = document.getElementById('trModalEnd').value;
-    c.note = document.getElementById('trModalNote').value.trim();
-  } else {
-    const newC = {
-      id: makeTrainId(),
-      name,
-      product: document.getElementById('trModalProduct').value,
-      crop: document.getElementById('trModalCrop').value,
-      qty,
-      client: document.getElementById('trModalClient').value.trim(),
-      start: document.getElementById('trModalStart').value,
-      end: document.getElementById('trModalEnd').value,
-      note: document.getElementById('trModalNote').value.trim(),
-      closed: false,
-      shipments: [],
-      createdAt: new Date().toISOString()
-    };
-    trainContracts.push(newC);
-    selectedTrainId = newC.id;
+  try{
+    const id = document.getElementById('trModalId').value;
+    const name = document.getElementById('trModalName').value.trim();
+    const qty = parseFloat(document.getElementById('trModalQty').value);
+    if(!name){ alert('Introdu denumirea contractului.'); return; }
+    if(!qty || qty<=0){ alert('Completează cantitatea contractată.'); return; }
+
+    let saved = null;
+
+    if(id){
+      const c = trGetContract(id);
+      if(!c){ alert('Contractul nu mai există în listă. Reîncarcă pagina și încearcă din nou.'); return; }
+      c.name = name;
+      c.product = document.getElementById('trModalProduct').value;
+      c.crop = document.getElementById('trModalCrop').value;
+      c.qty = qty;
+      c.client = document.getElementById('trModalClient').value.trim();
+      c.start = document.getElementById('trModalStart').value;
+      c.end = document.getElementById('trModalEnd').value;
+      c.note = document.getElementById('trModalNote').value.trim();
+      c.updatedAt = new Date().toISOString();
+      saved = c;
+    } else {
+      saved = {
+        id: makeTrainId(),
+        name,
+        product: document.getElementById('trModalProduct').value,
+        crop: document.getElementById('trModalCrop').value,
+        qty,
+        client: document.getElementById('trModalClient').value.trim(),
+        start: document.getElementById('trModalStart').value,
+        end: document.getElementById('trModalEnd').value,
+        note: document.getElementById('trModalNote').value.trim(),
+        closed: false,
+        shipments: [],
+        createdAt: new Date().toISOString()
+      };
+      trainContracts.push(saved);
+      selectedTrainId = saved.id;
+    }
+
+    await apiSaveTrainContract(saved);
+    await loadTrainContracts();
+    if(saved && saved.id) selectedTrainId = saved.id;
+    closeModal('trainContractModal');
+    renderTrainTab();
+  }catch(e){
+    console.error('Save train contract failed:', e);
+    alert('Eroare la salvarea contractului de tren: ' + (e && e.message ? e.message : e));
   }
-  const saved = id ? c : newC;
-  await apiSaveTrainContract(saved);
-  await loadTrainContracts();
-  closeModal('trainContractModal');
-  renderTrainTab();
 }
 async function deleteTrainContract(){
   const id = document.getElementById('trModalId').value;
