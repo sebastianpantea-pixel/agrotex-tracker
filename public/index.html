@@ -2948,23 +2948,13 @@ async function apiBulkTrainContracts(contracts, mode){
 
 async function loadTrainContracts(){
   try{
+    // Modulul Trenuri este acum server-side. Nu mai citim automat localStorage,
+    // ca să evităm erori Safari / date vechi cu structură diferită.
     trainContracts = await apiLoadTrainContracts();
-
-    // Migrare o singură dată din localStorage, pentru transporturile salvate local înainte de mutarea pe server.
-    const migratedFlag = localStorage.getItem('agrotex_train_server_migrated_v1');
-    if(!trainContracts.length && !migratedFlag){
-      let localData = [];
-      try{ localData = JSON.parse(localStorage.getItem(TRAIN_STORAGE_KEY) || '[]'); }catch(e){ localData = []; }
-      if(Array.isArray(localData) && localData.length){
-        await apiBulkTrainContracts(localData, 'upsert');
-        localStorage.setItem('agrotex_train_server_migrated_v1','1');
-        trainContracts = await apiLoadTrainContracts();
-      }
-    }
   }catch(e){
     console.error('Train server load failed:', e);
     trainContracts = [];
-    alert('Eroare la încărcarea modulului Trenuri de pe server: ' + e.message);
+    alert('Eroare la încărcarea modulului Trenuri de pe server: ' + (e && e.message ? e.message : e));
   }
   updateTrainBadge();
 }
