@@ -1266,66 +1266,61 @@
 
 </div>
 
-<div id="trainContractModal" class="mod" onclick="if(event.target===this)closeModal('trainContractModal')">
-  <div class="mod-box" style="width:540px;">
-    <div class="mod-head">
-      <div class="mod-title" id="trModalTitle">Contract tren nou</div>
-      <button class="mod-close" onclick="closeModal('trainContractModal')">✕</button>
+<div class="overlay" id="trainContractModal" onclick="if(event.target===this)closeModal('trainContractModal')">
+  <div class="modal" style="width:540px;max-width:98vw;">
+    <div class="mtitle" id="trModalTitle">Contract tren nou</div>
+    <input type="hidden" id="trModalId">
+    <div class="fg">
+      <label class="fl">Denumire contract (client, produs, rută)</label>
+      <input type="text" id="trModalName" placeholder="ex: Grâu 2025 — Constanța Port">
     </div>
-    <div class="mod-body" style="display:flex;flex-direction:column;gap:10px;">
-      <input type="hidden" id="trModalId">
+    <div class="fr fr2">
       <div class="fg">
-        <label class="fl">Denumire contract (client, produs, rută)</label>
-        <input class="fi" type="text" id="trModalName" placeholder="ex: Grâu 2025 — Constanța Port">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="fg">
-          <label class="fl">Produsul</label>
-          <select class="fi" id="trModalProduct">
-            <option value="wheat">🌾 Grâu</option>
-            <option value="corn">🌽 Porumb</option>
-            <option value="rapeseed">🌿 Rapiță</option>
-            <option value="sunflower">🌻 Floarea-soarelui</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl">Recoltă</label>
-          <select class="fi" id="trModalCrop">
-            <option value="2024">2024</option>
-            <option value="2025" selected>2025</option>
-            <option value="2026">2026</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="fg">
-          <label class="fl">Cantitate contractată (t) *</label>
-          <input class="fi" type="number" id="trModalQty" placeholder="ex: 5000" min="0" step="100">
-        </div>
-        <div class="fg">
-          <label class="fl">Client / Contraparte</label>
-          <input class="fi" type="text" id="trModalClient" placeholder="ex: Cerealcom SA">
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="fg">
-          <label class="fl">Perioadă livrare — de la</label>
-          <input class="fi" type="month" id="trModalStart">
-        </div>
-        <div class="fg">
-          <label class="fl">Perioadă livrare — până la</label>
-          <input class="fi" type="month" id="trModalEnd">
-        </div>
+        <label class="fl">Produsul</label>
+        <select id="trModalProduct">
+          <option value="wheat">🌾 Grâu</option>
+          <option value="corn">🌽 Porumb</option>
+          <option value="rapeseed">🌿 Rapiță</option>
+          <option value="sunflower">🌻 Floarea-soarelui</option>
+        </select>
       </div>
       <div class="fg">
-        <label class="fl">Notă</label>
-        <input class="fi" type="text" id="trModalNote" placeholder="observații">
+        <label class="fl">Recoltă</label>
+        <select id="trModalCrop">
+          <option value="2024">2024</option>
+          <option value="2025" selected>2025</option>
+          <option value="2026">2026</option>
+        </select>
       </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
-        <button class="btn-sm" id="trModalDeleteBtn" style="display:none;color:var(--short);border-color:rgba(240,138,142,.4);" onclick="deleteTrainContract()">Șterge contract</button>
-        <button class="btn-sm" onclick="closeModal('trainContractModal')">Anulează</button>
-        <button class="btn-tr" onclick="saveTrainContract()">Salvează</button>
+    </div>
+    <div class="fr fr2">
+      <div class="fg">
+        <label class="fl">Cantitate contractată (t) *</label>
+        <input type="number" id="trModalQty" placeholder="ex: 5000" min="0" step="100">
       </div>
+      <div class="fg">
+        <label class="fl">Client / Contraparte</label>
+        <input type="text" id="trModalClient" placeholder="ex: Cerealcom SA">
+      </div>
+    </div>
+    <div class="fr fr2">
+      <div class="fg">
+        <label class="fl">Perioadă livrare — de la</label>
+        <input type="month" id="trModalStart">
+      </div>
+      <div class="fg">
+        <label class="fl">Perioadă livrare — până la</label>
+        <input type="month" id="trModalEnd">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Notă</label>
+      <input type="text" id="trModalNote" placeholder="observații">
+    </div>
+    <div class="mbtns">
+      <button class="btn-cancel" id="trModalDeleteBtn" style="display:none;color:var(--short);border-color:rgba(240,138,142,.4);background:rgba(240,138,142,.07);" onclick="deleteTrainContract()">Șterge contract</button>
+      <button class="btn-cancel" onclick="closeModal('trainContractModal')">Anulează</button>
+      <button class="btn-save" onclick="saveTrainContract()">Salvează</button>
     </div>
   </div>
 </div>
