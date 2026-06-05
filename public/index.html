@@ -309,12 +309,17 @@
   .tr-list-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);}
   .tr-list-qty{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:800;color:var(--transport);text-align:right;}
 
-  .train-link-row{display:grid;grid-template-columns:160px 160px 1fr;gap:8px;margin:7px 0;}
-  .train-link-box{border:1px solid rgba(232,160,106,.35);background:rgba(232,160,106,.06);border-radius:4px;padding:8px;display:none;}
+  .train-link-row{display:grid;grid-template-columns:150px 150px 1fr;gap:7px;margin-top:8px;}
+  .train-link-box{border:1px solid rgba(232,160,106,.35);background:rgba(232,160,106,.055);border-radius:4px;padding:8px 9px;display:none;margin:7px 0;}
   .train-link-box.open{display:block;}
-  .train-link-check{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;color:var(--transport);letter-spacing:.5px;margin-bottom:7px;}
+  .train-link-box.compact{padding:7px 9px;}
+  .train-link-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .train-link-check{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--transport);letter-spacing:.5px;margin:0;white-space:nowrap;}
+  .train-link-check input{width:auto;accent-color:var(--transport);}
+  .train-link-help{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;}
+  .train-link-box input[type="month"],.train-link-box input[type="text"]{height:26px;padding:4px 7px;font-size:10px;}
   .train-badge{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:800;background:rgba(232,160,106,.12);color:var(--transport);border:1px solid rgba(232,160,106,.35);vertical-align:middle;}
-  @media(max-width:900px){.train-link-row{grid-template-columns:1fr;}}
+  @media(max-width:900px){.train-link-row{grid-template-columns:1fr;}.train-link-head{align-items:flex-start;}}
 
   /* Admin / Securitate */
   .tab.admin-tab-active,.btn-sm.admin-tab-active{background:rgba(229,185,92,.10);color:var(--acc);border-color:var(--acc);}
@@ -1510,10 +1515,13 @@
           <input id="fIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
         </label>
 
-        <div class="train-link-box" id="fTrainBox">
-          <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
-            <input id="fIsTrain" type="checkbox" onchange="onTrainFlagChange('f')"> 🚂 Tren
-          </label>
+        <div class="train-link-box compact" id="fTrainBox">
+          <div class="train-link-head">
+            <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
+              <input id="fIsTrain" type="checkbox" onchange="onTrainFlagChange('f')"> 🚂 Contract tren
+            </label>
+            <div class="train-link-help">Apare automat în tab-ul Trenuri. Acolo planifici trenurile individuale.</div>
+          </div>
           <div class="train-link-row" id="fTrainMeta" style="display:none;">
             <div class="fg"><label class="fl">Livrare de la</label><input id="fTrainStart" type="month"></div>
             <div class="fg"><label class="fl">Livrare până la</label><input id="fTrainEnd" type="month"></div>
@@ -1690,10 +1698,13 @@
       <input id="eIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
     </label>
 
-    <div class="train-link-box open" id="eTrainBox">
-      <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
-        <input id="eIsTrain" type="checkbox" onchange="onTrainFlagChange('e')"> 🚂 Tren
-      </label>
+    <div class="train-link-box compact open" id="eTrainBox">
+      <div class="train-link-head">
+        <label class="train-link-check" title="Trimite automat contractul în tab-ul Trenuri">
+          <input id="eIsTrain" type="checkbox" onchange="onTrainFlagChange('e')"> 🚂 Contract tren
+        </label>
+        <div class="train-link-help">Activ doar pentru contractele pe tren. Perioada ajută la Gantt și planificare.</div>
+      </div>
       <div class="train-link-row" id="eTrainMeta" style="display:none;">
         <div class="fg"><label class="fl">Livrare de la</label><input id="eTrainStart" type="month"></div>
         <div class="fg"><label class="fl">Livrare până la</label><input id="eTrainEnd" type="month"></div>
