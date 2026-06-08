@@ -890,6 +890,62 @@
   .stock-progress-inner{height:100%;background:var(--acc);}
   .stock-form-actions{display:flex;gap:8px;align-items:center;}
 
+
+
+  /* Calendar operational trenuri - V2 */
+  .train-cal-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .train-cal-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;border:1px solid rgba(232,160,106,.4);background:rgba(232,160,106,.1);color:var(--transport);letter-spacing:.5px;}
+  .train-month-nav{display:flex;align-items:center;gap:6px;margin-left:10px;}
+  .train-calendar-main-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:900;color:var(--bright);min-width:150px;text-align:center;text-transform:uppercase;letter-spacing:1px;}
+  .train-filter-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;}
+  .train-filter-input{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 8px;outline:none;min-width:260px;}
+  .train-filter-input.short{min-width:150px;}
+  .train-filter-input:focus{border-color:var(--transport);}
+  .train-calendar-layout{display:grid;grid-template-columns:minmax(680px,1fr) 370px;gap:12px;align-items:start;}
+  @media(max-width:1180px){.train-calendar-layout{grid-template-columns:1fr}.train-side-panel{position:static!important}.train-filter-input{min-width:180px}}
+  .train-calendar-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px;}
+  .train-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}
+  .train-calendar-dow{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:5px 0;}
+  .train-cal-day{min-height:122px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px;display:flex;flex-direction:column;gap:5px;cursor:pointer;overflow:hidden;}
+  .train-cal-day:hover{border-color:var(--transport);background:rgba(232,160,106,.05);}
+  .train-cal-day.out{opacity:.42;}
+  .train-cal-day.today{border-color:var(--acc);box-shadow:inset 0 0 0 1px rgba(224,183,94,.35);}
+  .train-cal-day.selected{border-color:var(--transport);box-shadow:inset 0 0 0 1px rgba(232,160,106,.45);}
+  .train-day-head{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .train-day-num{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);}
+  .train-day-total{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);}
+  .train-event-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.028);border-left:3px solid var(--dim);border-radius:4px;padding:5px 6px;font-family:'IBM Plex Mono',monospace;font-size:8px;line-height:1.28;color:var(--text);cursor:pointer;}
+  .train-event-card:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16);}
+  .train-event-card.planned{border-left-color:var(--neutral);}
+  .train-event-card.requested{border-left-color:var(--acc);background:rgba(224,183,94,.07);}
+  .train-event-card.confirmed{border-left-color:var(--long);background:rgba(114,211,154,.06);}
+  .train-event-card.loading{border-left-color:var(--transport);background:rgba(232,160,106,.08);}
+  .train-event-card.loaded{border-left-color:var(--long-dim);opacity:.82;}
+  .train-event-card.problem{border-left-color:var(--short);background:rgba(240,138,142,.09);}
+  .train-event-card.cancelled{border-left-color:var(--dim);opacity:.52;text-decoration:line-through;}
+  .train-event-title{font-weight:900;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .train-event-meta{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .train-more{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);padding-left:3px;}
+  .train-side-panel{position:sticky;top:72px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;min-height:360px;}
+  .train-side-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+  .train-side-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;margin-bottom:10px;}
+  .train-side-list{display:flex;flex-direction:column;gap:7px;}
+  .train-side-item{border:1px solid var(--border);background:var(--surface2);border-radius:4px;padding:8px;cursor:pointer;}
+  .train-side-item:hover{border-color:var(--transport);background:rgba(232,160,106,.05);}
+  .train-status-pill{display:inline-block;padding:2px 7px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;border:1px solid var(--border2);color:var(--dim);background:rgba(255,255,255,.025);}
+  .train-status-pill.planned{color:var(--neutral);border-color:rgba(155,196,246,.35);background:rgba(155,196,246,.08);}
+  .train-status-pill.requested{color:var(--acc);border-color:rgba(224,183,94,.35);background:rgba(224,183,94,.08);}
+  .train-status-pill.confirmed,.train-status-pill.loaded{color:var(--long);border-color:rgba(114,211,154,.35);background:rgba(114,211,154,.08);}
+  .train-status-pill.loading{color:var(--transport);border-color:rgba(232,160,106,.38);background:rgba(232,160,106,.09);}
+  .train-status-pill.problem{color:var(--short);border-color:rgba(240,138,142,.38);background:rgba(240,138,142,.09);}
+  .train-status-pill.cancelled{color:var(--dim);opacity:.65;}
+  .train-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0;}
+  .train-detail-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:7px;}
+  .train-detail-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;}
+  .train-detail-v{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--bright);font-weight:800;margin-top:3px;word-break:break-word;}
+  .train-status-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+  .train-status-actions .btn-tr,.train-status-actions .btn-sm{width:100%;}
+
 </style>
 </head>
 <body>
@@ -1272,148 +1328,92 @@
 
 
 
+
 <div id="trainSection">
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+  <div class="train-cal-toolbar">
     <button class="news-back-btn" onclick="closeTrainTab()">← Înapoi</button>
-    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;border:1px solid rgba(232,160,106,.4);background:rgba(232,160,106,.1);color:var(--transport);letter-spacing:.5px;">TRENURI — LIVRARE</span>
-    <div class="tr-view-toggle" style="margin-left:auto;">
-      <button class="tr-vtbtn active" id="btnTrainGantt" onclick="setTrainView('gantt')">📅 Calendar</button>
-      <button class="tr-vtbtn" id="btnTrainList" onclick="setTrainView('list')">☰ Listă</button>
+    <span class="train-cal-badge">TRENURI — CALENDAR OPERATIONAL</span>
+
+    <div class="train-month-nav">
+      <button class="btn-sm" onclick="trainCalendarShift(-1)">◀</button>
+      <button class="btn-sm" onclick="trainCalendarToday()">Azi</button>
+      <button class="btn-sm" onclick="trainCalendarShift(1)">▶</button>
+      <span id="trainCalendarTitle" class="train-calendar-main-title">—</span>
     </div>
-    <button class="btn-tr" onclick="openTrainContractModal()">+ Contract tren nou</button>
+
+    <button class="btn-tr" style="margin-left:auto;" onclick="openTrainContractModal()">+ Adaugă tren</button>
   </div>
 
-  <!-- KPI bar -->
+  <div class="train-filter-strip">
+    <input id="trainSearch" class="train-filter-input" type="text" placeholder="Caută contract, client, bază, produs..." oninput="renderTrainTab()">
+    <select id="trainFilterProduct" class="email-select" onchange="renderTrainTab()">
+      <option value="">Toate produsele</option>
+      <option value="wheat">Grâu</option>
+      <option value="corn">Porumb</option>
+      <option value="rapeseed">Rapiță</option>
+      <option value="sunflower">Floarea-soarelui</option>
+    </select>
+    <select id="trainFilterStatus" class="email-select" onchange="renderTrainTab()">
+      <option value="">Toate statusurile</option>
+      <option value="planned">Planificat</option>
+      <option value="requested">Cerut</option>
+      <option value="confirmed">Confirmat</option>
+      <option value="loading">În încărcare</option>
+      <option value="loaded">Încărcat</option>
+      <option value="problem">Problemă</option>
+      <option value="cancelled">Anulat</option>
+    </select>
+    <input id="trainFilterBase" class="train-filter-input short" type="text" placeholder="Bază / gară" oninput="renderTrainTab()">
+    <button class="btn-sm" onclick="clearTrainFilters()">Curăță filtre</button>
+  </div>
+
   <div class="train-kpi-row" id="trainKpis">
-    <div class="train-kpi"><div class="train-kpi-l">Contracte active</div><div class="train-kpi-v" id="trKpiActive" style="color:var(--transport)">—</div><div class="train-kpi-s" id="trKpiActiveSub">—</div></div>
-    <div class="train-kpi"><div class="train-kpi-l">Total contractat</div><div class="train-kpi-v" id="trKpiTotal" style="color:var(--acc)">—</div><div class="train-kpi-s" id="trKpiTotalSub">—</div></div>
-    <div class="train-kpi"><div class="train-kpi-l">Nominat</div><div class="train-kpi-v" id="trKpiDone" style="color:var(--long)">—</div><div class="train-kpi-s" id="trKpiDonePct">—</div></div>
-    <div class="train-kpi"><div class="train-kpi-l">Rămas de livrat</div><div class="train-kpi-v" id="trKpiLeft" style="color:var(--transport)">—</div><div class="train-kpi-s" id="trKpiLeftSub">—</div></div>
-    <div class="train-kpi"><div class="train-kpi-l">Nr. nominări</div><div class="train-kpi-v" id="trKpiShipments" style="color:var(--bright)">—</div><div class="train-kpi-s" id="trKpiShipmentsSub">—</div></div>
+    <div class="train-kpi"><div class="train-kpi-l">Trenuri luna curentă</div><div class="train-kpi-v" id="trKpiMonth" style="color:var(--transport)">—</div><div class="train-kpi-s" id="trKpiMonthSub">—</div></div>
+    <div class="train-kpi"><div class="train-kpi-l">Confirmate / încărcate</div><div class="train-kpi-v" id="trKpiConfirmed" style="color:var(--long)">—</div><div class="train-kpi-s" id="trKpiConfirmedSub">—</div></div>
+    <div class="train-kpi"><div class="train-kpi-l">Cerute</div><div class="train-kpi-v" id="trKpiRequested" style="color:var(--acc)">—</div><div class="train-kpi-s" id="trKpiRequestedSub">—</div></div>
+    <div class="train-kpi"><div class="train-kpi-l">Probleme</div><div class="train-kpi-v" id="trKpiProblem" style="color:var(--short)">—</div><div class="train-kpi-s" id="trKpiProblemSub">—</div></div>
+    <div class="train-kpi"><div class="train-kpi-l">Tonaj planificat</div><div class="train-kpi-v" id="trKpiQty" style="color:var(--bright)">—</div><div class="train-kpi-s" id="trKpiQtySub">—</div></div>
   </div>
 
-  <!-- Main grid: left panel + right col -->
-  <div class="train-main-grid">
-
-    <!-- LEFT: Gantt / List view -->
-    <div class="train-panel" id="trainLeftPanel">
-      <div class="train-panel-head">
-        <div class="train-panel-title" id="trainPanelTitle">Calendar nominări</div>
-        <div style="display:flex;gap:6px;align-items:center;" id="ganttNav">
-          <button class="btn-sm" onclick="trainGanttShift(-1)">◀</button>
-          <span id="ganttRangeLabel" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--acc);font-weight:800;min-width:130px;text-align:center;">—</span>
-          <button class="btn-sm" onclick="trainGanttShift(1)">▶</button>
-        </div>
-      </div>
-      <div style="padding:12px;" id="trainLeftBody">
-        <div class="tr-empty">// niciun contract tren disponibil</div>
-      </div>
+  <div class="train-calendar-layout">
+    <div class="train-calendar-panel">
+      <div class="train-calendar-grid" id="trainCalendarGrid"></div>
+      <div class="train-window-note">Click pe o zi pentru agenda zilei. Click pe un tren pentru detalii. În această versiune, mutarea trenului se face din fisa trenului, schimbând data.</div>
     </div>
-
-    <!-- RIGHT: contract list + quick add -->
-    <div class="train-right-col">
-
-      <div class="train-panel">
-        <div class="train-panel-head">
-          <div class="train-panel-title">Contracte tren</div>
-          <span id="trContractCount" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);">0 contracte</span>
-        </div>
-        <div style="padding:8px 10px;">
-          <div class="tr-contract-list" id="trContractList">
-            <div class="tr-empty">// niciun contract</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick add transport for selected contract -->
-      <div class="tr-qform" id="trQuickForm" style="display:none;">
-        <div class="tr-qform-head">
-          <div class="tr-qform-title">+ Adaugă nominare</div>
-          <span id="trQuickFormContractName" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
-        </div>
-        <div class="tr-qform-body">
-          <div class="tr-grid2">
-            <div class="tr-fg">
-              <label class="fl">Încărcare de la *</label>
-              <input class="fi" type="date" id="trAddDateFrom">
-            </div>
-            <div class="tr-fg">
-              <label class="fl">Încărcare până la *</label>
-              <input class="fi" type="date" id="trAddDateTo">
-            </div>
-          </div>
-          <div class="tr-grid2">
-            <div class="tr-fg">
-              <label class="fl">Cantitate efectivă (t) *</label>
-              <input class="fi" type="number" id="trAddQty" placeholder="ex: 1740" min="100" max="2500" step="10" oninput="trCalcQty()">
-            </div>
-            <div class="tr-fg">
-              <label class="fl">Gară încărcare *</label>
-              <input class="fi" type="text" id="trAddStation" placeholder="ex: Carei CFR">
-            </div>
-          </div>
-          <div class="tr-fg">
-            <label class="fl">Notă</label>
-            <input class="fi" type="text" id="trAddNote" placeholder="observații opționale">
-          </div>
-          <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:2px;">
-            <button class="btn-sm" onclick="trResetQuickForm()">Resetează</button>
-            <button class="btn-tr" onclick="trAddShipment()">Salvează nominare</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
+    <div class="train-side-panel" id="trainSidePanel"></div>
   </div>
-
-  <!-- Detail: shipments for selected contract -->
-  <div class="tr-detail" id="trDetailPanel" style="display:none;">
-    <div class="tr-detail-head">
-      <div class="train-panel-title" id="trDetailTitle">Nominări — contract selectat</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn-sm" onclick="openTrainContractModal(selectedTrainId)">✎ Editează contract</button>
-        <button class="btn-tr" onclick="document.getElementById('trAddDateFrom').focus(); document.getElementById('trQuickForm').scrollIntoView({behavior:'smooth'})">+ Adaugă nominare</button>
-      </div>
-    </div>
-    <div style="padding:10px 13px;">
-      <div class="tr-sub-kpi-row" id="trSubKpis"></div>
-      <div class="tr-table-wrap">
-        <table class="tr-table">
-          <thead>
-            <tr>
-              <th>Perioadă încărcare</th>
-              <th>Gară încărcare</th>
-              <th>Cantitate (t)</th>
-              <th>Status</th>
-              <th>Observații</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="trShipmentsBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <div class="overlay" id="trainContractModal" onclick="if(event.target===this)closeModal('trainContractModal')">
-  <div class="modal" style="width:540px;max-width:98vw;">
-    <div class="mtitle" id="trModalTitle">Contract tren nou</div>
-    <input type="hidden" id="trModalId">
-    <div class="fg">
-      <label class="fl">Denumire contract (client, produs, rută)</label>
-      <input type="text" id="trModalName" placeholder="ex: Grâu 2025 — Constanța Port">
-    </div>
+  <div class="modal" style="width:620px;max-width:98vw;">
+    <div class="mtitle" id="trModalTitle">Adaugă tren</div>
+    <input type="hidden" id="trModalContractId">
+    <input type="hidden" id="trModalShipmentId">
+
     <div class="fr fr2">
       <div class="fg">
-        <label class="fl">Produsul</label>
+        <label class="fl">Contract / referință *</label>
+        <input type="text" id="trModalContractNo" placeholder="ex: 226100538">
+      </div>
+      <div class="fg">
+        <label class="fl">Client / destinatar</label>
+        <input type="text" id="trModalClient" placeholder="ex: Bunge / Nikola / Viterra">
+      </div>
+    </div>
+
+    <div class="fr fr3">
+      <div class="fg">
+        <label class="fl">Produs *</label>
         <select id="trModalProduct">
           <option value="wheat">🌾 Grâu</option>
           <option value="corn">🌽 Porumb</option>
           <option value="rapeseed">🌿 Rapiță</option>
           <option value="sunflower">🌻 Floarea-soarelui</option>
         </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Cantitate estimată (t) *</label>
+        <input type="number" id="trModalQty" placeholder="ex: 1600" min="0" step="10">
       </div>
       <div class="fg">
         <label class="fl">Recoltă</label>
@@ -1424,32 +1424,63 @@
         </select>
       </div>
     </div>
-    <div class="fr fr2">
+
+    <div class="fr fr3">
       <div class="fg">
-        <label class="fl">Cantitate contractată (t) *</label>
-        <input type="number" id="trModalQty" placeholder="ex: 5000" min="0" step="100">
+        <label class="fl">Data planificată *</label>
+        <input type="date" id="trModalDate">
       </div>
       <div class="fg">
-        <label class="fl">Client / Contraparte</label>
-        <input type="text" id="trModalClient" placeholder="ex: Cerealcom SA">
+        <label class="fl">Până la</label>
+        <input type="date" id="trModalDateTo">
+      </div>
+      <div class="fg">
+        <label class="fl">Status</label>
+        <select id="trModalStatus">
+          <option value="planned">Planificat</option>
+          <option value="requested">Cerut</option>
+          <option value="confirmed">Confirmat</option>
+          <option value="loading">În încărcare</option>
+          <option value="loaded">Încărcat</option>
+          <option value="problem">Problemă</option>
+          <option value="cancelled">Anulat</option>
+        </select>
       </div>
     </div>
+
     <div class="fr fr2">
       <div class="fg">
-        <label class="fl">Perioadă livrare — de la</label>
-        <input type="month" id="trModalStart">
+        <label class="fl">Bază / gară încărcare *</label>
+        <input type="text" id="trModalStation" placeholder="ex: Carei CFR / Valea lui Mihai">
       </div>
       <div class="fg">
-        <label class="fl">Perioadă livrare — până la</label>
-        <input type="month" id="trModalEnd">
+        <label class="fl">Destinație</label>
+        <input type="text" id="trModalDestination" placeholder="ex: Constanța / Ungaria / procesator">
       </div>
     </div>
+
+    <div class="fr fr3">
+      <div class="fg">
+        <label class="fl">Nr. tren</label>
+        <input type="text" id="trModalTrainNo" placeholder="opțional">
+      </div>
+      <div class="fg">
+        <label class="fl">Nr. vagoane</label>
+        <input type="number" id="trModalWagons" placeholder="ex: 32" min="0" step="1">
+      </div>
+      <div class="fg">
+        <label class="fl">Surveyor / tratament</label>
+        <input type="text" id="trModalSurveyor" placeholder="ex: Control Union / K-Obiol">
+      </div>
+    </div>
+
     <div class="fg">
-      <label class="fl">Notă</label>
-      <input type="text" id="trModalNote" placeholder="observații">
+      <label class="fl">Observații</label>
+      <input type="text" id="trModalNote" placeholder="ex: așteptăm nominarea, lipsă locomotivă, documente de trimis">
     </div>
+
     <div class="mbtns">
-      <button class="btn-cancel" id="trModalDeleteBtn" style="display:none;color:var(--short);border-color:rgba(240,138,142,.4);background:rgba(240,138,142,.07);" onclick="deleteTrainContract()">Șterge contract</button>
+      <button class="btn-cancel" id="trModalDeleteBtn" style="display:none;color:var(--short);border-color:rgba(240,138,142,.4);background:rgba(240,138,142,.07);" onclick="deleteTrainContract()">Șterge tren</button>
       <button class="btn-cancel" onclick="closeModal('trainContractModal')">Anulează</button>
       <button class="btn-save" onclick="saveTrainContract()">Salvează</button>
     </div>
@@ -3050,10 +3081,23 @@ function closeLogisticsTab(){
   document.querySelector('.main').style.display='flex';
 }
 
+
 /* ====================================================
-   TRAIN TAB
+   TRAIN TAB — Calendar operational
    ==================================================== */
-const TRAIN_STORAGE_KEY = 'agrotex_train_contracts_v1';
+const TRAIN_STATUS = {
+  planned:   { label:'Planificat',   cls:'planned' },
+  requested: { label:'Cerut',        cls:'requested' },
+  confirmed: { label:'Confirmat',    cls:'confirmed' },
+  loading:   { label:'În încărcare', cls:'loading' },
+  loaded:    { label:'Încărcat',     cls:'loaded' },
+  problem:   { label:'Problemă',     cls:'problem' },
+  cancelled: { label:'Anulat',       cls:'cancelled' }
+};
+let trainCalendarDate = new Date();
+trainCalendarDate.setDate(1);
+let selectedTrainDate = typeof today === 'function' ? today() : new Date().toISOString().slice(0,10);
+let selectedTrainEvent = null;
 
 async function apiLoadTrainContracts(){
   const res = await fetch('/api/train/contracts');
@@ -3078,11 +3122,39 @@ async function apiBulkTrainContracts(contracts, mode){
   return await res.json();
 }
 
+function makeTrainId(){ return 'tr_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
+function makeShipmentId(){ return 'sh_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
+function trainTodayKey(){ return typeof today === 'function' ? today() : new Date().toISOString().slice(0,10); }
+function trainMonthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function trainDateKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function trainStatus(raw){
+  const s = String(raw || 'planned').toLowerCase();
+  if(s === 'done') return 'loaded';
+  if(s === 'plan') return 'planned';
+  return TRAIN_STATUS[s] ? s : 'planned';
+}
+function trShipmentDateFrom(sh){ return sh?.date || sh?.dateFrom || sh?.from || sh?.plannedDate || ''; }
+function trShipmentDateTo(sh){ return sh?.dateTo || sh?.to || sh?.endDate || trShipmentDateFrom(sh); }
+function trShipmentDateLabel(sh){
+  const a = trShipmentDateFrom(sh) || '—';
+  const b = trShipmentDateTo(sh) || a;
+  return a === b ? a : `${a} → ${b}`;
+}
+function trainProductName(key){
+  const p = products[key] || {};
+  return `${p.emoji || '📦'} ${p.name || key || 'Produs'}`;
+}
+function trainContractLabel(c){
+  return String(c.sourceContractNo || c.contractNo || c.name || c.id || 'Fără contract').trim();
+}
+function trainQty(sh, c){ return Number(sh?.qty || sh?.quantity || c?.qty || 0) || 0; }
+function trainStation(sh, c){ return String(sh?.station || sh?.loadingBase || c?.defaultStation || c?.station || '').trim(); }
+function trainClient(c){ return String(c?.client || c?.counterparty || c?.cpty || '').trim(); }
+
 async function loadTrainContracts(){
   try{
-    // Modulul Trenuri este acum server-side. Nu mai citim automat localStorage,
-    // ca să evităm erori Safari / date vechi cu structură diferită.
     trainContracts = await apiLoadTrainContracts();
+    normalizeTrainContracts();
   }catch(e){
     console.error('Train server load failed:', e);
     trainContracts = [];
@@ -3092,6 +3164,7 @@ async function loadTrainContracts(){
 }
 async function saveTrainContracts(){
   try{
+    normalizeTrainContracts();
     await apiBulkTrainContracts(trainContracts, 'upsert');
     updateTrainBadge();
   }catch(e){
@@ -3099,16 +3172,28 @@ async function saveTrainContracts(){
     alert('Eroare la salvarea trenurilor pe server: ' + e.message);
   }
 }
+function normalizeTrainContracts(){
+  if(!Array.isArray(trainContracts)) trainContracts = [];
+  trainContracts.forEach(c=>{
+    c.id = c.id || makeTrainId();
+    c.shipments = Array.isArray(c.shipments) ? c.shipments : [];
+    c.shipments.forEach(sh=>{
+      sh.id = sh.id || makeShipmentId();
+      sh.status = trainStatus(sh.status);
+      if(!sh.date && sh.dateFrom) sh.date = sh.dateFrom;
+      if(!sh.date && sh.from) sh.date = sh.from;
+      if(!sh.qty && sh.quantity) sh.qty = sh.quantity;
+    });
+  });
+}
 function updateTrainBadge(){
   const badge = document.getElementById('bTrain');
   if(badge){
-    const active = trainContracts.filter(c=>!c.closed).length;
-    badge.textContent = active;
-    badge.style.display = active ? '' : 'none';
+    const count = getAllTrainEvents(false).filter(ev=>!['loaded','cancelled'].includes(ev.status)).length;
+    badge.textContent = count;
+    badge.style.display = count ? '' : 'none';
   }
 }
-function makeTrainId(){ return 'tr_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
-function makeShipmentId(){ return 'sh_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
 
 function getTradeContractNumber(t){
   return String(t?.note || t?.contractNumber || t?.numarContract || '').trim();
@@ -3154,10 +3239,11 @@ async function syncTrainContractFromTrade(t){
   if(!t || !t.id || !t.isTrain) return;
   if(!Array.isArray(trainContracts) || !trainContracts.length) await loadTrainContracts();
   const tradeId = String(t.id);
-  const existing = trainContracts.find(c=>String(c.sourceTradeId || '')===tradeId);
-  const name = trainContractNameFromTrade(t);
+  let c = trainContracts.find(x=>String(x.sourceTradeId || '')===tradeId);
   const payload = {
-    name,
+    name: trainContractNameFromTrade(t),
+    contractNo: getTradeContractNumber(t),
+    sourceContractNo: getTradeContractNumber(t),
     product: t.product,
     crop: t.crop,
     qty: Number(t.qty)||0,
@@ -3166,26 +3252,58 @@ async function syncTrainContractFromTrade(t){
     end: t.trainEnd || t.trainStart || '',
     defaultStation: t.trainStation || '',
     sourceTradeId: tradeId,
-    sourceContractNo: getTradeContractNumber(t),
     autoFromTrade: true,
     note: t.note || ''
   };
-  if(existing){
-    Object.assign(existing, payload, { updatedAt: new Date().toISOString() });
-    selectedTrainId = existing.id;
+  const isNew = !c;
+  if(c){
+    Object.assign(c, payload, { updatedAt: new Date().toISOString() });
   } else {
-    const newC = {
-      id: makeTrainId(),
-      ...payload,
-      closed: false,
-      shipments: [],
-      createdAt: new Date().toISOString()
-    };
-    trainContracts.push(newC);
-    selectedTrainId = newC.id;
+    c = { id: makeTrainId(), ...payload, closed:false, shipments:[], createdAt:new Date().toISOString() };
+    trainContracts.push(c);
   }
-  await apiSaveTrainContract(existing || newC);
+  selectedTrainId = c.id;
+  await apiSaveTrainContract(c, isNew);
   await loadTrainContracts();
+}
+
+function getAllTrainEvents(applyFilters=true){
+  normalizeTrainContracts();
+  let events = [];
+  trainContracts.forEach(c=>{
+    (c.shipments||[]).forEach(sh=>{
+      const date = trShipmentDateFrom(sh);
+      if(!date) return;
+      const ev = { contract:c, shipment:sh, contractId:c.id, shipmentId:sh.id, date, dateTo:trShipmentDateTo(sh), status:trainStatus(sh.status) };
+      events.push(ev);
+    });
+  });
+  if(!applyFilters) return events;
+  const q = String(document.getElementById('trainSearch')?.value || '').trim().toLowerCase();
+  const prod = document.getElementById('trainFilterProduct')?.value || '';
+  const st = document.getElementById('trainFilterStatus')?.value || '';
+  const base = String(document.getElementById('trainFilterBase')?.value || '').trim().toLowerCase();
+  return events.filter(ev=>{
+    const c = ev.contract, sh = ev.shipment;
+    const hay = [trainContractLabel(c), c.name, c.client, c.defaultStation, sh.station, sh.destination, sh.note, sh.trainNo, trainProductName(c.product)].join(' ').toLowerCase();
+    if(q && !hay.includes(q)) return false;
+    if(prod && c.product !== prod) return false;
+    if(st && ev.status !== st) return false;
+    if(base && !String(trainStation(sh,c)).toLowerCase().includes(base)) return false;
+    return true;
+  });
+}
+function getEventsForDate(key){
+  return getAllTrainEvents(true).filter(ev=>{
+    const a = ev.date;
+    const b = ev.dateTo || a;
+    return key >= a && key <= b;
+  }).sort((a,b)=>String(a.status).localeCompare(String(b.status)) || trainContractLabel(a.contract).localeCompare(trainContractLabel(b.contract)));
+}
+function getEvent(contractId, shipmentId){
+  const c = trainContracts.find(x=>x.id===contractId);
+  const sh = c?.shipments?.find(x=>x.id===shipmentId);
+  return c && sh ? {contract:c, shipment:sh, contractId, shipmentId, date:trShipmentDateFrom(sh), dateTo:trShipmentDateTo(sh), status:trainStatus(sh.status)} : null;
 }
 
 async function setTrainTab(){
@@ -3195,7 +3313,8 @@ async function setTrainTab(){
   setCropTabsVisible(false);
   document.querySelector('.main').style.display = 'none';
   document.getElementById('trainSection').style.display = 'flex';
-  await loadTrainContracts();
+  if(!Array.isArray(trainContracts) || !trainContracts.length) await loadTrainContracts();
+  selectedTrainDate = selectedTrainDate || trainTodayKey();
   renderTrainTab();
 }
 function closeTrainTab(){
@@ -3205,446 +3324,315 @@ function closeTrainTab(){
   setCropTabsVisible(true);
   document.querySelector('.main').style.display = 'flex';
 }
-function setTrainView(v){
-  trainView = v;
-  document.getElementById('btnTrainGantt').className = 'tr-vtbtn' + (v==='gantt'?' active':'');
-  document.getElementById('btnTrainList').className = 'tr-vtbtn' + (v==='list'?' active':'');
-  renderTrainLeft();
+function trainCalendarShift(delta){
+  trainCalendarDate.setMonth(trainCalendarDate.getMonth()+delta);
+  trainCalendarDate.setDate(1);
+  selectedTrainEvent = null;
+  renderTrainTab();
 }
-function trainGanttShift(delta){
-  trainGanttOffset += delta;
-  renderTrainLeft();
+function trainCalendarToday(){
+  trainCalendarDate = new Date();
+  trainCalendarDate.setDate(1);
+  selectedTrainDate = trainTodayKey();
+  selectedTrainEvent = null;
+  renderTrainTab();
+}
+function clearTrainFilters(){
+  ['trainSearch','trainFilterBase'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['trainFilterProduct','trainFilterStatus'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  renderTrainTab();
+}
+function selectTrainDay(key){
+  selectedTrainDate = key;
+  selectedTrainEvent = null;
+  renderTrainCalendar();
+  renderTrainSide();
+}
+function selectTrainEvent(contractId, shipmentId){
+  selectedTrainId = contractId;
+  selectedTrainEvent = {contractId, shipmentId};
+  const ev = getEvent(contractId, shipmentId);
+  if(ev) selectedTrainDate = ev.date;
+  renderTrainCalendar();
+  renderTrainSide();
 }
 
-/* ---- Selectors ---- */
-function selectTrainContract(id){
-  selectedTrainId = id;
-  renderTrainContractList();
-  renderTrainQuickForm();
-  renderTrainDetail();
-}
-function trGetContract(id){ return trainContracts.find(c=>c.id===id); }
-
-/* ---- KPIs ---- */
 function renderTrainKpis(){
-  const active = trainContracts.filter(c=>!c.closed);
-  const totalQty = active.reduce((s,c)=>s+Number(c.qty||0),0);
-  const doneQty = active.reduce((s,c)=>s+trShippedQty(c),0);
-  const leftQty = Math.max(0, totalQty - doneQty);
-  const totalShipments = active.reduce((s,c)=>s+(c.shipments||[]).length,0);
-  const pct = totalQty>0 ? ((doneQty/totalQty)*100).toFixed(1) : '0.0';
-  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('trKpiActive', active.length);
-  set('trKpiActiveSub', `${trainContracts.filter(c=>c.closed).length} finalizate`);
-  set('trKpiTotal', fmtN(totalQty)+' t');
-  set('trKpiTotalSub', `${active.length} contracte active`);
-  set('trKpiDone', fmtN(doneQty)+' t');
-  set('trKpiDonePct', `${pct}% din total`);
-  set('trKpiLeft', fmtN(leftQty)+' t');
-  set('trKpiLeftSub', leftQty>0 ? 'nelivrat' : '✓ tot livrat');
-  set('trKpiShipments', totalShipments);
-  set('trKpiShipmentsSub', `nominări înregistrate`);
+  const month = trainMonthKey(trainCalendarDate);
+  const events = getAllTrainEvents(true).filter(ev=>ev.date.slice(0,7)===month || (ev.dateTo && ev.dateTo.slice(0,7)===month));
+  const qty = events.reduce((s,ev)=>s+trainQty(ev.shipment, ev.contract),0);
+  const confirmed = events.filter(ev=>['confirmed','loading','loaded'].includes(ev.status));
+  const requested = events.filter(ev=>ev.status==='requested');
+  const problem = events.filter(ev=>ev.status==='problem');
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('trKpiMonth', events.length);
+  set('trKpiMonthSub', month);
+  set('trKpiConfirmed', confirmed.length);
+  set('trKpiConfirmedSub', fmtN(confirmed.reduce((s,ev)=>s+trainQty(ev.shipment,ev.contract),0))+' t');
+  set('trKpiRequested', requested.length);
+  set('trKpiRequestedSub', fmtN(requested.reduce((s,ev)=>s+trainQty(ev.shipment,ev.contract),0))+' t');
+  set('trKpiProblem', problem.length);
+  set('trKpiProblemSub', problem.length ? 'necesită acțiune' : 'fără probleme');
+  set('trKpiQty', fmtN(qty)+' t');
+  set('trKpiQtySub', events.length ? 'total filtrat în lună' : 'niciun tren');
 }
-function trShippedQty(c){ return (c.shipments||[]).reduce((s,sh)=>s+Number(sh.qty||0),0); }
-
-/* ---- Contract list ---- */
-function renderTrainContractList(){
-  const el = document.getElementById('trContractList');
-  const cnt = document.getElementById('trContractCount');
-  if(cnt) cnt.textContent = trainContracts.length + ' contracte';
-  if(!trainContracts.length){
-    el.innerHTML = '<div class="tr-empty">// niciun contract. Creează primul contract tren.</div>';
-    return;
-  }
-  el.innerHTML = trainContracts.map(c=>{
-    const done = trShippedQty(c);
-    const total = Number(c.qty||0);
-    const pct = total>0 ? Math.min(100, Math.round((done/total)*100)) : 0;
-    const left = Math.max(0, total-done);
-    const statusCls = c.closed ? 'badge-ok' : (left<=0 ? 'badge-ok' : 'badge-train');
-    const statusLbl = c.closed ? 'ÎNCHIS' : (left<=0 ? 'FINALIZAT' : 'ACTIV');
-    const prodEmoji = {wheat:'🌾',corn:'🌽',rapeseed:'🌿',sunflower:'🌻'}[c.product]||'📦';
-    const isActive = c.id === selectedTrainId;
-    return `<div class="tr-contract-item${isActive?' active':''}" onclick="selectTrainContract('${c.id}')">
-      <div class="tci-top">
-        <span class="tci-name">${prodEmoji} ${escHtml(c.name||'Contract')}</span>
-        <span class="ci-badge ${statusCls}">${statusLbl}</span>
-      </div>
-      <div class="tci-meta">
-        <span>${fmtN(total)} t</span>
-        <span>Rec. ${escHtml(c.crop||'—')}</span>
-        <span>${escHtml(c.start||'—')} → ${escHtml(c.end||'—')}</span>
-      </div>
-      <div class="tci-prog">
-        <div class="tci-prog-bar"><div class="tci-prog-fill" style="width:${pct}%;${c.closed||left<=0?'background:var(--long)':''}"></div></div>
-        <div class="tci-prog-label" style="${c.closed||left<=0?'color:var(--long)':''}">${fmtN(done)}/${fmtN(total)} t</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ---- Quick add form ---- */
-function trShipmentDateFrom(sh){ return sh.dateFrom || sh.loadDateFrom || sh.date || ''; }
-function trShipmentDateTo(sh){ return sh.dateTo || sh.loadDateTo || sh.date || trShipmentDateFrom(sh); }
-function trShipmentDateLabel(sh){
-  const a = trShipmentDateFrom(sh);
-  const b = trShipmentDateTo(sh);
-  if(!a && !b) return '—';
-  if(!b || a===b) return a;
-  return `${a} → ${b}`;
-}
-function trMonthKeyFromDate(dateStr){ return String(dateStr || '').slice(0,7); }
-function trCurrentCalendarMonth(){
-  const c = selectedTrainId ? trGetContract(selectedTrainId) : null;
-  const base = c?.start || trMonthKeyFromDate(trShipmentDateFrom((c?.shipments||[])[0])) || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  const d = new Date(base + '-01T00:00:00');
-  d.setMonth(d.getMonth() + trainGanttOffset);
-  return d;
-}
-function trSetQuickDates(from, to){
-  const f = document.getElementById('trAddDateFrom');
-  const t = document.getElementById('trAddDateTo');
-  if(f) f.value = from || today();
-  if(t) t.value = to || from || today();
-}
-function renderTrainQuickForm(){
-  const form = document.getElementById('trQuickForm');
-  const lbl = document.getElementById('trQuickFormContractName');
-  if(!selectedTrainId || !trGetContract(selectedTrainId)){
-    form.style.display = 'none'; return;
-  }
-  const c = trGetContract(selectedTrainId);
-  form.style.display = '';
-  if(lbl) lbl.textContent = c.name||'Contract selectat';
-  const dateFromEl = document.getElementById('trAddDateFrom');
-  const dateToEl = document.getElementById('trAddDateTo');
-  if(dateFromEl && !dateFromEl.value) dateFromEl.value = today();
-  if(dateToEl && !dateToEl.value) dateToEl.value = dateFromEl?.value || today();
-  const stationEl = document.getElementById('trAddStation');
-  if(stationEl && !stationEl.value && c.defaultStation) stationEl.value = c.defaultStation;
-}
-function trResetQuickForm(){
-  ['trAddDateFrom','trAddDateTo','trAddStation','trAddQty','trAddNote'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  trSetQuickDates(today(), today());
-  const c = trGetContract(selectedTrainId);
-  const stationEl = document.getElementById('trAddStation');
-  if(stationEl && c?.defaultStation) stationEl.value = c.defaultStation;
-}
-function trCalcQty(){ /* placeholder for future auto-calc */ }
-async function trAddShipment(){
-  if(!selectedTrainId){ alert('Selectează mai întâi un contract.'); return; }
-  const c = trGetContract(selectedTrainId);
-  if(!c){ return; }
-  const dateFrom = document.getElementById('trAddDateFrom').value;
-  const dateTo = document.getElementById('trAddDateTo').value || dateFrom;
-  const station = document.getElementById('trAddStation').value.trim();
-  const qty = parseFloat(document.getElementById('trAddQty').value);
-  if(!dateFrom){ alert('Completează data de început pentru încărcare.'); return; }
-  if(!dateTo){ alert('Completează data de final pentru încărcare.'); return; }
-  if(dateTo < dateFrom){ alert('Data finală nu poate fi înaintea datei de început.'); return; }
-  if(!station){ alert('Completează gara de încărcare.'); return; }
-  if(!qty || qty<100 || qty>2500){ alert('Cantitate invalidă. Introdu o valoare între 100 și 2500 t.'); return; }
-  c.shipments = c.shipments||[];
-  c.shipments.push({
-    id: makeShipmentId(),
-    date: dateFrom,
-    dateFrom,
-    dateTo,
-    loadDateFrom: dateFrom,
-    loadDateTo: dateTo,
-    station,
-    qty,
-    note: document.getElementById('trAddNote').value.trim(),
-    status: 'plan',
-    createdAt: new Date().toISOString()
-  });
-  await apiSaveTrainContract(c);
-  await loadTrainContracts();
-  trResetQuickForm();
-  renderTrainTab();
-}
-
-/* ---- Shipment status cycle ---- */
-async function trCycleStatus(contractId, shipmentId){
-  const c = trGetContract(contractId); if(!c) return;
-  const sh = (c.shipments||[]).find(s=>s.id===shipmentId); if(!sh) return;
-  sh.status = (sh.status === 'done') ? 'plan' : 'done';
-  await apiSaveTrainContract(c);
-  await loadTrainContracts();
-  renderTrainTab();
-}
-async function trDeleteShipment(contractId, shipmentId){
-  const c = trGetContract(contractId); if(!c) return;
-  c.shipments = (c.shipments||[]).filter(s=>s.id!==shipmentId);
-  await apiSaveTrainContract(c);
-  await loadTrainContracts();
-  renderTrainTab();
-}
-
-/* ---- Detail panel ---- */
-function renderTrainDetail(){
-  const panel = document.getElementById('trDetailPanel');
-  if(!selectedTrainId || !trGetContract(selectedTrainId)){
-    panel.style.display = 'none'; return;
-  }
-  panel.style.display = '';
-  const c = trGetContract(selectedTrainId);
-  const title = document.getElementById('trDetailTitle');
-  if(title) title.textContent = `Nominări — ${c.name||'Contract'}`;
-
-  const done = trShippedQty(c);
-  const total = Number(c.qty||0);
-  const left = Math.max(0, total-done);
-  const shipments = c.shipments||[];
-  const countDone = shipments.filter(s=>s.status==='done').length;
-
-  const subKpis = document.getElementById('trSubKpis');
-  if(subKpis) subKpis.innerHTML = `
-    <div class="tr-sub-kpi"><div class="train-kpi-l">Contractat</div><div class="train-kpi-v" style="font-size:14px;color:var(--acc)">${fmtN(total)} t</div></div>
-    <div class="tr-sub-kpi"><div class="train-kpi-l">Nominat</div><div class="train-kpi-v" style="font-size:14px;color:var(--long)">${fmtN(done)} t</div></div>
-    <div class="tr-sub-kpi"><div class="train-kpi-l">Rămas</div><div class="train-kpi-v" style="font-size:14px;color:var(--transport)">${fmtN(left)} t</div></div>
-    <div class="tr-sub-kpi"><div class="train-kpi-l">Nominări</div><div class="train-kpi-v" style="font-size:14px;color:var(--bright)">${shipments.length} <span style="font-size:10px;color:var(--dim)">(${countDone} finalizate)</span></div></div>`;
-
-  const wrap = document.querySelector('#trDetailPanel .tr-table-wrap');
-  if(!shipments.length){
-    if(wrap) wrap.innerHTML = '<div class="tr-empty" style="margin:8px 0;">// nicio nominare înregistrată. Adaugă prima nominare folosind formularul de mai sus.</div>';
-    return;
-  }
-  if(wrap && !document.getElementById('trShipmentsBody')){
-    wrap.innerHTML = `<table class="tr-table"><thead><tr><th>Perioadă încărcare</th><th>Gară încărcare</th><th>Cantitate (t)</th><th>Status</th><th>Observații</th><th></th></tr></thead><tbody id="trShipmentsBody"></tbody></table>`;
-  }
-  const statusMap = {
-    done: `<span class="tdot tdot-ok"></span><span style="color:var(--long);cursor:pointer;" title="Click: schimbă status">Finalizat</span>`,
-    plan: `<span class="tdot tdot-plan"></span><span style="color:var(--dim);cursor:pointer;" title="Click: schimbă status">Nominat</span>`
-  };
-  const sorted = [...shipments].sort((a,b)=>String(trShipmentDateFrom(a)||'').localeCompare(String(trShipmentDateFrom(b)||'')));
-  const body = document.getElementById('trShipmentsBody');
-  if(!body) return;
-  body.innerHTML = sorted.map(sh=>`
-    <tr>
-      <td>${escHtml(trShipmentDateLabel(sh))}</td>
-      <td>${escHtml(sh.station||'—')}</td>
-      <td style="font-weight:800;color:var(--transport)">${fmtN(sh.qty)} t</td>
-      <td onclick="trCycleStatus('${c.id}','${sh.id}')" style="cursor:pointer;">${statusMap[sh.status||'plan']||statusMap.plan}</td>
-      <td style="color:var(--dim);max-width:220px;overflow:hidden;text-overflow:ellipsis;">${escHtml(sh.note||'—')}</td>
-      <td><button class="btn-sm" style="color:var(--short)" onclick="trDeleteShipment('${c.id}','${sh.id}')">✕</button></td>
-    </tr>`).join('');
-}
-
-/* ---- Calendar view ---- */
-function renderTrainGantt(){
-  const body = document.getElementById('trainLeftBody');
-  const lbl = document.getElementById('ganttRangeLabel');
-  const nav = document.getElementById('ganttNav');
-  if(nav) nav.style.display = '';
-  if(document.getElementById('trainPanelTitle')) document.getElementById('trainPanelTitle').textContent = 'Calendar nominări';
-
-  if(!selectedTrainId || !trGetContract(selectedTrainId)){
-    body.innerHTML = '<div class="tr-empty">// selectează un contract tren ca să vezi calendarul de nominări.</div>';
-    if(lbl) lbl.textContent = '—';
-    return;
-  }
-  const c = trGetContract(selectedTrainId);
-  const viewDate = trCurrentCalendarMonth();
-  const y = viewDate.getFullYear();
-  const m = viewDate.getMonth();
-  const monthLabels = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
-  if(lbl) lbl.textContent = `${monthLabels[m]} ${y}`;
-
-  const start = new Date(y, m, 1);
-  const firstDay = (start.getDay()+6)%7;
-  const gridStart = new Date(y, m, 1-firstDay);
-  const todayKey = today();
-  const contractStart = c.start || '';
-  const contractEnd = c.end || c.start || '';
-  const shipments = c.shipments || [];
-  const prod = products[c.product] || { name: c.product || 'Produs', emoji: '📦' };
-  const contractClient = String(c.client || c.counterparty || c.cpty || c.name || '—').replace(/^.*·\s*/, '').trim() || '—';
-  const contractStation = String(c.defaultStation || c.station || 'fără gară').trim();
-  const contractLine1 = `${prod.emoji || ''} ${prod.name || c.product || 'Produs'}`.trim();
-  const contractLine2 = `${contractClient}${contractStation ? ' · ' + contractStation : ''}`;
-  const dows = ['L','Ma','Mi','J','V','S','D'];
-
-  let html = `<div class="train-calendar-toolbar">
-    <div><div class="train-calendar-title">${escHtml(c.name||'Contract')}</div><div class="train-calendar-sub">Livrare contractuală: ${escHtml(contractStart||'—')} → ${escHtml(contractEnd||'—')}</div></div>
-    <button class="btn-tr" onclick="trSetQuickDates('${todayKey}','${todayKey}');document.getElementById('trQuickForm')?.scrollIntoView({behavior:'smooth'})">+ Nominare azi</button>
-  </div>`;
-  html += '<div class="train-calendar-grid">' + dows.map(d=>`<div class="train-calendar-dow">${d}</div>`).join('');
-
+function renderTrainCalendar(){
+  const title = document.getElementById('trainCalendarTitle');
+  const grid = document.getElementById('trainCalendarGrid');
+  if(!grid) return;
+  const months = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+  const y = trainCalendarDate.getFullYear();
+  const m = trainCalendarDate.getMonth();
+  if(title) title.textContent = `${months[m]} ${y}`;
+  const dows = ['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
+  const first = new Date(y,m,1);
+  const start = new Date(first);
+  const mondayIndex = (first.getDay()+6)%7;
+  start.setDate(first.getDate()-mondayIndex);
+  const todayKey = trainTodayKey();
+  let html = dows.map(d=>`<div class="train-calendar-dow">${d}</div>`).join('');
   for(let i=0;i<42;i++){
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate()+i);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const mk = key.slice(0,7);
-    const out = d.getMonth()!==m;
-    const inWindow = contractStart && contractEnd && mk >= contractStart && mk <= contractEnd;
-    const dayShipments = shipments.filter(sh=>{
-      const a = trShipmentDateFrom(sh);
-      const b = trShipmentDateTo(sh) || a;
-      return a && key >= a && key <= b;
-    });
-    html += `<div class="train-day${out?' out':''}${inWindow?' in-window':''}${key===todayKey?' today':''}" onclick="trSetQuickDates('${key}','${key}');document.getElementById('trQuickForm')?.scrollIntoView({behavior:'smooth'})">
-      <div class="train-day-num">${d.getDate()}</div>
-      ${inWindow?`<div class="train-day-contract"><b>${escHtml(contractLine1)}</b><span>${escHtml(contractLine2)}</span></div>`:''}
-      ${dayShipments.map(sh=>`<div class="train-nom-pill ${sh.status==='done'?'done':''}" title="${escHtml(trShipmentDateLabel(sh))}"><b>${fmtN(sh.qty)} t</b><br>${escHtml(sh.station||contractStation||'—')}</div>`).join('')}
+    const d = new Date(start);
+    d.setDate(start.getDate()+i);
+    const key = trainDateKey(d);
+    const events = getEventsForDate(key);
+    const dayQty = events.reduce((s,ev)=>s+trainQty(ev.shipment, ev.contract),0);
+    const out = d.getMonth() !== m;
+    const selected = key === selectedTrainDate;
+    html += `<div class="train-cal-day${out?' out':''}${key===todayKey?' today':''}${selected?' selected':''}" onclick="selectTrainDay('${key}')">
+      <div class="train-day-head"><span class="train-day-num">${d.getDate()}</span>${events.length?`<span class="train-day-total">${events.length} / ${fmtN(dayQty)} t</span>`:''}</div>
+      ${events.slice(0,4).map(ev=>renderTrainEventCard(ev)).join('')}
+      ${events.length>4?`<div class="train-more">+ ${events.length-4} încă</div>`:''}
     </div>`;
   }
-  html += '</div>';
-  html += `<div class="train-window-note">Click pe o zi completează automat perioada de încărcare în formularul de nominare. Pentru încărcare pe două zile modifici manual câmpul „până la”.</div>`;
-  body.innerHTML = html;
+  grid.innerHTML = html;
 }
-
-/* ---- List view ---- */
-function renderTrainList(){
-  const body = document.getElementById('trainLeftBody');
-  const nav = document.getElementById('ganttNav');
-  if(nav) nav.style.display = 'none';
-  if(document.getElementById('trainPanelTitle')) document.getElementById('trainPanelTitle').textContent = 'Toate nominările — Cronologic';
-
-  const allShipments = [];
-  trainContracts.forEach(c=>{
-    (c.shipments||[]).forEach(sh=>{
-      allShipments.push({...sh, contractId:c.id, contractName:c.name||'—', product:c.product});
-    });
-  });
-  if(!allShipments.length){
-    body.innerHTML = '<div class="tr-empty">// nicio nominare înregistrată.</div>';
-    return;
+function renderTrainEventCard(ev){
+  const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
+  const contract = escHtml(trainContractLabel(c));
+  const prod = escHtml(trainProductName(c.product).replace(/^\S+\s/,''));
+  const station = escHtml(trainStation(sh,c) || 'fără bază');
+  const qty = fmtN(trainQty(sh,c));
+  return `<div class="train-event-card ${st.cls}" onclick="event.stopPropagation();selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
+    <div class="train-event-title">${contract}</div>
+    <div class="train-event-meta">${prod} · ${qty} t</div>
+    <div class="train-event-meta">${station} · ${st.label}</div>
+  </div>`;
+}
+function renderTrainSide(){
+  const el = document.getElementById('trainSidePanel');
+  if(!el) return;
+  if(selectedTrainEvent){
+    const ev = getEvent(selectedTrainEvent.contractId, selectedTrainEvent.shipmentId);
+    if(ev){ el.innerHTML = renderTrainEventDetail(ev); return; }
   }
-  allShipments.sort((a,b)=>String(trShipmentDateFrom(b)||'').localeCompare(String(trShipmentDateFrom(a)||'')));
-  const statusMap = {done:{lbl:'Finalizat',cls:'color:var(--long)'},plan:{lbl:'Nominat',cls:'color:var(--dim)'}};
-  const prodEmoji = {wheat:'🌾',corn:'🌽',rapeseed:'🌿',sunflower:'🌻'};
-  body.innerHTML = `<div class="tr-list-view">${allShipments.map(sh=>{
-    const st = statusMap[sh.status||'plan']||statusMap.plan;
-    return `<div class="tr-list-item" onclick="selectTrainContract('${sh.contractId}')">
-      <div>
-        <div class="tr-list-date">${escHtml(trShipmentDateLabel(sh))}</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;${st.cls};margin-top:3px;">${st.lbl}</div>
-      </div>
-      <div class="tr-list-info">
-        <div class="tr-list-name">${prodEmoji[sh.product]||'📦'} ${escHtml(sh.contractName)}</div>
-        <div class="tr-list-meta">${escHtml(sh.station||'—')} ${sh.note?'· '+escHtml(sh.note):''}</div>
-      </div>
-      <div class="tr-list-qty">${fmtN(sh.qty)} t</div>
+  const key = selectedTrainDate || trainTodayKey();
+  const events = getEventsForDate(key);
+  const label = key.split('-').reverse().join('.');
+  el.innerHTML = `<div class="train-side-title">Agenda zilei</div>
+    <div class="train-side-sub">${label} · ${events.length} trenuri</div>
+    <button class="btn-tr" style="width:100%;margin-bottom:10px;" onclick="openTrainContractModal(null,null,'${key}')">+ Adaugă tren în această zi</button>
+    ${events.length ? `<div class="train-side-list">${events.map(ev=>renderTrainSideItem(ev)).join('')}</div>` : '<div class="tr-empty">// niciun tren planificat în această zi</div>'}`;
+}
+function renderTrainSideItem(ev){
+  const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
+  return `<div class="train-side-item" onclick="selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><strong style="color:var(--bright);font-size:12px;">${escHtml(trainContractLabel(c))}</strong><span class="train-status-pill ${st.cls}">${st.label}</span></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:5px;line-height:1.45;">${escHtml(trainProductName(c.product))} · ${fmtN(trainQty(sh,c))} t<br>${escHtml(trainStation(sh,c)||'fără bază')} ${sh.destination?'→ '+escHtml(sh.destination):''}</div>
+  </div>`;
+}
+function renderTrainEventDetail(ev){
+  const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
+  const detail = [
+    ['Data', trShipmentDateLabel(sh)],
+    ['Contract', trainContractLabel(c)],
+    ['Produs', trainProductName(c.product)],
+    ['Cantitate', fmtN(trainQty(sh,c))+' t'],
+    ['Bază', trainStation(sh,c)||'—'],
+    ['Destinație', sh.destination||'—'],
+    ['Client', trainClient(c)||'—'],
+    ['Nr. tren', sh.trainNo||'—'],
+    ['Vagoane', sh.wagons||'—'],
+    ['Surveyor', sh.surveyor||'—']
+  ];
+  return `<div class="train-side-title">Detalii tren</div>
+    <div class="train-side-sub">${escHtml(trainContractLabel(c))}</div>
+    <span class="train-status-pill ${st.cls}">${st.label}</span>
+    <div class="train-detail-grid">${detail.map(([l,v])=>`<div class="train-detail-box"><div class="train-detail-l">${escHtml(l)}</div><div class="train-detail-v">${escHtml(String(v))}</div></div>`).join('')}</div>
+    ${sh.note?`<div class="train-detail-box" style="margin-bottom:10px;"><div class="train-detail-l">Observații</div><div class="train-detail-v">${escHtml(sh.note)}</div></div>`:''}
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn-tr" onclick="openTrainContractModal('${ev.contractId}','${ev.shipmentId}')">✎ Editează</button>
+      <button class="btn-sm" onclick="copyTrainEmail('${ev.contractId}','${ev.shipmentId}')">Copiază email</button>
+    </div>
+    <div class="train-status-actions">
+      <button class="btn-sm" onclick="quickTrainStatus('${ev.contractId}','${ev.shipmentId}','requested')">Cerut</button>
+      <button class="btn-sm" onclick="quickTrainStatus('${ev.contractId}','${ev.shipmentId}','confirmed')">Confirmat</button>
+      <button class="btn-sm" onclick="quickTrainStatus('${ev.contractId}','${ev.shipmentId}','loading')">În încărcare</button>
+      <button class="btn-sm" onclick="quickTrainStatus('${ev.contractId}','${ev.shipmentId}','loaded')">Încărcat</button>
+      <button class="btn-sm" onclick="quickTrainStatus('${ev.contractId}','${ev.shipmentId}','problem')">Problemă</button>
+      <button class="btn-sm" onclick="quickTrainStatus('${ev.contractId}','${ev.shipmentId}','cancelled')">Anulat</button>
     </div>`;
-  }).join('')}</div>`;
 }
-
-function renderTrainLeft(){
-  if(trainView==='gantt') renderTrainGantt();
-  else renderTrainList();
-}
-
-/* ---- Main render ---- */
 function renderTrainTab(){
   renderTrainKpis();
-  renderTrainContractList();
-  renderTrainLeft();
-  renderTrainQuickForm();
-  renderTrainDetail();
+  renderTrainCalendar();
+  renderTrainSide();
+  updateTrainBadge();
 }
 
-/* ---- Contract modal ---- */
-function openTrainContractModal(id){
+function openTrainContractModal(contractId=null, shipmentId=null, forcedDate=null){
+  const modal = document.getElementById('trainContractModal');
   const title = document.getElementById('trModalTitle');
-  const delBtn = document.getElementById('trModalDeleteBtn');
-  if(id){
-    const c = trGetContract(id);
-    if(!c) return;
-    document.getElementById('trModalId').value = c.id;
-    document.getElementById('trModalName').value = c.name||'';
-    document.getElementById('trModalProduct').value = c.product||'wheat';
-    document.getElementById('trModalCrop').value = c.crop||'2025';
-    document.getElementById('trModalQty').value = c.qty||'';
-    document.getElementById('trModalClient').value = c.client||'';
-    document.getElementById('trModalStart').value = c.start||'';
-    document.getElementById('trModalEnd').value = c.end||'';
-    document.getElementById('trModalNote').value = c.note||'';
-    if(title) title.textContent = 'Editează contract tren';
-    if(delBtn) delBtn.style.display = '';
-  } else {
-    document.getElementById('trModalId').value = '';
-    document.getElementById('trModalName').value = '';
-    document.getElementById('trModalProduct').value = 'wheat';
-    document.getElementById('trModalCrop').value = '2025';
-    document.getElementById('trModalQty').value = '';
-    document.getElementById('trModalClient').value = '';
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    document.getElementById('trModalStart').value = ym;
-    document.getElementById('trModalEnd').value = ym;
-    document.getElementById('trModalNote').value = '';
-    if(title) title.textContent = 'Contract tren nou';
-    if(delBtn) delBtn.style.display = 'none';
-  }
-  document.getElementById('trainContractModal').classList.add('open');
+  const del = document.getElementById('trModalDeleteBtn');
+  const ev = contractId && shipmentId ? getEvent(contractId, shipmentId) : null;
+  const c = ev?.contract || null;
+  const sh = ev?.shipment || null;
+  document.getElementById('trModalContractId').value = c?.id || '';
+  document.getElementById('trModalShipmentId').value = sh?.id || '';
+  document.getElementById('trModalContractNo').value = c ? trainContractLabel(c) : '';
+  document.getElementById('trModalClient').value = c?.client || '';
+  document.getElementById('trModalProduct').value = c?.product || 'wheat';
+  document.getElementById('trModalQty').value = sh ? trainQty(sh,c) : '';
+  document.getElementById('trModalCrop').value = c?.crop || String(new Date().getFullYear());
+  document.getElementById('trModalDate').value = sh ? trShipmentDateFrom(sh) : (forcedDate || selectedTrainDate || trainTodayKey());
+  document.getElementById('trModalDateTo').value = sh ? (trShipmentDateTo(sh)||trShipmentDateFrom(sh)) : (forcedDate || selectedTrainDate || trainTodayKey());
+  document.getElementById('trModalStatus').value = sh ? trainStatus(sh.status) : 'planned';
+  document.getElementById('trModalStation').value = sh ? trainStation(sh,c) : '';
+  document.getElementById('trModalDestination').value = sh?.destination || '';
+  document.getElementById('trModalTrainNo').value = sh?.trainNo || '';
+  document.getElementById('trModalWagons').value = sh?.wagons || '';
+  document.getElementById('trModalSurveyor').value = sh?.surveyor || '';
+  document.getElementById('trModalNote').value = sh?.note || '';
+  if(title) title.textContent = sh ? 'Editează tren' : 'Adaugă tren';
+  if(del) del.style.display = sh ? '' : 'none';
+  modal.classList.add('open');
 }
 async function saveTrainContract(){
   try{
-    const id = document.getElementById('trModalId').value;
-    const name = document.getElementById('trModalName').value.trim();
+    const contractId = document.getElementById('trModalContractId').value;
+    const shipmentId = document.getElementById('trModalShipmentId').value;
+    const contractNo = document.getElementById('trModalContractNo').value.trim();
+    const client = document.getElementById('trModalClient').value.trim();
+    const product = document.getElementById('trModalProduct').value;
     const qty = parseFloat(document.getElementById('trModalQty').value);
-    if(!name){ alert('Introdu denumirea contractului.'); return; }
-    if(!qty || qty<=0){ alert('Completează cantitatea contractată.'); return; }
+    const cropVal = document.getElementById('trModalCrop').value;
+    const date = document.getElementById('trModalDate').value;
+    const dateTo = document.getElementById('trModalDateTo').value || date;
+    const station = document.getElementById('trModalStation').value.trim();
+    if(!contractNo){ alert('Completează contractul sau referința.'); return; }
+    if(!qty || qty<=0){ alert('Completează cantitatea estimată.'); return; }
+    if(!date){ alert('Alege data planificată.'); return; }
+    if(!station){ alert('Completează baza sau gara de încărcare.'); return; }
 
-    let saved = null;
-    const isNewTrainContract = !id;
-
-    if(id){
-      const c = trGetContract(id);
-      if(!c){ alert('Contractul nu mai există în listă. Reîncarcă pagina și încearcă din nou.'); return; }
-      c.name = name;
-      c.product = document.getElementById('trModalProduct').value;
-      c.crop = document.getElementById('trModalCrop').value;
-      c.qty = qty;
-      c.client = document.getElementById('trModalClient').value.trim();
-      c.start = document.getElementById('trModalStart').value;
-      c.end = document.getElementById('trModalEnd').value;
-      c.note = document.getElementById('trModalNote').value.trim();
-      c.updatedAt = new Date().toISOString();
-      saved = c;
-    } else {
-      saved = {
-        id: makeTrainId(),
-        name,
-        product: document.getElementById('trModalProduct').value,
-        crop: document.getElementById('trModalCrop').value,
-        qty,
-        client: document.getElementById('trModalClient').value.trim(),
-        start: document.getElementById('trModalStart').value,
-        end: document.getElementById('trModalEnd').value,
-        note: document.getElementById('trModalNote').value.trim(),
-        closed: false,
-        shipments: [],
-        createdAt: new Date().toISOString()
-      };
-      trainContracts.push(saved);
-      selectedTrainId = saved.id;
+    let c = contractId ? trainContracts.find(x=>x.id===contractId) : null;
+    let isNew = false;
+    if(!c){
+      c = trainContracts.find(x=>String(trainContractLabel(x)).toLowerCase()===contractNo.toLowerCase());
     }
+    if(!c){
+      isNew = true;
+      c = { id: makeTrainId(), name: contractNo, contractNo, product, crop: cropVal, qty: 0, client, defaultStation: station, closed:false, shipments:[], createdAt:new Date().toISOString() };
+      trainContracts.push(c);
+    }
+    c.name = contractNo;
+    c.contractNo = contractNo;
+    c.product = product;
+    c.crop = cropVal;
+    c.client = client;
+    c.defaultStation = station || c.defaultStation || '';
+    c.qty = Math.max(Number(c.qty)||0, qty);
+    c.updatedAt = new Date().toISOString();
+    c.shipments = Array.isArray(c.shipments) ? c.shipments : [];
 
-    await apiSaveTrainContract(saved, isNewTrainContract);
+    let sh = shipmentId ? c.shipments.find(x=>x.id===shipmentId) : null;
+    if(!sh){
+      sh = { id: makeShipmentId(), createdAt:new Date().toISOString() };
+      c.shipments.push(sh);
+    }
+    Object.assign(sh, {
+      date,
+      dateTo,
+      qty,
+      station,
+      loadingBase: station,
+      destination: document.getElementById('trModalDestination').value.trim(),
+      status: document.getElementById('trModalStatus').value,
+      trainNo: document.getElementById('trModalTrainNo').value.trim(),
+      wagons: document.getElementById('trModalWagons').value.trim(),
+      surveyor: document.getElementById('trModalSurveyor').value.trim(),
+      note: document.getElementById('trModalNote').value.trim(),
+      updatedAt: new Date().toISOString()
+    });
+    await apiSaveTrainContract(c, isNew);
     await loadTrainContracts();
-    if(saved && saved.id) selectedTrainId = saved.id;
+    selectedTrainId = c.id;
+    selectedTrainEvent = { contractId:c.id, shipmentId:sh.id };
+    selectedTrainDate = date;
+    const d = new Date(date+'T12:00:00');
+    trainCalendarDate = new Date(d.getFullYear(), d.getMonth(), 1);
     closeModal('trainContractModal');
     renderTrainTab();
   }catch(e){
-    console.error('Save train contract failed:', e);
-    alert('Eroare la salvarea contractului de tren: ' + (e && e.message ? e.message : e));
+    console.error('Save train failed:', e);
+    alert('Eroare la salvarea trenului: ' + (e && e.message ? e.message : e));
   }
 }
 async function deleteTrainContract(){
-  const id = document.getElementById('trModalId').value;
-  if(!id) return;
-  const c = trGetContract(id);
+  const contractId = document.getElementById('trModalContractId').value;
+  const shipmentId = document.getElementById('trModalShipmentId').value;
+  if(!contractId || !shipmentId) return;
+  const c = trainContracts.find(x=>x.id===contractId);
   if(!c) return;
-  if(!confirm(`Ștergi contractul "${c.name}"? Se vor șterge și toate transporturile asociate.`)) return;
-  await apiDeleteTrainContract(id);
+  const sh = c.shipments?.find(x=>x.id===shipmentId);
+  if(!sh) return;
+  if(!confirm('Ștergi acest tren din calendar?')) return;
+  c.shipments = c.shipments.filter(x=>x.id!==shipmentId);
+  c.updatedAt = new Date().toISOString();
+  await apiSaveTrainContract(c, false);
   await loadTrainContracts();
-  if(selectedTrainId===id) selectedTrainId = trainContracts[0]?.id||null;
+  selectedTrainEvent = null;
   closeModal('trainContractModal');
   renderTrainTab();
+}
+async function quickTrainStatus(contractId, shipmentId, status){
+  const ev = getEvent(contractId, shipmentId);
+  if(!ev) return;
+  ev.shipment.status = status;
+  ev.shipment.updatedAt = new Date().toISOString();
+  ev.contract.updatedAt = new Date().toISOString();
+  await apiSaveTrainContract(ev.contract, false);
+  await loadTrainContracts();
+  selectedTrainEvent = {contractId, shipmentId};
+  renderTrainTab();
+}
+async function copyTrainEmail(contractId, shipmentId){
+  const ev = getEvent(contractId, shipmentId);
+  if(!ev) return;
+  const c=ev.contract, sh=ev.shipment;
+  const lines = [
+    'Hello,',
+    '',
+    'Please find below the planned train loading details:',
+    '',
+    `Contract: ${trainContractLabel(c)}`,
+    `Product: ${trainProductName(c.product).replace(/^\S+\s/,'')}`,
+    `Quantity: ${fmtN(trainQty(sh,c))} mt`,
+    `Loading date: ${trShipmentDateLabel(sh)}`,
+    `Loading place: ${trainStation(sh,c) || '-'}`,
+    sh.destination ? `Destination: ${sh.destination}` : '',
+    sh.trainNo ? `Train no.: ${sh.trainNo}` : '',
+    sh.wagons ? `Wagons: ${sh.wagons}` : '',
+    sh.surveyor ? `Surveyor / treatment: ${sh.surveyor}` : '',
+    sh.note ? `Notes: ${sh.note}` : '',
+    '',
+    'Thank you.'
+  ].filter(x=>x!==null).join('\n');
+  try{
+    await navigator.clipboard.writeText(lines);
+    alert('Emailul pentru tren a fost copiat.');
+  }catch(e){
+    alert(lines);
+  }
 }
 
 function setLogisticsFilter(f){
