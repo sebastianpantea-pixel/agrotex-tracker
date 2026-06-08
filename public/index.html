@@ -6504,33 +6504,55 @@ function indexMundiProxyUrls(target){
     'https://api.codetabs.com/v1/proxy?quest='+enc
   ];
 }
-async function fetchIndexMundiCommodity(c){
+async function fetchIndexMundiCommodity(c, force=false){
   if(c.localOnly){
     return {...c,rows:[],unit:'',dataAsOf:'book local',ok:true,error:''};
   }
-  const target=c.url;
-  const urls=indexMundiProxyUrls(target);
-  let lastErr=null;
-  for(const url of urls){
-    try{
-      const res=await fetchWithHardTimeout(url,8500);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const html=await res.text();
-      const parsed=parseIndexMundiRows(html);
-      if(parsed.rows.length){
-        return {...c,...parsed,ok:true,error:''};
+
+  // Preferăm serverul aplicației. Serverul poate citi direct IndexMundi și păstrează cache,
+  // ca tabul Context Global să nu rămână gol când proxy-urile publice dau timeout.
+  try{
+    const endpoint='/api/context/indexmundi?commodity='+encodeURIComponent(c.commodity)+(force?'&refresh=1':'');
+    const res=await fetchWithHardTimeout(endpoint,22000);
+    const data=await res.json();
+    if(!res.ok || data.ok===false) throw new Error(data.error || ('HTTP '+res.status));
+    return {
+      ...c,
+      rows:Array.isArray(data.rows)?data.rows:[],
+      unit:data.unit || 'US Dollars per Metric Ton',
+      dataAsOf:data.dataAsOf || (data.cached?'cache':'fără dată'),
+      ok:true,
+      cached:!!data.cached,
+      stale:!!data.stale,
+      cacheUpdatedAt:data.cacheUpdatedAt || '',
+      error:data.warning || ''
+    };
+  }catch(serverErr){
+    // Fallback vechi, doar ca rezervă. Dacă și acesta cade, afișăm eroarea serverului.
+    const target=c.url;
+    const urls=indexMundiProxyUrls(target);
+    let lastErr=serverErr;
+    for(const url of urls){
+      try{
+        const res=await fetchWithHardTimeout(url,6500);
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const html=await res.text();
+        const parsed=parseIndexMundiRows(html);
+        if(parsed.rows.length){
+          return {...c,...parsed,ok:true,error:'',cached:false};
+        }
+        lastErr=new Error('tabel negăsit');
+      }catch(err){
+        lastErr=err;
       }
-      lastErr=new Error('tabel negăsit');
-    }catch(err){
-      lastErr=err;
     }
+    return {...c,rows:[],unit:'US Dollars per Metric Ton',dataAsOf:'',ok:false,error:(lastErr&&lastErr.message)||'nu s-a putut încărca'};
   }
-  return {...c,rows:[],unit:'US Dollars per Metric Ton',dataAsOf:'',ok:false,error:(lastErr&&lastErr.message)||'nu s-a putut încărca'};
 }
 async function loadGlobalContext(force=false){
   const grid=document.getElementById('contextCards');
   if(grid) grid.innerHTML='<div class="ctx-empty">// se încearcă încărcarea IndexMundi. Dacă proxy-ul nu răspunde, apar carduri cu link direct.</div>';
-  const promises=GLOBAL_CONTEXT_COMMODITIES.map(c=>fetchIndexMundiCommodity(c));
+  const promises=GLOBAL_CONTEXT_COMMODITIES.map(c=>fetchIndexMundiCommodity(c, force));
   const results=await Promise.allSettled(promises);
   globalContextData=results.map((r,i)=>{
     if(r.status==='fulfilled') return r.value;
@@ -6671,6 +6693,7 @@ function renderGlobalContext(){
           </div>
         </div>`}
         <div class="ctx-signal ${sig.cls}">${escHtml(sig.txt)}</div>
+        ${(!item.localOnly && item.cached)?`<div class="ctx-note">Date din cache${item.cacheUpdatedAt?' · '+escHtml(item.cacheUpdatedAt):''}${item.stale?' · refresh nereușit':''}</div>`:''}
         ${(!item.localOnly && !item.ok)?`<div class="log-warning-line">Nu am putut încărca automat: ${escHtml(item.error||'eroare')}</div>`:''}
       </div>
     `);
