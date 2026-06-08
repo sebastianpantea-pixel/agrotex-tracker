@@ -21,6 +21,8 @@ const APP_PASSWORD_HASH = process.env.APP_PASSWORD_HASH || '';
 const LEGACY_APP_PASSWORD = process.env.APP_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 
 if (IS_PROD && !SESSION_SECRET) {
   throw new Error('SESSION_SECRET lipseste. Seteaza SESSION_SECRET in Render Environment.');
@@ -1491,6 +1493,135 @@ app.get('/api/context/indexmundi', requireAuth, async (req, res) => {
       return res.json({ ...cached, ok: true, cached: true, stale: true, cacheUpdatedAt: cached._dbUpdatedAt, warning: err.message });
     }
     return res.status(504).json({ ok: false, commodity, error: err.message || 'IndexMundi timeout' });
+  }
+});
+
+
+// ── EMAIL ASSISTANT OPENAI ──────────────────────────────────────────────────
+const emailLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Prea multe cereri email. Încearcă din nou imediat.' },
+});
+
+function limitText(input, max = 12000) {
+  const text = String(input || '').trim();
+  return text.length > max ? text.slice(0, max) : text;
+}
+
+function extractResponseText(data) {
+  if (typeof data?.output_text === 'string' && data.output_text.trim()) return data.output_text.trim();
+  const parts = [];
+  for (const item of data?.output || []) {
+    for (const c of item?.content || []) {
+      if (typeof c?.text === 'string') parts.push(c.text);
+    }
+  }
+  return parts.join('\n').trim();
+}
+
+async function callOpenAIEmail({ instructions, userInput }) {
+  if (!OPENAI_API_KEY) {
+    const err = new Error('OPENAI_API_KEY lipseste din Render Environment.');
+    err.status = 500;
+    throw err;
+  }
+
+  const res = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      instructions,
+      input: userInput,
+      temperature: 0.25,
+      max_output_tokens: 1800,
+    }),
+    signal: AbortSignal.timeout(45000),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data?.error?.message || `OpenAI error ${res.status}`;
+    const err = new Error(msg);
+    err.status = 502;
+    throw err;
+  }
+
+  const text = extractResponseText(data);
+  if (!text) {
+    const err = new Error('OpenAI nu a returnat text.');
+    err.status = 502;
+    throw err;
+  }
+  return text;
+}
+
+const EMAIL_BASE_INSTRUCTIONS = `
+Ești asistent de execuție pentru o firmă românească de trading cereale și oleaginoase.
+Lucrezi cu emailuri operaționale despre contracte, livrări, trenuri, camioane, cantități, gări, documente, facturi și instrucțiuni de încărcare.
+Nu inventa date, cantități, numere de contract, confirmări sau promisiuni.
+Păstrează exact numerele, datele, cantitățile, numele firmelor, locațiile și termenii comerciali.
+Scrie clar, profesionist și scurt.
+Evită limbajul pompos.
+Dacă informația lipsește, cere clarificare.
+`;
+
+app.post('/api/email/understand', requireAuth, emailLimiter, async (req, res) => {
+  try {
+    const mode = String(req.body?.mode || 'explain');
+    const text = limitText(req.body?.text);
+    if (!text) return res.status(400).json({ error: 'Text lipsă.' });
+
+    let task;
+    if (mode === 'translate') {
+      task = 'Tradu emailul de mai jos în română, fidel, păstrând structura și termenii operaționali. Nu adăuga comentarii.';
+    } else if (mode === 'actions') {
+      task = 'Extrage în română acțiunile de făcut din emailul de mai jos. Separă: ce se cere, cine trebuie să răspundă, termene, documente/cantități/contracte menționate, întrebări deschise.';
+    } else {
+      task = 'Explică emailul de mai jos în română pentru o persoană din execuție care nu vorbește engleză. Include: rezumat scurt, ce trebuie făcut, termeni importanți, riscuri/atenționări și un răspuns recomandat pe scurt.';
+    }
+
+    const result = await callOpenAIEmail({
+      instructions: `${EMAIL_BASE_INSTRUCTIONS}\n${task}`,
+      userInput: text,
+    });
+    audit(req, 'email_assist', 'email', mode, { mode, chars: text.length });
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error('Email understand error:', err.message);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/email/draft', requireAuth, emailLimiter, async (req, res) => {
+  try {
+    const instructionsRo = limitText(req.body?.instructions, 6000);
+    const incoming = limitText(req.body?.incoming, 6000);
+    const tone = String(req.body?.tone || 'neutral');
+    if (!instructionsRo) return res.status(400).json({ error: 'Instrucțiunile lipsesc.' });
+
+    const toneMap = {
+      neutral: 'neutral, direct și profesionist',
+      polite: 'politicos, cald și profesionist',
+      firm: 'ferm, clar și profesionist, fără agresivitate',
+      urgent: 'urgent, clar și profesionist, cu cerere concretă de acțiune',
+    };
+
+    const result = await callOpenAIEmail({
+      instructions: `${EMAIL_BASE_INSTRUCTIONS}\nScrie un email profesional în engleză de business. Ton: ${toneMap[tone] || toneMap.neutral}. Fără explicații în română. Fără markdown. Păstrează emailul scurt și clar. Dacă instrucțiunea în română nu conține suficiente detalii, scrie o variantă prudentă și cere clarificarea necesară în email.`,
+      userInput: `${incoming ? `Context email primit:\n${incoming}\n\n` : ''}Instrucțiuni în română pentru răspuns:\n${instructionsRo}`,
+    });
+    audit(req, 'email_draft', 'email', tone, { tone, instructionChars: instructionsRo.length, hasIncoming: !!incoming });
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error('Email draft error:', err.message);
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
