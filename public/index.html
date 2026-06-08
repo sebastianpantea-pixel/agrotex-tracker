@@ -226,6 +226,35 @@
   .ctx-bar:last-child{background:var(--acc);opacity:1;}
 
 
+
+  /* Email Assistant RO/EN */
+  .tab.email-tab-active{background:rgba(155,196,246,.10);color:var(--neutral);border-color:var(--neutral);}
+  #emailSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
+  .email-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .email-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;}
+  @media(max-width:1100px){.email-grid{grid-template-columns:1fr;}}
+  .email-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+  .email-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .email-panel-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;}
+  .email-panel-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.4;}
+  .email-panel-body{padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .email-textarea{width:100%;min-height:210px;resize:vertical;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--bright);font-family:'IBM Plex Sans',sans-serif;font-size:12px;line-height:1.5;padding:10px;outline:none;}
+  .email-textarea:focus{border-color:var(--neutral);box-shadow:0 0 0 1px rgba(155,196,246,.15);}
+  .email-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+  .btn-email{padding:6px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;cursor:pointer;border:1px solid rgba(155,196,246,.40);background:rgba(155,196,246,.10);color:var(--neutral);transition:all .15s;white-space:nowrap;}
+  .btn-email:hover{background:rgba(155,196,246,.18);}
+  .btn-email.secondary{border-color:var(--border2);background:var(--surface2);color:var(--dim);}
+  .btn-email.secondary:hover{color:var(--bright);}
+  .email-output{min-height:190px;background:rgba(255,255,255,.018);border:1px solid var(--border);border-radius:4px;padding:11px;color:var(--text);font-size:12px;line-height:1.55;white-space:pre-wrap;}
+  .email-output.loading{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .email-output.err{color:var(--short);border-color:rgba(240,138,142,.35);background:rgba(240,138,142,.08);}
+  .email-select{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 8px;outline:none;}
+  .email-copy-row{display:flex;justify-content:flex-end;gap:8px;}
+  .email-templates{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;}
+  .email-template{border:1px solid var(--border);background:var(--surface2);border-radius:4px;padding:8px 10px;cursor:pointer;transition:all .15s;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text);line-height:1.4;}
+  .email-template:hover{border-color:var(--neutral);background:rgba(155,196,246,.08);}
+
+
   /* Trenuri tab */
   .tab.train-tab-active{background:rgba(232,160,106,.12);color:var(--transport);border-color:var(--transport);}
   #trainSection{display:none;padding:14px 22px;flex-direction:column;gap:14px;}
@@ -972,8 +1001,83 @@
   <div class="tab" id="tabStock" onclick="setStockTab()" style="margin-left:auto;">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabTrain" onclick="setTrainTab()">🚂 Trenuri <span class="tbadge" id="bTrain" style="background:var(--transport);color:#000;">0</span></div>
+  <div class="tab" id="tabEmail" onclick="setEmailTab()">✉️ Email</div>
   <div class="tab" id="tabContext" onclick="setContextTab()">🌍 Context global</div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
+</div>
+
+
+<div id="emailSection">
+  <div class="email-toolbar">
+    <button class="news-back-btn" onclick="closeEmailTab()">← Înapoi</button>
+    <span class="meteo-badge" style="color:var(--neutral);border-color:rgba(155,196,246,.35);background:rgba(155,196,246,.08);">EMAIL RO/EN</span>
+    <span class="ctx-note">Pentru execuție: înțelegere emailuri primite și răspunsuri profesionale în engleză. Conținutul nu se salvează în baza de date.</span>
+  </div>
+
+  <div class="email-grid">
+    <div class="email-panel">
+      <div class="email-panel-head">
+        <div>
+          <div class="email-panel-title">Email primit</div>
+          <div class="email-panel-sub">Lipește emailul în engleză. Primești explicație operațională în română.</div>
+        </div>
+      </div>
+      <div class="email-panel-body">
+        <textarea class="email-textarea" id="emailIncoming" placeholder="Lipește aici emailul primit..."></textarea>
+        <div class="email-actions">
+          <button class="btn-email" onclick="emailUnderstand('explain')">Explică în română</button>
+          <button class="btn-email" onclick="emailUnderstand('translate')">Tradu exact</button>
+          <button class="btn-email" onclick="emailUnderstand('actions')">Extrage acțiuni</button>
+          <button class="btn-email secondary" onclick="clearEmailIncoming()">Curăță</button>
+        </div>
+        <div class="email-output" id="emailIncomingOut">// rezultat aici</div>
+        <div class="email-copy-row"><button class="btn-email secondary" onclick="copyEmailOutput('emailIncomingOut')">Copy rezultat</button></div>
+      </div>
+    </div>
+
+    <div class="email-panel">
+      <div class="email-panel-head">
+        <div>
+          <div class="email-panel-title">Răspuns în engleză</div>
+          <div class="email-panel-sub">Scrie în română ce vrei să transmiți. Modulul îl formulează în engleză clară.</div>
+        </div>
+      </div>
+      <div class="email-panel-body">
+        <textarea class="email-textarea" id="emailReplyIdea" placeholder="Ex: Spune-le că putem încărca marți-miercuri, dar avem nevoie de instrucțiunile finale..."></textarea>
+        <div class="email-actions">
+          <select class="email-select" id="emailTone">
+            <option value="neutral">Ton neutru</option>
+            <option value="polite">Ton politicos</option>
+            <option value="firm">Ton ferm</option>
+            <option value="urgent">Ton urgent</option>
+          </select>
+          <button class="btn-email" onclick="emailDraft()">Generează email EN</button>
+          <button class="btn-email secondary" onclick="clearEmailDraft()">Curăță</button>
+        </div>
+        <div class="email-output" id="emailDraftOut">// emailul generat apare aici</div>
+        <div class="email-copy-row"><button class="btn-email secondary" onclick="copyEmailOutput('emailDraftOut')">Copy email</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="email-panel">
+    <div class="email-panel-head">
+      <div>
+        <div class="email-panel-title">Șabloane execuție</div>
+        <div class="email-panel-sub">Apasă un șablon, completează detaliile în română, apoi generează emailul.</div>
+      </div>
+    </div>
+    <div class="email-panel-body">
+      <div class="email-templates">
+        <div class="email-template" onclick="useEmailTemplate('confirm_load')">Confirmăm încărcarea</div>
+        <div class="email-template" onclick="useEmailTemplate('ask_instructions')">Cerem instrucțiuni de încărcare</div>
+        <div class="email-template" onclick="useEmailTemplate('ask_nomination')">Cerem nominarea</div>
+        <div class="email-template" onclick="useEmailTemplate('delay')">Anunțăm întârziere</div>
+        <div class="email-template" onclick="useEmailTemplate('documents')">Cerem documente</div>
+        <div class="email-template" onclick="useEmailTemplate('clarify')">Cerem clarificări</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -1874,6 +1978,7 @@ let stockSites = [];
 let stockTabActive = false;
 let meteoTabActive = false;
 let contextTabActive = false;
+let emailTabActive = false;
 let adminTabActive = false;
 let trainTabActive = false;
 let trainContracts = [];
@@ -2020,6 +2125,12 @@ function closeAllSideTabs(){
     meteoTabActive=false;
     document.getElementById('tabMeteo').className='tab';
     document.getElementById('meteoSection').style.display='none';
+  }
+  if(emailTabActive){
+    emailTabActive=false;
+    document.getElementById('tabEmail').className='tab';
+    document.getElementById('emailSection').style.display='none';
+    setCropTabsVisible(true);
   }
   if(contextTabActive){
     contextTabActive=false;
@@ -6423,6 +6534,80 @@ async function loadAdminAudit(){
   }
 }
 
+
+function setEmailTab(){
+  closeAllSideTabs();
+  emailTabActive=true;
+  document.getElementById('tabEmail').className='tab email-tab-active';
+  setCropTabsVisible(false);
+  document.querySelector('.main').style.display='none';
+  document.getElementById('emailSection').style.display='flex';
+}
+function closeEmailTab(){
+  emailTabActive=false;
+  document.getElementById('tabEmail').className='tab';
+  document.getElementById('emailSection').style.display='none';
+  setCropTabsVisible(true);
+  document.querySelector('.main').style.display='flex';
+}
+function setEmailOut(id, text, state=''){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.className='email-output'+(state?' '+state:'');
+  el.textContent=text || '';
+}
+async function callEmailApi(endpoint, payload){
+  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'Eroare la modulul Email');
+  return data;
+}
+async function emailUnderstand(mode){
+  const text=document.getElementById('emailIncoming')?.value.trim();
+  if(!text){setEmailOut('emailIncomingOut','Lipește mai întâi emailul primit.','err');return;}
+  setEmailOut('emailIncomingOut','Se procesează...', 'loading');
+  try{
+    const data=await callEmailApi('/api/email/understand',{mode,text});
+    setEmailOut('emailIncomingOut',data.result || '');
+  }catch(err){setEmailOut('emailIncomingOut',err.message,'err');}
+}
+async function emailDraft(){
+  const instructions=document.getElementById('emailReplyIdea')?.value.trim();
+  const tone=document.getElementById('emailTone')?.value || 'neutral';
+  const incoming=document.getElementById('emailIncoming')?.value.trim() || '';
+  if(!instructions){setEmailOut('emailDraftOut','Scrie în română ce vrei să transmiți.','err');return;}
+  setEmailOut('emailDraftOut','Se generează emailul...', 'loading');
+  try{
+    const data=await callEmailApi('/api/email/draft',{instructions,tone,incoming});
+    setEmailOut('emailDraftOut',data.result || '');
+  }catch(err){setEmailOut('emailDraftOut',err.message,'err');}
+}
+function clearEmailIncoming(){
+  const t=document.getElementById('emailIncoming'); if(t) t.value='';
+  setEmailOut('emailIncomingOut','// rezultat aici');
+}
+function clearEmailDraft(){
+  const t=document.getElementById('emailReplyIdea'); if(t) t.value='';
+  setEmailOut('emailDraftOut','// emailul generat apare aici');
+}
+async function copyEmailOutput(id){
+  const text=document.getElementById(id)?.textContent || '';
+  if(!text || text.startsWith('//')) return;
+  try{await navigator.clipboard.writeText(text);}catch(e){alert('Nu am putut copia automat. Selectează textul manual.');}
+}
+function useEmailTemplate(kind){
+  const templates={
+    confirm_load:'Confirmăm încărcarea. Completează: client, produs, cantitate, data/perioada, gara de încărcare și orice condiții speciale.',
+    ask_instructions:'Cere instrucțiunile finale de încărcare. Completează: contract, produs, cantitate, perioada propusă și termenul până la care avem nevoie de instrucțiuni.',
+    ask_nomination:'Cere nominarea pentru tren/camion. Completează: contract, cantitate, perioada de încărcare și gara.',
+    delay:'Anunță o întârziere. Completează: motivul real, noua dată estimată și ce confirmare cerem de la partener.',
+    documents:'Cere documentele lipsă. Completează: ce documente lipsesc, contractul și termenul necesar.',
+    clarify:'Cere clarificări. Completează: ce nu este clar, opțiunile posibile și ce confirmare trebuie primită.'
+  };
+  const el=document.getElementById('emailReplyIdea');
+  if(el) el.value=templates[kind] || '';
+  setEmailOut('emailDraftOut','// completează detaliile în română, apoi apasă Generează email EN');
+}
 
 function setContextTab(){
   closeAllSideTabs();
