@@ -245,9 +245,9 @@
   .btn-email:hover{background:rgba(155,196,246,.18);}
   .btn-email.secondary{border-color:var(--border2);background:var(--surface2);color:var(--dim);}
   .btn-email.secondary:hover{color:var(--bright);}
-  .email-output{min-height:190px;background:rgba(255,255,255,.018);border:1px solid var(--border);border-radius:4px;padding:11px;color:var(--text);font-size:12px;line-height:1.55;white-space:pre-wrap;}
-  .email-output.loading{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;}
-  .email-output.err{color:var(--short);border-color:rgba(240,138,142,.35);background:rgba(240,138,142,.08);}
+  .email-output{min-height:190px;background:#ffffff;border:1px solid var(--border);border-radius:4px;padding:14px;color:#111827;font-family:Arial,Calibri,sans-serif;font-size:14px;line-height:1.55;white-space:pre-wrap;}
+  .email-output.loading{color:var(--dim);background:rgba(255,255,255,.018);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .email-output.err{color:var(--short);border-color:rgba(240,138,142,.35);background:rgba(240,138,142,.08);font-family:'IBM Plex Sans',sans-serif;font-size:12px;}
   .email-select{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 8px;outline:none;}
   .email-copy-row{display:flex;justify-content:flex-end;gap:8px;}
   .email-templates{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;}
@@ -6590,10 +6590,35 @@ function clearEmailDraft(){
   const t=document.getElementById('emailReplyIdea'); if(t) t.value='';
   setEmailOut('emailDraftOut','// emailul generat apare aici');
 }
+function normalizeEmailCopyText(text){
+  return String(text || '')
+    .replace(/\r\n/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+}
+function emailPlainTextToHtml(text){
+  const safe=escHtml(normalizeEmailCopyText(text));
+  return '<div style="font-family:Arial,Calibri,sans-serif;font-size:14px;line-height:1.5;color:#000000;background:#ffffff;">'
+    + safe.replace(/\n/g,'<br>')
+    + '</div>';
+}
 async function copyEmailOutput(id){
-  const text=document.getElementById(id)?.textContent || '';
+  const text=normalizeEmailCopyText(document.getElementById(id)?.innerText || document.getElementById(id)?.textContent || '');
   if(!text || text.startsWith('//')) return;
-  try{await navigator.clipboard.writeText(text);}catch(e){alert('Nu am putut copia automat. Selectează textul manual.');}
+  try{
+    const html=emailPlainTextToHtml(text);
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html':new Blob([html],{type:'text/html'}),
+        'text/plain':new Blob([text],{type:'text/plain'})
+      })]);
+    }else{
+      await navigator.clipboard.writeText(text);
+    }
+  }catch(e){
+    try{await navigator.clipboard.writeText(text);}
+    catch(err){alert('Nu am putut copia automat. Selectează textul manual.');}
+  }
 }
 function useEmailTemplate(kind){
   const templates={
