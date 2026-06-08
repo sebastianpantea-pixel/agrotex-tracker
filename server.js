@@ -1354,6 +1354,146 @@ app.get('/api/weather/location', requireAuth, async (req, res) => {
   }
 });
 
+
+
+// ── CONTEXT GLOBAL / INDEXMUNDI ─────────────────────────────────────────────
+const INDEXMUNDI_ALLOWED = new Set([
+  'wheat',
+  'corn',
+  'rapeseed-oil',
+  'soybeans',
+  'soybean-oil',
+  'sunflower-oil',
+  'palm-oil',
+  'urea'
+]);
+const INDEXMUNDI_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function normalizeSpace(s) {
+  return String(s || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function stripTags(s) {
+  return normalizeSpace(String(s || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+  );
+}
+
+function decodeHtmlBasic(s) {
+  return String(s || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+
+function parseIndexMundiHtml(html) {
+  const raw = decodeHtmlBasic(String(html || ''));
+  const pageText = stripTags(raw);
+  const unit = (pageText.match(/Unit:\s*([^\n\r]+?)(?:\s{2,}|Frequency:|Historical Data|Description|$)/i) || [])[1] || 'US Dollars per Metric Ton';
+  const dataAsOf = (pageText.match(/Data as of\s+([A-Za-z]+\s+\d{4})/i) || [])[1] || '';
+
+  const rows = [];
+  const trMatches = raw.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  for (const tr of trMatches) {
+    const cellMatches = tr.match(/<t[dh][^>]*>[\s\S]*?<\/t[dh]>/gi) || [];
+    const cells = cellMatches.map(c => stripTags(decodeHtmlBasic(c)));
+    if (cells.length < 2) continue;
+    const month = cells[0];
+    const priceText = cells[1];
+    if (!/^[A-Za-z]{3,9}\s+\d{4}$/.test(month)) continue;
+    const price = Number(String(priceText).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/)?.[0]);
+    if (!Number.isFinite(price)) continue;
+    rows.push({ month, price });
+  }
+
+  // Fallback pentru pagini unde tabelul vine fără markup obișnuit.
+  if (!rows.length) {
+    const re = /\b([A-Za-z]{3,9}\s+\d{4})\s+(-?\d+(?:,\d{3})*(?:\.\d+)?)/g;
+    let m;
+    while ((m = re.exec(pageText)) && rows.length < 240) {
+      const price = Number(m[2].replace(/,/g, ''));
+      if (Number.isFinite(price)) rows.push({ month: m[1], price });
+    }
+  }
+
+  return { rows, unit: normalizeSpace(unit), dataAsOf };
+}
+
+function dbGetContextCache(key) {
+  const row = db.prepare('SELECT data, updated_at FROM weather_cache WHERE location_name = ?').get(key);
+  if (!row) return null;
+  const data = safeJsonParse(row.data, null);
+  if (!data) return null;
+  return { ...data, _dbUpdatedAt: row.updated_at };
+}
+
+function dbSetContextCache(key, payload) {
+  db.prepare(`
+    INSERT INTO weather_cache (location_name, data, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(location_name) DO UPDATE SET data = excluded.data, updated_at = datetime('now')
+  `).run(key, JSON.stringify(payload));
+}
+
+async function fetchIndexMundiFromSource(commodity) {
+  const url = `https://www.indexmundi.com/commodities/?commodity=${encodeURIComponent(commodity)}`;
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 AgrotexTracker/1.0',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9,ro;q=0.8',
+      'Referer': 'https://www.indexmundi.com/commodities/'
+    },
+    signal: AbortSignal.timeout(20000)
+  });
+  if (!res.ok) throw new Error(`IndexMundi HTTP ${res.status}`);
+  const html = await res.text();
+  const parsed = parseIndexMundiHtml(html);
+  if (!parsed.rows.length) throw new Error('IndexMundi: tabel negasit');
+  return {
+    ok: true,
+    commodity,
+    url,
+    rows: parsed.rows,
+    unit: parsed.unit || 'US Dollars per Metric Ton',
+    dataAsOf: parsed.dataAsOf || '',
+    fetchedAt: new Date().toISOString(),
+    source: 'indexmundi'
+  };
+}
+
+app.get('/api/context/indexmundi', requireAuth, async (req, res) => {
+  const commodity = String(req.query.commodity || '').trim().toLowerCase();
+  const refresh = req.query.refresh === '1';
+  if (!INDEXMUNDI_ALLOWED.has(commodity)) return res.status(400).json({ ok: false, error: 'Commodity invalid' });
+
+  const cacheKey = `indexmundi:${commodity}`;
+  const cached = dbGetContextCache(cacheKey);
+  const cacheTs = cached?._dbUpdatedAt ? new Date(cached._dbUpdatedAt.replace(' ', 'T') + 'Z').getTime() : 0;
+  const cacheFresh = cached && cacheTs && (Date.now() - cacheTs) < INDEXMUNDI_CACHE_TTL_MS;
+
+  if (!refresh && cacheFresh) {
+    return res.json({ ...cached, ok: true, cached: true, cacheUpdatedAt: cached._dbUpdatedAt });
+  }
+
+  try {
+    const fresh = await fetchIndexMundiFromSource(commodity);
+    dbSetContextCache(cacheKey, fresh);
+    return res.json({ ...fresh, cached: false });
+  } catch (err) {
+    console.warn(`IndexMundi fetch failed for ${commodity}: ${err.message}`);
+    if (cached) {
+      return res.json({ ...cached, ok: true, cached: true, stale: true, cacheUpdatedAt: cached._dbUpdatedAt, warning: err.message });
+    }
+    return res.status(504).json({ ok: false, commodity, error: err.message || 'IndexMundi timeout' });
+  }
+});
+
 // ── STATIC ───────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
