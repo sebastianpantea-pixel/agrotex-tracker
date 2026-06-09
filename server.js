@@ -634,43 +634,66 @@ app.delete('/api/partners/:id', requireAuth, (req, res) => {
 // ── PURCHASE CONTRACTS / CONTRACTE ACHIZITIE ────────────────────────────────
 const PURCHASE_PRODUCTS = {
   wheat: {
-    label: 'GRAU', title: 'CONTRACT DE VANZARE - CUMPARARE', deliveryDefault: '01.06.2026 - 31.08.2026',
-    quality: ['Masa hectolitrica: 76 kg/hl', 'Umiditate: 14%', 'Corpuri straine: 2%', 'Proteina: min. 11%', 'DON toxin: max. 1250 ppb', 'Indice de cadere: min. 220 sec.']
+    label: 'GRAU',
+    templateFile: 'GRAU.CTR  2026.docx',
+    defaultPeriodText: '01.06.2026 – 31.08.2026',
   },
   corn: {
-    label: 'PORUMB', title: 'CONTRACT DE VANZARE - CUMPARARE PORUMB', deliveryDefault: 'pana la data de 30.11.2026',
-    quality: ['Umiditate: baza 14.0%', 'Impuritati: baza 2%, maxim 4%', 'Sparturi: max. 3.5%', 'Aflatoxina: max. 5 ppb', 'Marfa sanatoasa, libera de insecte si miros strain.']
+    label: 'PORUMB',
+    templateFile: 'PORUMB contract  2026 .docx',
+    defaultPeriodText: '30.11.2026',
   },
   rapeseed: {
-    label: 'RAPITA', title: 'CONTRACT DE VANZARE - CUMPARARE', deliveryDefault: 'iulie-august 2026',
-    quality: ['Umiditate: max. 9%', 'Corpuri straine: baza 2%, max. 4%', 'Acid erucic: max. 2%', 'Continut de ulei: min. 42%']
+    label: 'RAPITA',
+    templateFile: 'RAPITA Contract  2026.doc .docx',
+    defaultPeriodText: 'iulie-august 2026',
   },
   sunflower: {
-    label: 'FLOAREA SOARELUI', title: 'CONTRACT DE VANZARE - CUMPARARE', deliveryDefault: '01.09.2026 - 31.10.2026',
-    quality: ['Umiditate: baza 9%, maxim 11%', 'Corpuri straine: baza 2%, max. 4%', 'Infestare: maxim 10 exemplare vii/kg', 'Seminte defecte: maxim 6%', 'Motive de refuz: miros strain, culoare modificata, infestare cu Rhyzopertha, greutate hectolitrica sub 38 kg/hl']
-  }
+    label: 'FLOAREA SOARELUI',
+    templateFile: 'FLS .2026_Fls_CVC_sp.docx',
+    defaultPeriodText: '01.09.2026 -31.10.2026',
+  },
 };
 
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+const CONTRACT_TEMPLATE_DIRS = [
+  path.join(__dirname, 'contract_templates'),
+  path.join(DB_DIR, 'contract_templates'),
+  path.join(__dirname, 'templates'),
+  path.join(DB_DIR, 'templates'),
+];
+
+function findContractTemplate(productKey) {
+  const spec = PURCHASE_PRODUCTS[productKey];
+  if (!spec) throw new Error('Produs invalid.');
+  for (const dir of CONTRACT_TEMPLATE_DIRS) {
+    const full = path.join(dir, spec.templateFile);
+    if (fs.existsSync(full)) return full;
+  }
+  throw new Error(`Template-ul Word lipseste pentru ${spec.label}. Pune fisierul in folderul contract_templates langa server.js.`);
 }
+
 function formatRoDate(value) {
   if (!value) return '';
   const d = new Date(`${value}T12:00:00`);
   if (Number.isNaN(d.getTime())) return String(value);
   return d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
 function safeFilenamePart(value) {
-  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'contract';
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_-]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'contract';
 }
+
 function buildSellerText(contract) {
   if (contract.sellerMode === 'manual') return String(contract.manualSellerFullText || '').trim();
   if (contract.sellerFullText) return String(contract.sellerFullText).trim();
   if (contract.partner && contract.partner.fullText) return String(contract.partner.fullText).trim();
   return '';
 }
+
 function validatePurchaseContractPayload(raw) {
   const c = raw && typeof raw === 'object' ? { ...raw } : {};
   c.product = String(c.product || '').trim();
@@ -704,49 +727,262 @@ function validatePurchaseContractPayload(raw) {
   c.sellerFullTextFinal = sellerText;
   return c;
 }
-function renderPurchaseContractHtml(contract, contractId, tradeId) {
-  const spec = PURCHASE_PRODUCTS[contract.product] || PURCHASE_PRODUCTS.wheat;
-  const deliveryPeriod = contract.deliveryStart && contract.deliveryEnd
-    ? `${formatRoDate(contract.deliveryStart)} - ${formatRoDate(contract.deliveryEnd)}`
-    : (contract.deliveryStart ? formatRoDate(contract.deliveryStart) : (contract.deliveryEnd ? formatRoDate(contract.deliveryEnd) : spec.deliveryDefault));
-  const quality = spec.quality.map(q => `<li>${escapeHtml(q)}</li>`).join('');
-  const notes = contract.notes ? `<p><b>Observatii speciale:</b> ${escapeHtml(contract.notes)}</p>` : '';
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>${escapeHtml(contract.contractNo)} ${escapeHtml(spec.label)}</title>
-<style>
-@page{size:A4;margin:22mm 18mm;}body{font-family:"Times New Roman",serif;font-size:12pt;color:#111;line-height:1.25;}h1{text-align:center;font-size:15pt;text-decoration:underline;margin:18px 0 4px;}h2{font-size:12.5pt;margin:16px 0 6px;}p{margin:6px 0;text-align:justify}.head{text-align:right;font-size:11pt;line-height:1.2}.nr{text-align:center;font-weight:bold;margin-top:18px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:35px}.small{font-size:10pt}.meta{color:#555;font-size:9pt;margin-top:30px;border-top:1px solid #ddd;padding-top:8px}ul{margin-top:4px}</style>
-</head><body>
-<div class="head"><b>S.C. AGROTEX S.R.L. CAREI</b><br>Jud. Satu Mare, Calea Armatei Romane nr. 81/B<br>Nr. inregistrare O.R.C. J30/1481/1992<br>CIF RO2830353<br>Tel/fax: 0261 861399 / 865386 / 864506<br>www.agrotex.ro secretariat@agrotex.ro</div>
-<div class="nr">NR. ${escapeHtml(contract.contractNo)}</div>
-<h1>${escapeHtml(spec.title)}</h1>
-<h2>Art.1 PARTILE CONTRACTANTE</h2>
-<p><b>S.C. AGROTEX S.R.L.</b> cu sediul in Carei, jud. Satu Mare, C-lea Armatei Romane, nr.81/B, inmatriculata sub nr. J30/1481/92 la Reg. C.C.I. Satu Mare, CIF RO2830353, tel./fax. 061861399/865386, avand contul IBAN RO59 BACX 0000 0004 7704 7001 deschis la Unicredit Tiriac Bank S.A. suc. Satu Mare, reprezentata prin ing. Adrian Mircea Lata director general, in calitate de <b>CUMPARATOR</b>.</p>
-<p>Si</p>
-<p>${escapeHtml(contract.sellerFullTextFinal)}</p>
-<h2>Art.2 OBIECTUL SI SCOPUL CONTRACTULUI</h2>
-<p>Prin prezentul act, vanzatorul se angajeaza sa vanda <b>${escapeHtml(spec.label)}</b>, origine ROMANIA, productia anului ${escapeHtml(contract.cropYear)}, iar cumparatorul se obliga sa plateasca pretul marfii si sa preia marfa la data si in conditiile stabilite.</p>
-<h2>Art.3 CANTITATE</h2>
-<p>Cantitate: <b>${escapeHtml(contract.quantity)}</b> tone, paritate <b>${escapeHtml(contract.parity)}</b>, loc livrare: <b>${escapeHtml(contract.deliveryPlace)}</b>.</p>
-<p>Cantitatea finala va fi stabilita la livrare, prin cantarirea mijloacelor de transport pe cantare verificate metrologic. Cantitatea convenita nu poate fi modificata decat printr-un act aditional incheiat de parti.</p>
-<h2>Art.4 CALITATE SI CONDITII</h2>
-<ul>${quality}</ul>
-<p>Marfa contractata de catre VANZATOR va fi sanatoasa, de calitate comercializabila si cu caracteristici organoleptice si sanitare specifice produsului sanatos.</p>
-<h2>Art.5 PRET SI LIVRARE</h2>
-<p>Pretul este <b>${escapeHtml(contract.priceRon)}</b> lei / tona, fara TVA, pentru marfa livrata conform termenilor de livrare din acest contract si conform specificatiilor de calitate prevazute mai sus. Pretul marfii nu contine T.V.A.</p>
-<p>Perioada livrare: <b>${escapeHtml(deliveryPeriod)}</b>.</p>
-${notes}
-<h2>Art.6 TRANSFERUL PROPRIETATII SI RISCUL MARFII</h2>
-<p>Proprietatea marfii se transfera de la Vanzator la Cumparator la momentul transmiterii facturii fiscale in original sau in copie. Riscurile asupra marfii se transfera de la Vanzator la Cumparator dupa descarcarea si depozitarea acesteia.</p>
-<h2>Art.7 PLATA</h2>
-<p>100% din valoarea marfii se va plati in termen de ${escapeHtml(contract.paymentTerm)}, pe baza predarii documentelor in original catre Cumparator: contractul semnat si stampilat si factura in original. Plata se poate face si prin compensare cu obligatiile Vanzatorului rezultate din aprovizionarea cu inputuri.</p>
-<h2>Art.8 FORTA MAJORA</h2>
-<p>In caz de forta majora se aplica prevederile Codului Civil.</p>
-<h2>Art.9 DISPOZITII FINALE</h2>
-<p>Nerespectarea obligatiilor contractuale de catre una din parti da dreptul celeilalte parti, dupa o notificare prealabila, sa pretinda acoperirea integrala a prejudiciului cauzat.</p>
-<p>Prezentul contract este valabil pana la executarea integrala a obligatiilor asumate de catre cele doua parti contractante. Incheiat la Carei, in limba romana, in 2 exemplare.</p>
-<div class="sign"><div><b>CUMPARATOR,</b><br>S.C. AGROTEX S.R.L.<br><br>director general,<br>ing. Adrian Mircea Lata<br><br>director achizitii,<br>ec. Sebastian Pantea</div><div><b>VANZATOR,</b><br><br><br>____________________</div></div>
-<div class="meta">Generat din Agrotex Tracker. Contract intern ID ${escapeHtml(contractId)}. Pozitie creata ID ${escapeHtml(tradeId)}.</div>
-</body></html>`;
+
+function xmlEscape(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function xmlUnescape(value) {
+  return String(value || '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function paragraphText(paragraphXml) {
+  const pieces = [];
+  const re = /<w:t[^>]*>([\s\S]*?)<\/w:t>/g;
+  let m;
+  while ((m = re.exec(paragraphXml))) pieces.push(xmlUnescape(m[1]));
+  return pieces.join('');
+}
+
+function makeParagraphLike(originalParagraphXml, text) {
+  const open = (originalParagraphXml.match(/^<w:p\b[^>]*>/) || ['<w:p>'])[0];
+  const pPr = (originalParagraphXml.match(/<w:pPr[\s\S]*?<\/w:pPr>/) || [''])[0];
+  const rPr = (originalParagraphXml.match(/<w:rPr[\s\S]*?<\/w:rPr>/) || [''])[0];
+  const lines = String(text || '').split(/\r?\n/);
+  const runs = lines.map((line, idx) => {
+    const br = idx === 0 ? '' : '<w:br/>';
+    return `<w:r>${rPr}${br}<w:t xml:space="preserve">${xmlEscape(line)}</w:t></w:r>`;
+  }).join('');
+  return `${open}${pPr}${runs}</w:p>`;
+}
+
+function normalizeForMatch(value) {
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function deliveryPeriodForContract(contract, spec) {
+  if (contract.deliveryStart && contract.deliveryEnd) return `${formatRoDate(contract.deliveryStart)} - ${formatRoDate(contract.deliveryEnd)}`;
+  if (contract.deliveryStart) return formatRoDate(contract.deliveryStart);
+  if (contract.deliveryEnd) return formatRoDate(contract.deliveryEnd);
+  return spec.defaultPeriodText || '';
+}
+
+function replaceContractParagraphs(documentXml, contract) {
+  const spec = PURCHASE_PRODUCTS[contract.product];
+  const qty = String(contract.quantity).replace('.', ',');
+  const price = String(contract.priceRon).replace('.', ',');
+  const period = deliveryPeriodForContract(contract, spec);
+  const sellerText = contract.sellerFullTextFinal;
+
+  return documentXml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, (p) => {
+    const text = paragraphText(p);
+    const n = normalizeForMatch(text);
+
+    if (/^nr\.?\s*_+\s*$/.test(n) || /^nr\.?\s*_+/.test(n)) {
+      return makeParagraphLike(p, text.replace(/NR\.\s*_+|NR\s*_+/i, `NR. ${contract.contractNo}`));
+    }
+
+    if (n.includes('cu sediul') && n.includes('vanzator') && text.includes('____')) {
+      return makeParagraphLike(p, sellerText);
+    }
+
+    if (contract.product === 'corn' && n.includes('obiectul contractului priveste')) {
+      let out = text;
+      out = out.replace(/cantității\s+de\s+_+\s+tone/i, `cantității de ${qty} tone`);
+      out = out.replace(/cantitatii\s+de\s+_+\s+tone/i, `cantitatii de ${qty} tone`);
+      out = out.replace(/FCA\s*\/\s*DAP/i, contract.parity);
+      return makeParagraphLike(p, out);
+    }
+
+    if (contract.product === 'corn' && n.startsWith('cantitatea :')) {
+      const out = text.replace(/Cantitatea\s*:\s*_+\s*tone/i, `Cantitatea : ${qty} tone`);
+      return makeParagraphLike(p, out);
+    }
+
+    if (contract.product === 'corn' && n.startsWith('pretul')) {
+      const out = text.replace(/Prețul\s+_+/i, `Prețul ${price}`).replace(/Pretul\s+_+/i, `Pretul ${price}`);
+      return makeParagraphLike(p, out);
+    }
+
+    if (contract.product === 'corn' && n.startsWith('perioada si termenii de livrare')) {
+      const out = text.replace(/pana\s+la\s+data\s+de\s+[0-9.]+/i, `pana la data de ${period}`);
+      return makeParagraphLike(p, out);
+    }
+
+    if (n.includes('art.3') && n.includes('cantitate') && text.includes('____')) {
+      let out = text.replace(/_+\s*tone/i, `${qty} tone`);
+      out = out.replace(/\bto\b\s*/i, '');
+      out = out.replace(/FCA\s*\/\s*DAP/i, contract.parity);
+      out = out.replace(/\.FCA/i, ` ${contract.parity}`);
+      return makeParagraphLike(p, out);
+    }
+
+    if (n.startsWith('pretul este') && text.includes('___')) {
+      const out = text.replace(/Prețul\s+este\s+_+/i, `Prețul este ${price}`).replace(/Pretul\s+este\s+_+/i, `Pretul este ${price}`);
+      return makeParagraphLike(p, out);
+    }
+
+    if (n.startsWith('perioada livrare')) {
+      let out = text;
+      if (contract.deliveryStart || contract.deliveryEnd) {
+        if (contract.product === 'rapeseed') out = out.replace(/iulie\s*-\s*august\s+2026/i, period);
+        if (contract.product === 'wheat') out = out.replace(/01\.06\.2026\s*[–-]\s*31\.08\.2026/i, period);
+        if (contract.product === 'sunflower') out = out.replace(/01\.09\.2026\s*-\s*31\.10\.2026/i, period);
+      }
+      return makeParagraphLike(p, out);
+    }
+
+    return p;
+  });
+}
+
+const zlib = require('zlib');
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function dosDateTime(date = new Date()) {
+  const year = Math.max(1980, date.getFullYear());
+  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const dosDate = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  return { dosTime, dosDate };
+}
+
+function readZipEntries(zipBuffer) {
+  let eocd = -1;
+  for (let i = zipBuffer.length - 22; i >= Math.max(0, zipBuffer.length - 66000); i--) {
+    if (zipBuffer.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('DOCX invalid: lipseste EOCD.');
+  const total = zipBuffer.readUInt16LE(eocd + 10);
+  let cdOffset = zipBuffer.readUInt32LE(eocd + 16);
+  const entries = [];
+  for (let i = 0; i < total; i++) {
+    if (zipBuffer.readUInt32LE(cdOffset) !== 0x02014b50) throw new Error('DOCX invalid: central directory.');
+    const method = zipBuffer.readUInt16LE(cdOffset + 10);
+    const compSize = zipBuffer.readUInt32LE(cdOffset + 20);
+    const nameLen = zipBuffer.readUInt16LE(cdOffset + 28);
+    const extraLen = zipBuffer.readUInt16LE(cdOffset + 30);
+    const commentLen = zipBuffer.readUInt16LE(cdOffset + 32);
+    const localOffset = zipBuffer.readUInt32LE(cdOffset + 42);
+    const name = zipBuffer.slice(cdOffset + 46, cdOffset + 46 + nameLen).toString('utf8');
+    if (zipBuffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error('DOCX invalid: local header.');
+    const localNameLen = zipBuffer.readUInt16LE(localOffset + 26);
+    const localExtraLen = zipBuffer.readUInt16LE(localOffset + 28);
+    const dataStart = localOffset + 30 + localNameLen + localExtraLen;
+    const compressed = zipBuffer.slice(dataStart, dataStart + compSize);
+    let data;
+    if (method === 0) data = Buffer.from(compressed);
+    else if (method === 8) data = zlib.inflateRawSync(compressed);
+    else throw new Error(`DOCX invalid: metoda ZIP neacceptata ${method}.`);
+    entries.push({ name, data });
+    cdOffset += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+function buildZip(entries) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const { dosTime, dosDate } = dosDateTime();
+
+  for (const entry of entries) {
+    const nameBuf = Buffer.from(entry.name, 'utf8');
+    const isDir = entry.name.endsWith('/');
+    const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data || '');
+    const method = isDir ? 0 : 8;
+    const compressed = method === 0 ? Buffer.alloc(0) : zlib.deflateRawSync(data, { level: 6 });
+    const crc = crc32(data);
+
+    const local = Buffer.alloc(30 + nameBuf.length);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt16LE(dosTime, 10);
+    local.writeUInt16LE(dosDate, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    local.writeUInt16LE(0, 28);
+    nameBuf.copy(local, 30);
+    localParts.push(local, compressed);
+
+    const central = Buffer.alloc(46 + nameBuf.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(0x0314, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(method, 10);
+    central.writeUInt16LE(dosTime, 12);
+    central.writeUInt16LE(dosDate, 14);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(compressed.length, 20);
+    central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(nameBuf.length, 28);
+    central.writeUInt16LE(0, 30);
+    central.writeUInt16LE(0, 32);
+    central.writeUInt16LE(0, 34);
+    central.writeUInt16LE(0, 36);
+    central.writeUInt32LE(isDir ? 0x10 : 0, 38);
+    central.writeUInt32LE(offset, 42);
+    nameBuf.copy(central, 46);
+    centralParts.push(central);
+
+    offset += local.length + compressed.length;
+  }
+
+  const centralDir = Buffer.concat(centralParts);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralDir.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  eocd.writeUInt16LE(0, 20);
+  return Buffer.concat([...localParts, centralDir, eocd]);
+}
+
+function renderPurchaseContractDocx(contract) {
+  const templatePath = findContractTemplate(contract.product);
+  const zip = fs.readFileSync(templatePath);
+  const entries = readZipEntries(zip);
+  const doc = entries.find(e => e.name === 'word/document.xml');
+  if (!doc) throw new Error('Template DOCX invalid: lipseste word/document.xml.');
+  const xml = doc.data.toString('utf8');
+  doc.data = Buffer.from(replaceContractParagraphs(xml, contract), 'utf8');
+  return buildZip(entries);
 }
 
 app.get('/api/purchase-contracts', requireAuth, (req, res) => {
@@ -787,9 +1023,9 @@ app.post('/api/purchase-contracts/generate', requireAuth, (req, res) => {
       trade.id = tradeInfo.lastInsertRowid;
       const storedContract = { ...contract, tradeId: trade.id, status: 'generated' };
       const contractInfo = db.prepare('INSERT INTO purchase_contracts (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))').run(JSON.stringify(storedContract));
-      const fileName = `${safeFilenamePart(contract.contractNo)}_${safeFilenamePart(contract.productLabel)}_${contractInfo.lastInsertRowid}.doc`;
-      const html = renderPurchaseContractHtml(storedContract, contractInfo.lastInsertRowid, trade.id);
-      fs.writeFileSync(path.join(GENERATED_CONTRACTS_DIR, fileName), html, 'utf8');
+      const fileName = `${safeFilenamePart(contract.contractNo)}_${safeFilenamePart(contract.productLabel)}_${contractInfo.lastInsertRowid}.docx`;
+      const docx = renderPurchaseContractDocx(storedContract);
+      fs.writeFileSync(path.join(GENERATED_CONTRACTS_DIR, fileName), docx);
       storedContract.generatedFile = fileName;
       db.prepare('UPDATE purchase_contracts SET data = ?, updated_at = datetime(\'now\') WHERE id = ?').run(JSON.stringify(storedContract), contractInfo.lastInsertRowid);
       return { contractId: contractInfo.lastInsertRowid, tradeId: trade.id, fileName };
