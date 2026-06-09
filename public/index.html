@@ -1007,6 +1007,9 @@
   .purchase-signed-line{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;display:none;}
   .purchase-signed-line.on{color:var(--long);display:block;}
   .purchase-small{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .purchase-fz-admin{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
+  .purchase-fz-admin .btn-purchase{font-size:9px;padding:5px 6px;text-align:center;}
+  .purchase-fz-note{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;margin-top:4px;}
 
 </style>
 </head>
@@ -1180,7 +1183,12 @@
         <div id="pcExistingBox">
           <div class="purchase-search">
             <input id="pcPartnerSearch" class="purchase-input" placeholder="Cauta furnizor dupa nume, CIF, localitate..." oninput="purchaseSearchPartners()" onfocus="purchaseSearchPartners()">
-            <button type="button" class="btn-purchase secondary" style="margin-top:6px;width:100%;font-size:9px;padding:5px 6px;" onclick="purchaseResetPartnersDefault()">Actualizeaza baza FZ curatata</button>
+            <div class="purchase-fz-admin">
+            <button type="button" class="btn-purchase secondary" onclick="purchaseExportPartnersXlsx()">Export FZ</button>
+            <button type="button" class="btn-purchase secondary" onclick="document.getElementById('pcImportPartnersFile').click()">Import FZ</button>
+          </div>
+          <input id="pcImportPartnersFile" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="purchaseImportPartnersXlsx(event)">
+          <div class="purchase-fz-note">Exporta, curata in Excel, apoi importa inapoi. Importul poate inlocui baza sau actualiza dupa CUI/nume.</div>
             <div id="pcPartnerResults" class="purchase-results"></div>
           </div>
           <div id="pcSelectedPartner" class="purchase-preview" style="display:none;"></div>
@@ -7623,22 +7631,100 @@ async function loadPartners(){
   }catch(err){ console.error('loadPartners', err); partners=[]; }
 }
 
-async function purchaseResetPartnersDefault(){
-  if(!confirm('Inlocuiesti baza de furnizori din aplicatie cu baza FZ curatata? Contractele generate nu se sterg.')) return;
+function purchasePartnerExportRows(list){
+  return (list||[]).map(p=>({
+    name:p.name||'',
+    cui:p.cui||'',
+    regCom:p.regCom||'',
+    address:p.address||'',
+    iban:p.iban||'',
+    bank:p.bank||'',
+    representative:p.representative||'',
+    representativeRole:p.representativeRole||'',
+    phone:p.phone||'',
+    email:p.email||'',
+    role:p.role||'VANZATOR',
+    active:(p.active===false?'FALSE':'TRUE'),
+    fullText:p.fullText||'',
+    notes:p.notes||''
+  }));
+}
+function purchaseNormalizeHeaderKey(k){
+  return String(k||'').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+}
+function purchasePartnerFromImportRow(row){
+  const map={};
+  Object.keys(row||{}).forEach(k=>{ map[purchaseNormalizeHeaderKey(k)] = row[k]; });
+  const pick=(...keys)=>{
+    for(const k of keys){
+      const nk=purchaseNormalizeHeaderKey(k);
+      if(map[nk]!==undefined && map[nk]!==null && String(map[nk]).trim()!=='') return String(map[nk]).trim();
+    }
+    return '';
+  };
+  const activeRaw=pick('active','activ','status');
+  const active = activeRaw ? !['false','0','nu','no','inactiv','inactive'].includes(activeRaw.toLowerCase()) : true;
+  return {
+    name:pick('name','denumire','furnizor','nume'),
+    cui:pick('cui','cif','cod_fiscal'),
+    regCom:pick('regCom','reg_com','registrul_comertului','nr_reg_com'),
+    address:pick('address','adresa','sediu'),
+    iban:pick('iban','cont','cont_iban'),
+    bank:pick('bank','banca'),
+    representative:pick('representative','reprezentant','administrator'),
+    representativeRole:pick('representativeRole','functie_reprezentant','calitate_reprezentant'),
+    phone:pick('phone','telefon','tel','tel_fax'),
+    email:pick('email','mail'),
+    role:pick('role','calitate') || 'VANZATOR',
+    active,
+    fullText:pick('fullText','full_text','text_complet','text_contract'),
+    notes:pick('notes','observatii','nota')
+  };
+}
+async function purchaseExportPartnersXlsx(){
   try{
-    const res=await fetch('/api/partners/reset-defaults',{method:'POST'});
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error || 'Eroare la actualizarea bazei FZ');
-    await loadPartners();
-    selectedPartner=null;
-    const s=document.getElementById('pcPartnerSearch'); if(s) s.value='';
-    const p=document.getElementById('pcSelectedPartner'); if(p) p.style.display='none';
-    purchaseRefreshPreview();
-    alert(`Baza FZ a fost actualizata: ${data.count || partners.length} furnizori.`);
+    const res=await fetch('/api/partners?includeInactive=1');
+    const list=await res.json();
+    if(!Array.isArray(list)) throw new Error('Nu am putut citi baza FZ.');
+    const rows=purchasePartnerExportRows(list);
+    const ws=XLSX.utils.json_to_sheet(rows, {header:['name','cui','regCom','address','iban','bank','representative','representativeRole','phone','email','role','active','fullText','notes']});
+    ws['!cols']=[{wch:34},{wch:14},{wch:16},{wch:42},{wch:30},{wch:24},{wch:24},{wch:18},{wch:16},{wch:24},{wch:12},{wch:10},{wch:90},{wch:36}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Furnizori');
+    const stamp=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `furnizori_agrotex_${stamp}.xlsx`);
   }catch(err){
-    alert(err.message || 'Nu s-a putut actualiza baza FZ.');
+    alert(err.message || 'Nu s-a putut exporta baza FZ.');
   }
 }
+async function purchaseImportPartnersXlsx(ev){
+  const input=ev?.target;
+  const file=input?.files?.[0];
+  if(!file) return;
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+    const imported=raw.map(purchasePartnerFromImportRow).filter(p=>p.name || p.fullText);
+    if(!imported.length) throw new Error('Fisierul nu contine furnizori valizi. Verifica antetele coloanelor.');
+    const replace=confirm(`Am gasit ${imported.length} furnizori in fisier.\n\nOK = inlocuire completa baza FZ\nCancel = actualizare/adaugare dupa CUI sau nume`);
+    const res=await fetch('/api/partners/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({partners:imported, mode:replace?'replace':'upsert'})});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error || 'Importul a esuat.');
+    await loadPartners();
+    purchaseClearPartner();
+    purchaseRefreshPreview();
+    alert(`Import finalizat.\nImportati: ${data.count}\nAdaugati: ${data.inserted||0}\nActualizati: ${data.updated||0}${data.replaced?`\nInlocuiti anterior: ${data.replaced}`:''}`);
+  }catch(err){
+    alert(err.message || 'Nu s-a putut importa baza FZ.');
+  }finally{
+    if(input) input.value='';
+  }
+}
+
 async function loadPurchaseContracts(){
   try{
     const res=await fetch('/api/purchase-contracts');
