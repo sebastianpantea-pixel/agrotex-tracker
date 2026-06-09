@@ -786,6 +786,38 @@ function buildSellerText(contract) {
   return '';
 }
 
+
+function qualityValue(obj, key, fallback) {
+  const v = obj && obj[key] != null ? String(obj[key]).trim() : '';
+  return v || fallback;
+}
+
+function normalizePurchaseQualityParams(product, raw) {
+  const q = raw && typeof raw === 'object' ? raw : {};
+  if (product === 'wheat') {
+    return {
+      hl: qualityValue(q, 'hl', '76 kg/hl'),
+      humidity: qualityValue(q, 'humidity', '14%'),
+      foreignBodies: qualityValue(q, 'foreignBodies', '2%'),
+      protein: qualityValue(q, 'protein', '11%'),
+      don: qualityValue(q, 'don', '1250 ppb'),
+      fallingNumber: qualityValue(q, 'fallingNumber', '220 sec.'),
+    };
+  }
+  if (product === 'corn') {
+    return {
+      humidityBase: qualityValue(q, 'humidityBase', '14.0%'),
+      dryingTax: qualityValue(q, 'dryingTax', '20 RON/tona/%'),
+      impuritiesBase: qualityValue(q, 'impuritiesBase', '2%'),
+      impuritiesMax: qualityValue(q, 'impuritiesMax', '4%'),
+      conditioningCost: qualityValue(q, 'conditioningCost', '15 RON/to'),
+      broken: qualityValue(q, 'broken', '3.5%'),
+      aflatoxin: qualityValue(q, 'aflatoxin', '5 ppb'),
+    };
+  }
+  return {};
+}
+
 function validatePurchaseContractPayload(raw) {
   const c = raw && typeof raw === 'object' ? { ...raw } : {};
   c.product = String(c.product || '').trim();
@@ -801,6 +833,7 @@ function validatePurchaseContractPayload(raw) {
   c.deliveryEnd = String(c.deliveryEnd || '').trim();
   c.paymentTerm = String(c.paymentTerm || '30 zile de la facturare').trim();
   c.notes = String(c.notes || '').trim();
+  c.qualityParams = normalizePurchaseQualityParams(c.product, c.qualityParams);
   c.sellerMode = String(c.sellerMode || 'existing');
   c.partnerId = c.partnerId ? Number(c.partnerId) : null;
   c.sellerName = String(c.sellerName || '').trim();
@@ -873,6 +906,53 @@ function deliveryPeriodForContract(contract, spec) {
   return spec.defaultPeriodText || '';
 }
 
+
+function replacePercentLike(text, pattern, value) {
+  return text.replace(pattern, value);
+}
+
+function applyQualityToParagraph(text, contract, normalized) {
+  const q = contract.qualityParams || {};
+  let out = text;
+  if (contract.product === 'wheat') {
+    if (normalized.startsWith('masa hectolitrica:')) return 'Masa hectolitrică: ' + (q.hl || '76 kg/hl');
+    if (normalized.startsWith('umiditate:')) return 'Umiditate:  ' + (q.humidity || '14%');
+    if (normalized.startsWith('corpuri straine:')) return 'Corpuri straine:  ' + (q.foreignBodies || '2%');
+    if (normalized.startsWith('proteina:')) return 'Proteina: min. ' + (q.protein || '11%');
+    if (normalized.startsWith('don toxin:')) return 'DON toxin: max ' + (q.don || '1250 ppb');
+    if (normalized.startsWith('indice de cadere:')) return 'Indice de cadere: min. ' + (q.fallingNumber || '220 sec.');
+  }
+  if (contract.product === 'corn') {
+    if (normalized.startsWith('umiditate :') || normalized.startsWith('umiditate:')) {
+      const h = q.humidityBase || '14.0%';
+      const tax = q.dryingTax || '20 RON/tona/%';
+      out = out.replace(/baza\s+[0-9]+(?:[,.][0-9]+)?\s*%/i, `baza ${h}`);
+      out = out.replace(/peste\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `peste ${h}`);
+      out = out.replace(/mai\s+mica\s+de\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `mai mica de ${h}`);
+      out = out.replace(/depășește\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `depășește ${h}`);
+      out = out.replace(/depăseste\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `depășește ${h}`);
+      out = out.replace(/taxa\s+de\s+uscare\s+[0-9]+(?:[,.][0-9]+)?\s*RON\/tona\/%/i, `taxa de uscare ${tax}`);
+      return out;
+    }
+    if (normalized.startsWith('impuritati :') || normalized.startsWith('impurități :') || normalized.startsWith('impuritati:') || normalized.startsWith('impurități:')) {
+      const base = q.impuritiesBase || '2%';
+      const max = q.impuritiesMax || '4%';
+      const cost = q.conditioningCost || '15 RON/to';
+      out = out.replace(/baza\s+[0-9]+(?:[,.][0-9]+)?\s*%/i, `baza ${base}`);
+      out = out.replace(/maxim\s+[0-9]+(?:[,.][0-9]+)?\s*%/i, `maxim ${max}`);
+      out = out.replace(/depășește\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `depășește ${base}`);
+      out = out.replace(/depăseste\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `depășește ${base}`);
+      out = out.replace(/mai\s+mic\s+de\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `mai mic de ${base}`);
+      out = out.replace(/mai\s+mare\s+decat\s+[0-9]+(?:[,.][0-9]+)?\s*%/gi, `mai mare decat ${max}`);
+      out = out.replace(/cost\s+de\s+[0-9]+(?:[,.][0-9]+)?\s*RON\/to/i, `cost de ${cost}`);
+      return out;
+    }
+    if (normalized.startsWith('sparturi :') || normalized.startsWith('spărturi :') || normalized.startsWith('sparturi:') || normalized.startsWith('spărturi:')) return 'Spărturi : Max ' + (q.broken || '3.5%');
+    if (normalized.startsWith('aflatoxina:')) return 'Aflatoxina: max ' + (q.aflatoxin || '5 ppb');
+  }
+  return null;
+}
+
 function replaceContractParagraphs(documentXml, contract) {
   const spec = PURCHASE_PRODUCTS[contract.product];
   const qty = String(contract.quantity).replace('.', ',');
@@ -883,6 +963,9 @@ function replaceContractParagraphs(documentXml, contract) {
   return documentXml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, (p) => {
     const text = paragraphText(p);
     const n = normalizeForMatch(text);
+
+    const qualityOut = applyQualityToParagraph(text, contract, n);
+    if (qualityOut != null && qualityOut !== text) return makeParagraphLike(p, qualityOut);
 
     if (/^nr\.?\s*_+\s*$/.test(n) || /^nr\.?\s*_+/.test(n)) {
       return makeParagraphLike(p, text.replace(/NR\.\s*_+|NR\s*_+/i, `NR. ${contract.contractNo}`));
