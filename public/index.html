@@ -952,7 +952,7 @@
   .tab.contract-tab-active{background:rgba(114,211,154,.10);color:var(--long);border-color:var(--long);}
   #purchaseSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
   .purchase-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .purchase-grid{display:grid;grid-template-columns:minmax(380px,420px) minmax(430px,1fr) minmax(280px,320px);gap:12px;align-items:start;}
+  .purchase-grid{display:grid;grid-template-columns:minmax(360px,410px) minmax(420px,1fr) minmax(340px,380px);gap:12px;align-items:start;}
   @media(max-width:1250px){.purchase-grid{grid-template-columns:1fr 1fr}.purchase-side{grid-column:1 / -1;}}
   @media(max-width:900px){.purchase-grid{grid-template-columns:1fr}.purchase-side{grid-column:auto}}
   .purchase-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
@@ -990,18 +990,18 @@
   .btn-purchase.secondary:hover{color:var(--bright);}
   .btn-purchase:disabled{opacity:.45;cursor:not-allowed;}
   .purchase-side .purchase-body{padding:8px;}
-  .purchase-history{display:flex;flex-direction:column;gap:7px;max-height:560px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
-  .purchase-history-item{border:1px solid var(--border);background:var(--surface2);border-radius:5px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0;overflow:hidden;}
+  .purchase-history{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+  .purchase-history-item{border:1px solid var(--border);background:var(--surface2);border-radius:5px;padding:8px 9px;display:flex;flex-direction:column;gap:6px;min-width:0;overflow:hidden;}
   .purchase-history-top{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;}
   .purchase-history-name{font-size:11px;font-weight:800;color:var(--bright);line-height:1.25;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .purchase-history-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;min-width:0;overflow-wrap:anywhere;}
-  .purchase-history-actions{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:2px;}
-  .purchase-history-actions .btn-purchase{width:100%;text-align:center;padding:5px 7px;font-size:9px;}
+  .purchase-history-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;margin-top:2px;width:100%;}
+  .purchase-history-actions .btn-purchase{width:100%;min-width:0;text-align:center;padding:5px 6px;font-size:9px;overflow:hidden;text-overflow:ellipsis;}
   .purchase-badge{display:inline-block;padding:2px 6px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;border:1px solid rgba(114,211,154,.35);background:rgba(114,211,154,.08);color:var(--long);white-space:nowrap;}
-  .purchase-tick{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:900;cursor:pointer;line-height:1;}
+  .purchase-tick{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:900;cursor:pointer;line-height:1;}
   .purchase-tick.on{border-color:rgba(114,211,154,.55);background:rgba(114,211,154,.14);color:var(--long);}
-  .purchase-signed-line{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;}
-  .purchase-signed-line.on{color:var(--long);}
+  .purchase-signed-line{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;display:none;}
+  .purchase-signed-line.on{color:var(--long);display:block;}
   .purchase-small{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
 
 </style>
@@ -7840,7 +7840,7 @@ function renderPurchaseHistory(){
     const seller=c.sellerName || (c.sellerFullTextFinal||c.sellerFullText||'').split(',')[0] || '—';
     const url=id?`/api/purchase-contracts/${encodeURIComponent(id)}/download`:'#';
     const signed=!!c.signedReturned;
-    const signedTxt=signed ? `Returnat semnat${c.signedReturnedAt?' · '+new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'):''}` : 'Nereturnat semnat';
+    const signedTxt=signed ? `Semnat${c.signedReturnedAt?' · '+new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'):''}` : '';
     const qty=c.quantity ? purchaseNum(c.quantity) : '—';
     const price=c.priceRon ? purchaseMoney(c.priceRon) : '—';
     const safeId=JSON.stringify(id);
@@ -7850,7 +7850,7 @@ function renderPurchaseHistory(){
       <div class="purchase-history-top">
         <div class="purchase-history-name" title="${htmlEsc((c.contractNo||'Fara nr.')+' · '+product)}">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div>
         <span class="purchase-badge">LONG</span>
-        <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} onclick="purchaseSetSigned(${safeId}, ${signed?'false':'true'})" title="Returnat semnat">✓</button>
+        <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} onclick="purchaseSetSigned(${safeId}, ${signed?'false':'true'})" title="Marcheaza returnat semnat">✓</button>
       </div>
       <div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(tradeId||'—')}</div>
       <div class="purchase-signed-line ${signed?'on':''}">${htmlEsc(signedTxt)}</div>
