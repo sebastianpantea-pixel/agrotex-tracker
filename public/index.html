@@ -1010,6 +1010,13 @@
   .purchase-fz-admin{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
   .purchase-fz-admin .btn-purchase{font-size:9px;padding:5px 6px;text-align:center;}
   .purchase-fz-note{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;margin-top:4px;}
+  .purchase-admin-toggle{margin-top:6px;width:100%;text-align:left;}
+  .purchase-admin-box{display:none;border:1px solid var(--border);background:rgba(255,255,255,.018);border-radius:4px;padding:7px;margin-top:6px;}
+  .purchase-admin-box.open{display:block;}
+  .purchase-quality-box{display:none;border:1px solid var(--border);background:rgba(114,211,154,.045);border-radius:4px;padding:8px;gap:8px;}
+  .purchase-quality-box.open{display:flex;flex-direction:column;}
+  .purchase-quality-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--long);text-transform:uppercase;letter-spacing:1px;margin-bottom:1px;}
+  .purchase-quality-note{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;}
 
 </style>
 </head>
@@ -1148,7 +1155,7 @@
         <div class="purchase-row2">
           <div>
             <div class="purchase-label">Produs</div>
-            <select id="pcProduct" class="purchase-select" onchange="purchaseRefreshPreview()">
+            <select id="pcProduct" class="purchase-select" onchange="purchaseOnProductChange()">
               <option value="wheat">Grau</option>
               <option value="corn">Porumb</option>
               <option value="rapeseed">Rapita</option>
@@ -1164,7 +1171,7 @@
         <div class="purchase-row2">
           <div>
             <div class="purchase-label">Nr. contract</div>
-            <input id="pcContractNo" class="purchase-input" placeholder="ex. 125/2026" oninput="purchaseRefreshPreview()">
+            <input id="pcContractNo" class="purchase-input" oninput="purchaseRefreshPreview()">
           </div>
           <div>
             <div class="purchase-label">Data contract</div>
@@ -1183,12 +1190,15 @@
         <div id="pcExistingBox">
           <div class="purchase-search">
             <input id="pcPartnerSearch" class="purchase-input" placeholder="Cauta furnizor dupa nume, CIF, localitate..." oninput="purchaseSearchPartners()" onfocus="purchaseSearchPartners()">
-            <div class="purchase-fz-admin">
-            <button type="button" class="btn-purchase secondary" onclick="purchaseExportPartnersXlsx()">Export FZ</button>
-            <button type="button" class="btn-purchase secondary" onclick="document.getElementById('pcImportPartnersFile').click()">Import FZ</button>
-          </div>
-          <input id="pcImportPartnersFile" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="purchaseImportPartnersXlsx(event)">
-          <div class="purchase-fz-note">Exporta, curata in Excel, apoi importa inapoi. Importul poate inlocui baza sau actualiza dupa CUI/nume.</div>
+            <button type="button" class="btn-purchase secondary purchase-admin-toggle" onclick="purchaseToggleFzAdmin()">Administrare FZ</button>
+            <div id="pcFzAdminBox" class="purchase-admin-box">
+              <div class="purchase-fz-admin">
+                <button type="button" class="btn-purchase secondary" onclick="purchaseExportPartnersXlsx()">Export FZ</button>
+                <button type="button" class="btn-purchase secondary" onclick="document.getElementById('pcImportPartnersFile').click()">Import FZ</button>
+              </div>
+              <input id="pcImportPartnersFile" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="purchaseImportPartnersXlsx(event)">
+              <div class="purchase-fz-note">Pentru intretinerea bazei. Excel simplu: name, cui, fullText, active, notes.</div>
+            </div>
             <div id="pcPartnerResults" class="purchase-results"></div>
           </div>
           <div id="pcSelectedPartner" class="purchase-preview" style="display:none;"></div>
@@ -1204,11 +1214,11 @@
         <div class="purchase-row2">
           <div>
             <div class="purchase-label">Cantitate, tone</div>
-            <input id="pcQuantity" type="number" step="0.001" class="purchase-input" placeholder="1000" oninput="purchaseRefreshPreview()">
+            <input id="pcQuantity" type="number" step="0.001" class="purchase-input" oninput="purchaseRefreshPreview()">
           </div>
           <div>
             <div class="purchase-label">Pret, lei / tona</div>
-            <input id="pcPriceRon" type="number" step="0.01" class="purchase-input" placeholder="850" oninput="purchaseRefreshPreview()">
+            <input id="pcPriceRon" type="number" step="0.01" class="purchase-input" oninput="purchaseRefreshPreview()">
           </div>
         </div>
 
@@ -1222,7 +1232,7 @@
           </div>
           <div>
             <div class="purchase-label">Loc livrare, manual</div>
-            <input id="pcDeliveryPlace" class="purchase-input" placeholder="completezi manual" oninput="purchaseRefreshPreview()">
+            <input id="pcDeliveryPlace" class="purchase-input" oninput="purchaseRefreshPreview()">
           </div>
         </div>
 
@@ -1237,6 +1247,14 @@
           </div>
         </div>
 
+        <div id="pcQualityBox" class="purchase-quality-box">
+          <div>
+            <div class="purchase-quality-title">Parametri calitate modificabili</div>
+            <div class="purchase-quality-note">Disponibil pentru grau si porumb. Daca lasi valorile standard, contractul ramane cu parametrii standard.</div>
+          </div>
+          <div id="pcQualityFields"></div>
+        </div>
+
         <div>
           <div class="purchase-label">Termen plata</div>
           <input id="pcPaymentTerm" class="purchase-input" value="30 de zile de la facturare" oninput="purchaseRefreshPreview()">
@@ -1244,7 +1262,7 @@
 
         <div>
           <div class="purchase-label">Observatii interne / speciale</div>
-          <textarea id="pcNotes" class="purchase-textarea" placeholder="Optional. Apare in contract si in nota pozitiei." oninput="purchaseRefreshPreview()"></textarea>
+          <textarea id="pcNotes" class="purchase-textarea" oninput="purchaseRefreshPreview()"></textarea>
         </div>
 
         <div class="purchase-actions">
@@ -7623,6 +7641,48 @@ function purchaseDeliveryPeriod(){
   if(b) return `pana la ${purchaseDateRo(b)}`;
   return 'necompletata';
 }
+function purchaseToggleFzAdmin(){
+  const box=document.getElementById('pcFzAdminBox');
+  if(box) box.classList.toggle('open');
+}
+const PURCHASE_QUALITY_DEFAULTS = {
+  wheat: { hl:'76 kg/hl', humidity:'14%', foreignBodies:'2%', protein:'11%', don:'1250 ppb', fallingNumber:'220 sec.' },
+  corn: { humidityBase:'14.0%', dryingTax:'20 RON/tona/%', impuritiesBase:'2%', impuritiesMax:'4%', conditioningCost:'15 RON/to', broken:'3.5%', aflatoxin:'5 ppb' }
+};
+function purchaseOnProductChange(){
+  purchaseRenderQualityFields(true);
+  purchaseRefreshPreview();
+}
+function purchaseRenderQualityFields(reset=false){
+  const product=document.getElementById('pcProduct')?.value;
+  const box=document.getElementById('pcQualityBox');
+  const fields=document.getElementById('pcQualityFields');
+  if(!box || !fields) return;
+  if(!['wheat','corn'].includes(product)){ box.classList.remove('open'); fields.innerHTML=''; return; }
+  box.classList.add('open');
+  const d=PURCHASE_QUALITY_DEFAULTS[product]||{};
+  const rows = product==='wheat' ? [
+    ['pcQHl','Masa hectolitrica',d.hl],['pcQHumidity','Umiditate',d.humidity],['pcQForeign','Corpuri straine',d.foreignBodies],['pcQProtein','Proteina minima',d.protein],['pcQDon','DON toxin max.',d.don],['pcQFall','Indice de cadere min.',d.fallingNumber]
+  ] : [
+    ['pcQCornHumidity','Umiditate baza',d.humidityBase],['pcQDryingTax','Taxa uscare',d.dryingTax],['pcQImpBase','Impuritati baza',d.impuritiesBase],['pcQImpMax','Impuritati max.',d.impuritiesMax],['pcQCondCost','Cost conditionare',d.conditioningCost],['pcQBroken','Sparturi max.',d.broken],['pcQAflatoxin','Aflatoxina max.',d.aflatoxin]
+  ];
+  fields.innerHTML=`<div class="purchase-row2">${rows.map(r=>`<div><div class="purchase-label">${htmlEsc(r[1])}</div><input id="${r[0]}" class="purchase-input" value="${htmlEsc(r[2])}" oninput="purchaseRefreshPreview()"></div>`).join('')}</div>`;
+}
+function purchaseReadQualityParams(product){
+  const val=(id,fb='')=>(document.getElementById(id)?.value||fb).trim();
+  if(product==='wheat') return {
+    hl:val('pcQHl','76 kg/hl'), humidity:val('pcQHumidity','14%'), foreignBodies:val('pcQForeign','2%'), protein:val('pcQProtein','11%'), don:val('pcQDon','1250 ppb'), fallingNumber:val('pcQFall','220 sec.')
+  };
+  if(product==='corn') return {
+    humidityBase:val('pcQCornHumidity','14.0%'), dryingTax:val('pcQDryingTax','20 RON/tona/%'), impuritiesBase:val('pcQImpBase','2%'), impuritiesMax:val('pcQImpMax','4%'), conditioningCost:val('pcQCondCost','15 RON/to'), broken:val('pcQBroken','3.5%'), aflatoxin:val('pcQAflatoxin','5 ppb')
+  };
+  return {};
+}
+function purchaseQualityList(product, q){
+  if(product==='wheat') return [`Masa hectolitrica ${q.hl}`,`Umiditate ${q.humidity}`,`Corpuri straine ${q.foreignBodies}`,`Proteina min. ${q.protein}`,`DON max. ${q.don}`,`Indice de cadere min. ${q.fallingNumber}`];
+  if(product==='corn') return [`Umiditate baza ${q.humidityBase}`,`Taxa uscare ${q.dryingTax}`,`Impuritati baza ${q.impuritiesBase}, max. ${q.impuritiesMax}`,`Cost conditionare ${q.conditioningCost}`,`Sparturi max. ${q.broken}`,`Aflatoxina max. ${q.aflatoxin}`];
+  return PURCHASE_PRODUCT_QUALITY[product]||[];
+}
 async function loadPartners(){
   try{
     const res=await fetch('/api/partners');
@@ -7724,6 +7784,7 @@ function setPurchaseTab(){
   document.getElementById('tabPurchase').className='tab contract-tab-active';
   document.getElementById('purchaseSection').style.display='flex';
   if(!document.getElementById('pcContractDate').value) document.getElementById('pcContractDate').value=today();
+  purchaseRenderQualityFields(true);
   purchaseRefreshPreview();
   renderPurchaseHistory();
 }
@@ -7799,7 +7860,8 @@ function purchaseReadForm(){
     deliveryStart:document.getElementById('pcDeliveryStart').value||'',
     deliveryEnd:document.getElementById('pcDeliveryEnd').value||'',
     paymentTerm:(document.getElementById('pcPaymentTerm').value||'30 de zile de la facturare').trim(),
-    notes:(document.getElementById('pcNotes').value||'').trim()
+    notes:(document.getElementById('pcNotes').value||'').trim(),
+    qualityParams: purchaseReadQualityParams(product)
   };
 }
 function purchaseValidate(c){
@@ -7822,7 +7884,7 @@ function purchaseRefreshPreview(){
     warnBox.innerHTML=warnings.length ? `<div class="purchase-warning">${warnings.map(x=>'• '+htmlEsc(x)).join('<br>')}</div>` : `<div class="purchase-ok">Datele minime sunt complete. La generare se creeaza automat pozitia LONG.</div>`;
   }
   if(preview){
-    const quality=(PURCHASE_PRODUCT_QUALITY[c.product]||[]).map(q=>`<li>${htmlEsc(q)}</li>`).join('');
+    const quality=purchaseQualityList(c.product, c.qualityParams||{}).map(q=>`<li>${htmlEsc(q)}</li>`).join('');
     preview.innerHTML=`
       <h4>Contract care se va genera</h4>
       <b>${htmlEsc(c.productLabel)}</b>, nr. <b>${htmlEsc(c.contractNo||'—')}</b>, data ${htmlEsc(purchaseDateRo(c.contractDate)||'—')}<br>
@@ -7883,6 +7945,7 @@ function purchaseClearForm(){
   document.getElementById('pcPaymentTerm').value='30 de zile de la facturare';
   document.getElementById('pcEmailBox').style.display='none';
   document.getElementById('pcStatus').innerHTML='';
+  purchaseRenderQualityFields(true);
   purchaseRefreshPreview();
 }
 async function purchaseSetSigned(id, checked){
