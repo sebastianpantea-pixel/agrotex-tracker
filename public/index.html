@@ -999,7 +999,10 @@
   .purchase-history-actions .btn-purchase{flex:1;min-width:0;text-align:center;padding:5px 6px;font-size:9px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:6;pointer-events:auto;}
   .purchase-history-actions button,.purchase-history-actions a,.purchase-tick{pointer-events:auto;position:relative;z-index:7;}
   .purchase-badge{display:inline-block;padding:2px 6px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;border:1px solid rgba(114,211,154,.35);background:rgba(114,211,154,.08);color:var(--long);white-space:nowrap;}
-  .purchase-tick{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--border2);background:var(--surface);color:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:900;cursor:pointer;line-height:1;flex:0 0 22px;}
+  .purchase-sign-wrap{display:flex;align-items:center;gap:4px;justify-content:flex-end;white-space:nowrap;}
+  .purchase-sign-label{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;color:var(--dim);letter-spacing:.4px;text-transform:uppercase;}
+  .purchase-sign-wrap.on .purchase-sign-label{color:var(--long);}
+  .purchase-tick{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--border2);background:var(--surface);color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:900;cursor:pointer;line-height:1;flex:0 0 20px;}
   .purchase-tick.on{border-color:rgba(114,211,154,.55);background:rgba(114,211,154,.14);color:var(--long);}
   .purchase-signed-line{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;display:none;}
   .purchase-signed-line.on{color:var(--long);display:block;}
@@ -7801,8 +7804,10 @@ async function purchaseSetSigned(id, checked){
     const res=await fetch(`/api/purchase-contracts/${encodeURIComponent(id)}/signed`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({signedReturned:!!checked})});
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'Eroare la actualizarea contractului.');
-    const idx=purchaseContracts.findIndex(c=>String(c.id)===String(id));
-    if(idx>=0) purchaseContracts[idx]=data.contract;
+    const idx=purchaseContracts.findIndex(c=>String(c.id || c.contractId || c._rowId)===String(id));
+    if(idx>=0){
+      purchaseContracts[idx]={...purchaseContracts[idx], ...(data.contract||{}), id: id, contractId: (data.contract?.contractId || purchaseContracts[idx].contractId || id), tradeId: (data.contract?.tradeId || purchaseContracts[idx].tradeId || '')};
+    }
     renderPurchaseHistory();
   }catch(err){
     alert(err.message||'Eroare la actualizarea contractului.');
@@ -7851,10 +7856,13 @@ function renderPurchaseHistory(){
       <div class="purchase-history-top">
         <div class="purchase-history-name" title="${htmlEsc((c.contractNo||'Fara nr.')+' · '+product)}">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div>
         <span class="purchase-badge">LONG</span>
-        <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} data-pc-action="signed" data-pc-id="${idAttr}" data-pc-next="${signed?'0':'1'}" title="Returnat semnat">✓</button>
+        <div class="purchase-sign-wrap ${signed?'on':''}" title="Returnat semnat">
+          <span class="purchase-sign-label">Semnat</span>
+          <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} data-pc-action="signed" data-pc-id="${idAttr}" data-pc-next="${signed?'0':'1'}" title="Returnat semnat">✓</button>
+        </div>
       </div>
       <div class="purchase-history-meta" title="Pozitie ID: ${htmlEsc(tradeId||'—')}">${htmlEsc(seller)}<br>${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}</div>
-      <div class="purchase-signed-line ${signed?'on':''}">${htmlEsc(signedTxt)}</div>
+      ${signed && c.signedReturnedAt ? `<div class="purchase-signed-line on">${htmlEsc(new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'))}</div>` : ''}
       <div class="purchase-history-actions">
         <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="download" data-pc-id="${idAttr}">DOCX</button>
         <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="delete" data-pc-id="${idAttr}" data-pc-trade-id="${tradeIdAttr}" style="border-color:rgba(240,138,142,.45);color:var(--short);">Sterge</button>
