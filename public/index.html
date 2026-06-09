@@ -7768,9 +7768,9 @@ async function purchaseGenerateContract(){
     const emailBox=document.getElementById('pcEmailBox');
     if(emailBox){
       emailBox.style.display='block';
-      emailBox.innerHTML=`<h4>Email transmitere</h4><pre style="white-space:pre-wrap;font-family:Arial,Calibri,sans-serif;font-size:13px;line-height:1.45;color:#111;background:#fff;padding:10px;border-radius:4px;">${htmlEsc(emailText)}</pre><div class="purchase-actions"><a class="btn-purchase" href="${data.downloadUrl}" target="_blank">Descarca contract .doc</a><button class="btn-purchase secondary" onclick='navigator.clipboard.writeText(${JSON.stringify(emailText)});this.textContent="Copiat";'>Copiaza email</button></div>`;
+      emailBox.innerHTML=`<h4>Email transmitere</h4><pre style="white-space:pre-wrap;font-family:Arial,Calibri,sans-serif;font-size:13px;line-height:1.45;color:#111;background:#fff;padding:10px;border-radius:4px;">${htmlEsc(emailText)}</pre><div class="purchase-actions"><a class="btn-purchase" href="${data.downloadUrl}" target="_blank">Descarca contract .docx</a><button class="btn-purchase secondary" onclick='navigator.clipboard.writeText(${JSON.stringify(emailText)});this.textContent="Copiat";'>Copiaza email</button></div>`;
     }
-    if(status) status.innerHTML=`<div class="purchase-ok">Contract generat. Pozitia LONG a fost introdusa automat. <a href="${data.downloadUrl}" target="_blank" style="color:var(--long);font-weight:800;">Descarca .doc</a></div>`;
+    if(status) status.innerHTML=`<div class="purchase-ok">Contract generat. Pozitia LONG a fost introdusa automat. <a href="${data.downloadUrl}" target="_blank" style="color:var(--long);font-weight:800;">Descarca .docx</a></div>`;
   }catch(err){
     if(status) status.innerHTML=`<div class="purchase-warning">${htmlEsc(err.message)}</div>`;
   }finally{
@@ -7796,7 +7796,7 @@ function renderPurchaseHistory(){
     const product=PURCHASE_PRODUCT_LABELS[c.product]||c.productLabel||c.product||'—';
     const seller=c.sellerName || (c.sellerFullTextFinal||c.sellerFullText||'').split(',')[0] || '—';
     const url=c.id?`/api/purchase-contracts/${c.id}/download`:'#';
-    return `<div class="purchase-history-item"><div class="purchase-history-top"><div class="purchase-history-name">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div><span class="purchase-badge">LONG</span></div><div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(c.quantity||0)} t · ${htmlEsc(c.priceRon||0)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(c.tradeId||'—')}</div><div><a class="btn-purchase secondary" href="${url}" target="_blank">Descarca .doc</a></div></div>`;
+    return `<div class="purchase-history-item"><div class="purchase-history-top"><div class="purchase-history-name">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div><span class="purchase-badge">LONG</span></div><div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(c.quantity||0)} t · ${htmlEsc(c.priceRon||0)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(c.tradeId||'—')}</div><div><a class="btn-purchase secondary" href="${url}" target="_blank">Descarca .docx</a></div></div>`;
   }).join('');
 }
 
