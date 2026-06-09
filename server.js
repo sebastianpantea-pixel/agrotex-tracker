@@ -578,14 +578,86 @@ function normalizePartner(partner) {
 
 app.get('/api/partners', requireAuth, (req, res) => {
   try {
+    const includeInactive = req.query.includeInactive === '1';
     const rows = db.prepare('SELECT id, data, created_at, updated_at FROM partners WHERE deleted_at IS NULL ORDER BY updated_at DESC, id DESC').all();
-    const partners = rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _createdAt: r.created_at, _UpdatedAt: r.updated_at }));
+    let partners = rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _createdAt: r.created_at, _updatedAt: r.updated_at }));
+    if (!includeInactive) partners = partners.filter(p => p.active !== false && String(p.active).toLowerCase() !== 'false');
     res.json(partners);
   } catch (err) {
     console.error('Partners GET error:', err);
     res.status(500).json({ error: err.message });
   }
+});
 
+function partnerImportKey(p) {
+  const cui = String(p?.cui || '').toUpperCase().replace(/\s+/g, '').trim();
+  if (cui) return 'cui:' + cui;
+  const name = String(p?.name || '').toUpperCase().replace(/\s+/g, ' ').trim();
+  return name ? 'name:' + name : '';
+}
+
+app.post('/api/partners/import', requireAuth, (req, res) => {
+  try {
+    const partnersInput = Array.isArray(req.body?.partners) ? req.body.partners : [];
+    const mode = req.body?.mode === 'replace' ? 'replace' : 'upsert';
+    if (!partnersInput.length) return res.status(400).json({ error: 'Fisierul nu contine furnizori valizi.' });
+
+    const normalized = partnersInput
+      .map(x => normalizePartner(sanitizeObjectForStorage(x)))
+      .filter(p => p.name || p.fullText)
+      .map(p => {
+        if (!p.name && p.fullText) p.name = String(p.fullText).split(',')[0].slice(0, 140).trim();
+        if (p.active === undefined || p.active === null || p.active === '') p.active = true;
+        if (typeof p.active === 'string') p.active = !['false', '0', 'nu', 'no', 'inactive', 'inactiv'].includes(p.active.trim().toLowerCase());
+        p.type = p.type || 'supplier';
+        p.source = p.source || 'FZ import Excel';
+        return p;
+      });
+
+    if (!normalized.length) return res.status(400).json({ error: 'Nu am gasit furnizori cu nume sau text complet.' });
+    makeBackup('before-partners-import');
+
+    let inserted = 0, updated = 0, replaced = 0, skipped = 0;
+    const insertStmt = db.prepare("INSERT INTO partners (data, created_at, updated_at) VALUES (?, datetime('now'), datetime('now'))");
+    const updateStmt = db.prepare("UPDATE partners SET data = ?, updated_at = datetime('now'), deleted_at = NULL, deleted_by = NULL WHERE id = ?");
+
+    const tx = db.transaction((items) => {
+      if (mode === 'replace') {
+        const info = db.prepare("UPDATE partners SET deleted_at = datetime('now'), deleted_by = ? WHERE deleted_at IS NULL").run(req.session.user || null);
+        replaced = info.changes || 0;
+        for (const p of items) { insertStmt.run(JSON.stringify(p)); inserted++; }
+        return;
+      }
+
+      const rows = db.prepare('SELECT id, data FROM partners WHERE deleted_at IS NULL').all();
+      const byKey = new Map();
+      for (const r of rows) {
+        const existing = safeJsonParse(r.data, {});
+        const key = partnerImportKey(existing);
+        if (key && !byKey.has(key)) byKey.set(key, { id: r.id, data: existing });
+      }
+      for (const p of items) {
+        const key = partnerImportKey(p);
+        if (!key) { skipped++; continue; }
+        const found = byKey.get(key);
+        if (found) {
+          updateStmt.run(JSON.stringify({ ...found.data, ...p }), found.id);
+          updated++;
+        } else {
+          const info = insertStmt.run(JSON.stringify(p));
+          inserted++;
+          byKey.set(key, { id: info.lastInsertRowid, data: p });
+        }
+      }
+    });
+
+    tx(normalized);
+    audit(req, 'import', 'partners', null, { mode, count: normalized.length, inserted, updated, replaced, skipped });
+    res.json({ ok: true, mode, count: normalized.length, inserted, updated, replaced, skipped });
+  } catch (err) {
+    console.error('Partners import error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/partners/reset-defaults', requireAuth, (req, res) => {
@@ -595,7 +667,7 @@ app.post('/api/partners/reset-defaults', requireAuth, (req, res) => {
     const insert = db.prepare("INSERT INTO partners (data, created_at, updated_at) VALUES (?, datetime('now'), datetime('now'))");
     const tx = db.transaction((items) => {
       softDelete.run(req.session.user || null);
-      for (const p of items) insert.run(JSON.stringify({ ...p, type: 'supplier', source: 'DATE CLIENTI curatat' }));
+      for (const p of items) insert.run(JSON.stringify({ ...p, type: 'supplier', source: 'DATE CLIENTI curatat', active: p.active !== false }));
     });
     tx(DEFAULT_PARTNERS_SEED);
     audit(req, 'reset_defaults', 'partners', null, { count: DEFAULT_PARTNERS_SEED.length });
@@ -611,6 +683,7 @@ app.post('/api/partners', requireAuth, (req, res) => {
     const partner = normalizePartner(sanitizeObjectForStorage(req.body));
     if (!partner.name && !partner.fullText) return res.status(400).json({ error: 'Lipseste denumirea furnizorului.' });
     if (!partner.name && partner.fullText) partner.name = partner.fullText.split(',')[0].slice(0, 120).trim();
+    if (partner.active === undefined) partner.active = true;
     const info = db.prepare('INSERT INTO partners (data, created_at, updated_at) VALUES (?, datetime(\'now\'), datetime(\'now\'))').run(JSON.stringify(partner));
     audit(req, 'create', 'partner', info.lastInsertRowid, { partner });
     res.json({ ok: true, id: info.lastInsertRowid });
