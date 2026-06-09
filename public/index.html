@@ -995,8 +995,9 @@
   .purchase-history-top{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;}
   .purchase-history-name{font-size:11px;font-weight:800;color:var(--bright);line-height:1.25;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .purchase-history-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.35;min-width:0;overflow:hidden;text-overflow:ellipsis;}
-  .purchase-history-actions{display:flex;gap:6px;margin-top:2px;width:100%;align-items:center;}
-  .purchase-history-actions .btn-purchase{flex:1;min-width:0;text-align:center;padding:4px 5px;font-size:9px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;}
+  .purchase-history-actions{display:flex;gap:6px;margin-top:2px;width:100%;align-items:center;position:relative;z-index:5;}
+  .purchase-history-actions .btn-purchase{flex:1;min-width:0;text-align:center;padding:5px 6px;font-size:9px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:6;pointer-events:auto;}
+  .purchase-history-actions button,.purchase-history-actions a,.purchase-tick{pointer-events:auto;position:relative;z-index:7;}
   .purchase-badge{display:inline-block;padding:2px 6px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;border:1px solid rgba(114,211,154,.35);background:rgba(114,211,154,.08);color:var(--long);white-space:nowrap;}
   .purchase-tick{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--border2);background:var(--surface);color:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:900;cursor:pointer;line-height:1;flex:0 0 22px;}
   .purchase-tick.on{border-color:rgba(114,211,154,.55);background:rgba(114,211,154,.14);color:var(--long);}
@@ -7843,24 +7844,49 @@ function renderPurchaseHistory(){
     const signedTxt=signed ? `Semnat${c.signedReturnedAt?' · '+new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'):''}` : '';
     const qty=c.quantity ? purchaseNum(c.quantity) : '—';
     const price=c.priceRon ? purchaseMoney(c.priceRon) : '—';
-    const safeId=JSON.stringify(id);
-    const safeTradeId=JSON.stringify(tradeId);
     const disabledAttr=id ? '' : ' disabled';
-    return `<div class="purchase-history-item">
+    const idAttr=htmlEsc(id);
+    const tradeIdAttr=htmlEsc(tradeId);
+    return `<div class="purchase-history-item" data-pc-id="${idAttr}">
       <div class="purchase-history-top">
         <div class="purchase-history-name" title="${htmlEsc((c.contractNo||'Fara nr.')+' · '+product)}">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div>
         <span class="purchase-badge">LONG</span>
-        <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} onclick="purchaseSetSigned(${safeId}, ${signed?'false':'true'})" title="Marcheaza returnat semnat">✓</button>
+        <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} data-pc-action="signed" data-pc-id="${idAttr}" data-pc-next="${signed?'0':'1'}" title="Returnat semnat">✓</button>
       </div>
       <div class="purchase-history-meta" title="Pozitie ID: ${htmlEsc(tradeId||'—')}">${htmlEsc(seller)}<br>${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}</div>
       <div class="purchase-signed-line ${signed?'on':''}">${htmlEsc(signedTxt)}</div>
       <div class="purchase-history-actions">
-        <a class="btn-purchase secondary" href="${url}" target="_blank">DOCX</a>
-        <button class="btn-purchase secondary" ${disabledAttr} style="border-color:rgba(240,138,142,.45);color:var(--short);" onclick="purchaseDeleteContract(${safeId}, ${safeTradeId})">Sterge</button>
+        <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="download" data-pc-id="${idAttr}">DOCX</button>
+        <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="delete" data-pc-id="${idAttr}" data-pc-trade-id="${tradeIdAttr}" style="border-color:rgba(240,138,142,.45);color:var(--short);">Sterge</button>
       </div>
     </div>`;
   }).join('');
 }
+
+function purchaseHandleHistoryClick(ev){
+  const btn=ev.target.closest('[data-pc-action]');
+  if(!btn || !document.getElementById('pcHistory')?.contains(btn)) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const action=btn.dataset.pcAction;
+  const id=(btn.dataset.pcId||'').trim();
+  if(!id){ alert('ID contract lipsa. Apasa Refresh si incearca din nou.'); return; }
+  if(action==='download'){
+    window.open(`/api/purchase-contracts/${encodeURIComponent(id)}/download`, '_blank');
+    return;
+  }
+  if(action==='delete'){
+    purchaseDeleteContract(id, (btn.dataset.pcTradeId||'').trim());
+    return;
+  }
+  if(action==='signed'){
+    purchaseSetSigned(id, btn.dataset.pcNext==='1');
+    return;
+  }
+}
+
+document.addEventListener('click', purchaseHandleHistoryClick, true);
+
 
 async function bootApp(){
   await loadAll();
