@@ -946,6 +946,57 @@
   .train-status-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
   .train-status-actions .btn-tr,.train-status-actions .btn-sm{width:100%;}
 
+
+
+  /* Contracte achizitie V1 */
+  .tab.contract-tab-active{background:rgba(114,211,154,.10);color:var(--long);border-color:var(--long);}
+  #purchaseSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
+  .purchase-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .purchase-grid{display:grid;grid-template-columns:420px 1fr 360px;gap:12px;align-items:start;}
+  @media(max-width:1300px){.purchase-grid{grid-template-columns:1fr 1fr}.purchase-side{grid-column:1 / -1;}}
+  @media(max-width:900px){.purchase-grid{grid-template-columns:1fr}.purchase-side{grid-column:auto}}
+  .purchase-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+  .purchase-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .purchase-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;}
+  .purchase-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .purchase-body{padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .purchase-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .purchase-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  @media(max-width:700px){.purchase-row2,.purchase-row3{grid-template-columns:1fr}}
+  .purchase-label{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+  .purchase-input,.purchase-select,.purchase-textarea{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;}
+  .purchase-textarea{min-height:86px;resize:vertical;line-height:1.45;font-family:'IBM Plex Sans',sans-serif;}
+  .purchase-input:focus,.purchase-select:focus,.purchase-textarea:focus{border-color:var(--long);}
+  .purchase-pill-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .purchase-pill{padding:5px 9px;border:1px solid var(--border2);background:var(--surface2);border-radius:20px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;color:var(--dim);cursor:pointer;}
+  .purchase-pill.active{border-color:var(--long);background:rgba(114,211,154,.12);color:var(--long);}
+  .purchase-search{position:relative;}
+  .purchase-results{display:none;position:absolute;top:100%;left:0;right:0;max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--border2);border-radius:4px;z-index:500;margin-top:3px;box-shadow:0 8px 28px rgba(0,0,0,.35);}
+  .purchase-results.open{display:block;}
+  .purchase-result{padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .purchase-result:last-child{border-bottom:none;}
+  .purchase-result:hover{background:var(--surface2);}
+  .purchase-result-name{font-size:11px;font-weight:800;color:var(--bright);}
+  .purchase-result-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px;line-height:1.35;}
+  .purchase-preview{background:rgba(255,255,255,.018);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:12px;line-height:1.55;color:var(--text);}
+  .purchase-preview h4{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--long);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  .purchase-preview ul{padding-left:18px;margin:5px 0;}
+  .purchase-warning{padding:8px 10px;border:1px solid rgba(240,138,142,.35);background:rgba(240,138,142,.08);color:var(--short);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
+  .purchase-ok{padding:8px 10px;border:1px solid rgba(114,211,154,.35);background:rgba(114,211,154,.08);color:var(--long);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
+  .purchase-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+  .btn-purchase{padding:6px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;cursor:pointer;border:1px solid rgba(114,211,154,.40);background:rgba(114,211,154,.10);color:var(--long);transition:all .15s;white-space:nowrap;}
+  .btn-purchase:hover{background:rgba(114,211,154,.18);}
+  .btn-purchase.secondary{border-color:var(--border2);background:var(--surface2);color:var(--dim);}
+  .btn-purchase.secondary:hover{color:var(--bright);}
+  .btn-purchase:disabled{opacity:.45;cursor:not-allowed;}
+  .purchase-history{display:flex;flex-direction:column;gap:6px;max-height:500px;overflow:auto;}
+  .purchase-history-item{border:1px solid var(--border);background:var(--surface2);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;}
+  .purchase-history-top{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .purchase-history-name{font-size:12px;font-weight:800;color:var(--bright);line-height:1.3;}
+  .purchase-history-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .purchase-badge{display:inline-block;padding:2px 6px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;border:1px solid rgba(114,211,154,.35);background:rgba(114,211,154,.08);color:var(--long);white-space:nowrap;}
+  .purchase-small{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+
 </style>
 </head>
 <body>
@@ -1056,10 +1107,161 @@
   <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
   <div class="tab" id="tabStock" onclick="setStockTab()" style="margin-left:auto;">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
+  <div class="tab" id="tabPurchase" onclick="setPurchaseTab()">📄 Contracte <span class="tbadge" id="bPurchase" style="background:var(--long);color:#000;">0</span></div>
   <div class="tab" id="tabTrain" onclick="setTrainTab()">🚂 Trenuri <span class="tbadge" id="bTrain" style="background:var(--transport);color:#000;">0</span></div>
   <div class="tab" id="tabEmail" onclick="setEmailTab()">✉️ Email</div>
   <div class="tab" id="tabContext" onclick="setContextTab()">🌍 Context global</div>
   <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
+</div>
+
+
+<div id="purchaseSection">
+  <div class="purchase-toolbar">
+    <button class="news-back-btn" onclick="closePurchaseTab()">← Înapoi</button>
+    <span class="meteo-badge" style="color:var(--long);border-color:rgba(114,211,154,.35);background:rgba(114,211,154,.08);">CONTRACTE ACHIZITIE V1</span>
+    <span class="ctx-note">Doar achizitie. Moneda fixa RON. Paritate FCA/DAP. Locul de livrare se completeaza manual la fiecare contract.</span>
+  </div>
+
+  <div class="purchase-grid">
+    <div class="purchase-card">
+      <div class="purchase-head">
+        <div>
+          <div class="purchase-title">Contract nou</div>
+          <div class="purchase-sub">Completezi o singura data. Se genereaza contractul si pozitia LONG.</div>
+        </div>
+      </div>
+      <div class="purchase-body">
+        <div class="purchase-row2">
+          <div>
+            <div class="purchase-label">Produs</div>
+            <select id="pcProduct" class="purchase-select" onchange="purchaseRefreshPreview()">
+              <option value="wheat">Grau</option>
+              <option value="corn">Porumb</option>
+              <option value="rapeseed">Rapita</option>
+              <option value="sunflower">Floarea-soarelui</option>
+            </select>
+          </div>
+          <div>
+            <div class="purchase-label">Recolta</div>
+            <input id="pcCropYear" class="purchase-input" value="2026" oninput="purchaseRefreshPreview()">
+          </div>
+        </div>
+
+        <div class="purchase-row2">
+          <div>
+            <div class="purchase-label">Nr. contract</div>
+            <input id="pcContractNo" class="purchase-input" placeholder="ex. 125/2026" oninput="purchaseRefreshPreview()">
+          </div>
+          <div>
+            <div class="purchase-label">Data contract</div>
+            <input id="pcContractDate" type="date" class="purchase-input" onchange="purchaseRefreshPreview()">
+          </div>
+        </div>
+
+        <div>
+          <div class="purchase-label">Furnizor</div>
+          <div class="purchase-pill-row">
+            <button type="button" id="pcModeExisting" class="purchase-pill active" onclick="purchaseSetSellerMode('existing')">Din baza FZ</button>
+            <button type="button" id="pcModeManual" class="purchase-pill" onclick="purchaseSetSellerMode('manual')">Manual</button>
+          </div>
+        </div>
+
+        <div id="pcExistingBox">
+          <div class="purchase-search">
+            <input id="pcPartnerSearch" class="purchase-input" placeholder="Cauta furnizor dupa nume, CIF, localitate..." oninput="purchaseSearchPartners()" onfocus="purchaseSearchPartners()">
+            <div id="pcPartnerResults" class="purchase-results"></div>
+          </div>
+          <div id="pcSelectedPartner" class="purchase-preview" style="display:none;"></div>
+        </div>
+
+        <div id="pcManualBox" style="display:none;">
+          <div class="purchase-label">Text furnizor pentru contract</div>
+          <textarea id="pcManualSeller" class="purchase-textarea" placeholder="Ex: SC Exemplu SRL, cu sediul..., CIF..., IBAN..., reprezentata prin..., in calitate de VANZATOR." oninput="purchaseRefreshPreview()"></textarea>
+          <label class="purchase-small" style="display:flex;gap:7px;align-items:center;margin-top:5px;"><input type="checkbox" id="pcSaveManualPartner" style="width:auto;"> Salveaza furnizorul in baza FZ dupa generare</label>
+          <input id="pcManualSellerName" class="purchase-input" placeholder="Denumire scurta furnizor, pentru pozitie si cautare" oninput="purchaseRefreshPreview()" style="margin-top:7px;">
+        </div>
+
+        <div class="purchase-row2">
+          <div>
+            <div class="purchase-label">Cantitate, tone</div>
+            <input id="pcQuantity" type="number" step="0.001" class="purchase-input" placeholder="1000" oninput="purchaseRefreshPreview()">
+          </div>
+          <div>
+            <div class="purchase-label">Pret, lei / tona</div>
+            <input id="pcPriceRon" type="number" step="0.01" class="purchase-input" placeholder="850" oninput="purchaseRefreshPreview()">
+          </div>
+        </div>
+
+        <div class="purchase-row2">
+          <div>
+            <div class="purchase-label">Paritate</div>
+            <select id="pcParity" class="purchase-select" onchange="purchaseRefreshPreview()">
+              <option value="FCA">FCA</option>
+              <option value="DAP">DAP</option>
+            </select>
+          </div>
+          <div>
+            <div class="purchase-label">Loc livrare, manual</div>
+            <input id="pcDeliveryPlace" class="purchase-input" placeholder="completezi manual" oninput="purchaseRefreshPreview()">
+          </div>
+        </div>
+
+        <div class="purchase-row2">
+          <div>
+            <div class="purchase-label">Livrare de la</div>
+            <input id="pcDeliveryStart" type="date" class="purchase-input" onchange="purchaseRefreshPreview()">
+          </div>
+          <div>
+            <div class="purchase-label">Livrare pana la</div>
+            <input id="pcDeliveryEnd" type="date" class="purchase-input" onchange="purchaseRefreshPreview()">
+          </div>
+        </div>
+
+        <div>
+          <div class="purchase-label">Termen plata</div>
+          <input id="pcPaymentTerm" class="purchase-input" value="30 de zile de la facturare" oninput="purchaseRefreshPreview()">
+        </div>
+
+        <div>
+          <div class="purchase-label">Observatii interne / speciale</div>
+          <textarea id="pcNotes" class="purchase-textarea" placeholder="Optional. Apare in contract si in nota pozitiei." oninput="purchaseRefreshPreview()"></textarea>
+        </div>
+
+        <div class="purchase-actions">
+          <button id="pcBtnGenerate" class="btn-purchase" onclick="purchaseGenerateContract()">Genereaza contract + introdu in Pozitie</button>
+          <button class="btn-purchase secondary" onclick="purchaseClearForm()">Curata</button>
+        </div>
+        <div id="pcStatus"></div>
+      </div>
+    </div>
+
+    <div class="purchase-card">
+      <div class="purchase-head">
+        <div>
+          <div class="purchase-title">Preview si verificare</div>
+          <div class="purchase-sub">Vezi exact ce se genereaza si ce intra in pozitie.</div>
+        </div>
+      </div>
+      <div class="purchase-body">
+        <div id="pcWarnings"></div>
+        <div id="pcPreview" class="purchase-preview"></div>
+        <div id="pcEmailBox" class="purchase-preview" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="purchase-card purchase-side">
+      <div class="purchase-head">
+        <div>
+          <div class="purchase-title">Istoric contracte</div>
+          <div class="purchase-sub">Contracte generate si legate de pozitie.</div>
+        </div>
+        <button class="btn-purchase secondary" onclick="loadPurchaseContracts()">Refresh</button>
+      </div>
+      <div class="purchase-body">
+        <div id="pcHistory" class="purchase-history"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -2023,6 +2225,11 @@ let weatherSelected = null;
 let weatherSearchTimer = null;
 let weatherSearchOpen = false;
 
+let purchaseTabActive = false;
+let partners = [];
+let purchaseContracts = [];
+let purchaseSellerMode = 'existing';
+let purchaseSelectedPartner = null;
 let logisticsTabActive = false;
 let logisticsContracts = [];
 let selectedLogisticsId = null;
@@ -2167,6 +2374,12 @@ function closeAllSideTabs(){
     contextTabActive=false;
     document.getElementById('tabContext').className='tab';
     document.getElementById('contextSection').style.display='none';
+    setCropTabsVisible(true);
+  }
+  if(purchaseTabActive){
+    purchaseTabActive=false;
+    document.getElementById('tabPurchase').className='tab';
+    document.getElementById('purchaseSection').style.display='none';
     setCropTabsVisible(true);
   }
   if(logisticsTabActive){
@@ -3238,6 +3451,8 @@ function trainWriteMeta(prefix, t){
 async function syncTrainContractFromTrade(t){
   if(!t || !t.id || !t.isTrain) return;
   if(!Array.isArray(trainContracts) || !trainContracts.length) await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
   const tradeId = String(t.id);
   let c = trainContracts.find(x=>String(x.sourceTradeId || '')===tradeId);
   const payload = {
@@ -3265,6 +3480,8 @@ async function syncTrainContractFromTrade(t){
   selectedTrainId = c.id;
   await apiSaveTrainContract(c, isNew);
   await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
 }
 
 function getAllTrainEvents(applyFilters=true){
@@ -3314,6 +3531,8 @@ async function setTrainTab(){
   document.querySelector('.main').style.display = 'none';
   document.getElementById('trainSection').style.display = 'flex';
   if(!Array.isArray(trainContracts) || !trainContracts.length) await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
   selectedTrainDate = selectedTrainDate || trainTodayKey();
   renderTrainTab();
 }
@@ -3565,6 +3784,8 @@ async function saveTrainContract(){
     });
     await apiSaveTrainContract(c, isNew);
     await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
     selectedTrainId = c.id;
     selectedTrainEvent = { contractId:c.id, shipmentId:sh.id };
     selectedTrainDate = date;
@@ -3590,6 +3811,8 @@ async function deleteTrainContract(){
   c.updatedAt = new Date().toISOString();
   await apiSaveTrainContract(c, false);
   await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
   selectedTrainEvent = null;
   closeModal('trainContractModal');
   renderTrainTab();
@@ -3602,6 +3825,8 @@ async function quickTrainStatus(contractId, shipmentId, status){
   ev.contract.updatedAt = new Date().toISOString();
   await apiSaveTrainContract(ev.contract, false);
   await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
   selectedTrainEvent = {contractId, shipmentId};
   renderTrainTab();
 }
@@ -7352,6 +7577,229 @@ async function syncTrades(){
     }
   }catch(e){}
 }
+
+// ── CONTRACTE ACHIZITIE V1 ────────────────────────────────────────────────
+const PURCHASE_PRODUCT_LABELS = {
+  wheat: 'Grau',
+  corn: 'Porumb',
+  rapeseed: 'Rapita',
+  sunflower: 'Floarea-soarelui'
+};
+const PURCHASE_PRODUCT_QUALITY = {
+  wheat: ['Masa hectolitrica 76 kg/hl', 'Umiditate 14%', 'Corpuri straine 2%', 'Proteina min. 11%', 'DON max. 1250 ppb', 'Indice de cadere min. 220 sec.'],
+  corn: ['Umiditate baza 14%', 'Impuritati baza 2%, max. 4%', 'Sparturi max. 3.5%', 'Aflatoxina max. 5 ppb', 'Marfa sanatoasa, libera de insecte si miros strain'],
+  rapeseed: ['Umiditate max. 9%', 'Corpuri straine baza 2%, max. 4%', 'Acid erucic max. 2%', 'Continut de ulei min. 42%'],
+  sunflower: ['Umiditate baza 9%, max. 11%', 'Corpuri straine baza 2%, max. 4%', 'Infestare max. 10 exemplare vii/kg', 'Seminte defecte max. 6%', 'Motive refuz: miros strain, culoare modificata, Rhyzopertha, GH sub 38 kg/hl']
+};
+function htmlEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); }
+function purchaseNum(v){ return Number(v||0).toLocaleString('ro-RO', { maximumFractionDigits: 3 }); }
+function purchaseMoney(v){ return Number(v||0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function purchaseDateRo(v){ if(!v) return ''; const d=new Date(v+'T12:00:00'); return isNaN(d)?v:d.toLocaleDateString('ro-RO'); }
+function purchaseDeliveryPeriod(){
+  const a=document.getElementById('pcDeliveryStart')?.value || '';
+  const b=document.getElementById('pcDeliveryEnd')?.value || '';
+  if(a && b) return `${purchaseDateRo(a)} - ${purchaseDateRo(b)}`;
+  if(a) return `de la ${purchaseDateRo(a)}`;
+  if(b) return `pana la ${purchaseDateRo(b)}`;
+  return 'necompletata';
+}
+async function loadPartners(){
+  try{
+    const res=await fetch('/api/partners');
+    partners=await res.json();
+    if(!Array.isArray(partners)) partners=[];
+  }catch(err){ console.error('loadPartners', err); partners=[]; }
+}
+async function loadPurchaseContracts(){
+  try{
+    const res=await fetch('/api/purchase-contracts');
+    purchaseContracts=await res.json();
+    if(!Array.isArray(purchaseContracts)) purchaseContracts=[];
+    const b=document.getElementById('bPurchase'); if(b) b.textContent=purchaseContracts.length;
+    renderPurchaseHistory();
+  }catch(err){ console.error('loadPurchaseContracts', err); purchaseContracts=[]; renderPurchaseHistory(); }
+}
+function setPurchaseTab(){
+  closeAllSideTabs();
+  purchaseTabActive=true;
+  document.querySelector('.main').style.display='none';
+  setCropTabsVisible(false);
+  document.getElementById('tabPurchase').className='tab contract-tab-active';
+  document.getElementById('purchaseSection').style.display='flex';
+  if(!document.getElementById('pcContractDate').value) document.getElementById('pcContractDate').value=today();
+  purchaseRefreshPreview();
+  renderPurchaseHistory();
+}
+function closePurchaseTab(){
+  purchaseTabActive=false;
+  document.getElementById('tabPurchase').className='tab';
+  document.getElementById('purchaseSection').style.display='none';
+  document.querySelector('.main').style.display='flex';
+  setCropTabsVisible(true);
+}
+function purchaseSetSellerMode(mode){
+  purchaseSellerMode=mode;
+  document.getElementById('pcModeExisting').className='purchase-pill'+(mode==='existing'?' active':'');
+  document.getElementById('pcModeManual').className='purchase-pill'+(mode==='manual'?' active':'');
+  document.getElementById('pcExistingBox').style.display=mode==='existing'?'':'none';
+  document.getElementById('pcManualBox').style.display=mode==='manual'?'':'none';
+  purchaseRefreshPreview();
+}
+function purchaseSearchPartners(){
+  const q=(document.getElementById('pcPartnerSearch').value||'').toLowerCase().trim();
+  const box=document.getElementById('pcPartnerResults');
+  if(!box) return;
+  let list=partners.slice();
+  if(q){
+    list=list.filter(p=>[p.name,p.cui,p.regCom,p.fullText,p.iban].join(' ').toLowerCase().includes(q));
+  }
+  list=list.slice(0,40);
+  if(!list.length){ box.classList.add('open'); box.innerHTML='<div class="purchase-result"><div class="purchase-result-meta">Nu am gasit furnizor. Foloseste modul Manual.</div></div>'; return; }
+  box.classList.add('open');
+  box.innerHTML=list.map(p=>`<div class="purchase-result" onclick="purchaseSelectPartner(${Number(p.id)})"><div class="purchase-result-name">${htmlEsc(p.name||'Furnizor fara nume')}</div><div class="purchase-result-meta">${htmlEsc([p.cui,p.regCom,p.iban].filter(Boolean).join(' | '))}</div></div>`).join('');
+}
+function purchaseSelectPartner(id){
+  purchaseSelectedPartner=partners.find(p=>Number(p.id)===Number(id))||null;
+  const box=document.getElementById('pcPartnerResults'); if(box) box.classList.remove('open');
+  const search=document.getElementById('pcPartnerSearch'); if(search && purchaseSelectedPartner) search.value=purchaseSelectedPartner.name||'';
+  const sel=document.getElementById('pcSelectedPartner');
+  if(sel && purchaseSelectedPartner){
+    sel.style.display='block';
+    sel.innerHTML=`<h4>Furnizor selectat</h4><b>${htmlEsc(purchaseSelectedPartner.name||'')}</b><br><span class="purchase-small">${htmlEsc([purchaseSelectedPartner.cui,purchaseSelectedPartner.regCom,purchaseSelectedPartner.iban,purchaseSelectedPartner.bank].filter(Boolean).join(' | '))}</span><br><button class="btn-purchase secondary" style="margin-top:7px;" onclick="purchaseClearPartner()">Schimba furnizor</button>`;
+  }
+  purchaseRefreshPreview();
+}
+function purchaseClearPartner(){
+  purchaseSelectedPartner=null;
+  document.getElementById('pcPartnerSearch').value='';
+  document.getElementById('pcSelectedPartner').style.display='none';
+  purchaseRefreshPreview();
+}
+function purchaseReadForm(){
+  const product=document.getElementById('pcProduct').value;
+  const manualName=(document.getElementById('pcManualSellerName').value||'').trim();
+  const manualFull=(document.getElementById('pcManualSeller').value||'').trim();
+  const sellerExisting=purchaseSelectedPartner;
+  const sellerName=purchaseSellerMode==='existing' ? (sellerExisting?.name||'') : (manualName || (manualFull.split(',')[0]||'').trim());
+  const sellerFullText=purchaseSellerMode==='existing' ? (sellerExisting?.fullText||'') : manualFull;
+  return {
+    product,
+    productLabel:PURCHASE_PRODUCT_LABELS[product]||product,
+    cropYear:(document.getElementById('pcCropYear').value||'2026').trim(),
+    contractNo:(document.getElementById('pcContractNo').value||'').trim(),
+    contractDate:document.getElementById('pcContractDate').value||'',
+    sellerMode:purchaseSellerMode,
+    partnerId: purchaseSellerMode==='existing' ? (sellerExisting?.id||null) : null,
+    partner: purchaseSellerMode==='existing' ? sellerExisting : null,
+    sellerName,
+    sellerFullText,
+    manualSellerFullText:manualFull,
+    saveManualPartner:document.getElementById('pcSaveManualPartner')?.checked || false,
+    quantity:parseFloat(document.getElementById('pcQuantity').value)||0,
+    priceRon:parseFloat(document.getElementById('pcPriceRon').value)||0,
+    parity:document.getElementById('pcParity').value,
+    deliveryPlace:(document.getElementById('pcDeliveryPlace').value||'').trim(),
+    deliveryStart:document.getElementById('pcDeliveryStart').value||'',
+    deliveryEnd:document.getElementById('pcDeliveryEnd').value||'',
+    paymentTerm:(document.getElementById('pcPaymentTerm').value||'30 de zile de la facturare').trim(),
+    notes:(document.getElementById('pcNotes').value||'').trim()
+  };
+}
+function purchaseValidate(c){
+  const w=[];
+  if(!c.contractNo) w.push('Lipseste numarul contractului.');
+  if(!c.contractDate) w.push('Lipseste data contractului.');
+  if(!c.sellerFullText) w.push('Lipsesc datele furnizorului. Alege din baza FZ sau completeaza manual.');
+  if(!c.quantity || c.quantity<=0) w.push('Cantitatea trebuie sa fie mai mare decat 0.');
+  if(!c.priceRon || c.priceRon<=0) w.push('Pretul in lei trebuie sa fie mai mare decat 0.');
+  if(!['FCA','DAP'].includes(c.parity)) w.push('Paritatea trebuie sa fie FCA sau DAP.');
+  if(!c.deliveryPlace) w.push('Locul de livrare trebuie completat manual.');
+  return w;
+}
+function purchaseRefreshPreview(){
+  const c=purchaseReadForm();
+  const warnings=purchaseValidate(c);
+  const warnBox=document.getElementById('pcWarnings');
+  const preview=document.getElementById('pcPreview');
+  if(warnBox){
+    warnBox.innerHTML=warnings.length ? `<div class="purchase-warning">${warnings.map(x=>'• '+htmlEsc(x)).join('<br>')}</div>` : `<div class="purchase-ok">Datele minime sunt complete. La generare se creeaza automat pozitia LONG.</div>`;
+  }
+  if(preview){
+    const quality=(PURCHASE_PRODUCT_QUALITY[c.product]||[]).map(q=>`<li>${htmlEsc(q)}</li>`).join('');
+    preview.innerHTML=`
+      <h4>Contract care se va genera</h4>
+      <b>${htmlEsc(c.productLabel)}</b>, nr. <b>${htmlEsc(c.contractNo||'—')}</b>, data ${htmlEsc(purchaseDateRo(c.contractDate)||'—')}<br>
+      Furnizor: <b>${htmlEsc(c.sellerName||'—')}</b><br>
+      Cantitate: <b>${htmlEsc(c.quantity?purchaseNum(c.quantity):'—')}</b> t<br>
+      Pret: <b>${htmlEsc(c.priceRon?purchaseMoney(c.priceRon):'—')}</b> lei/t, fara TVA<br>
+      Paritate: <b>${htmlEsc(c.parity)}</b><br>
+      Loc livrare: <b>${htmlEsc(c.deliveryPlace||'—')}</b><br>
+      Perioada livrare: <b>${htmlEsc(purchaseDeliveryPeriod())}</b><br>
+      <br><h4>Pozitie creata automat</h4>
+      BUY / LONG ${htmlEsc(c.productLabel)}, ${htmlEsc(c.quantity?purchaseNum(c.quantity):'—')} t, ${htmlEsc(c.priceRon?purchaseMoney(c.priceRon):'—')} lei/t, ${htmlEsc(c.parity)} ${htmlEsc(c.deliveryPlace||'—')}<br>
+      <br><h4>Parametri calitate folositi</h4><ul>${quality}</ul>
+    `;
+  }
+}
+async function purchaseGenerateContract(){
+  const c=purchaseReadForm();
+  const warnings=purchaseValidate(c);
+  if(warnings.length){ alert(warnings.join('\n')); return; }
+  if(!confirm(`Generez contractul si introduc in Pozitie:\n\nBUY ${c.productLabel}, ${purchaseNum(c.quantity)} t, ${purchaseMoney(c.priceRon)} lei/t, ${c.parity} ${c.deliveryPlace}\n\nContinui?`)) return;
+  const btn=document.getElementById('pcBtnGenerate');
+  const status=document.getElementById('pcStatus');
+  btn.disabled=true; btn.textContent='Se genereaza...';
+  if(status) status.innerHTML='<div class="purchase-small">Se salveaza contractul si pozitia...</div>';
+  try{
+    let partnerId=c.partnerId;
+    if(c.sellerMode==='manual' && c.saveManualPartner && c.sellerFullText){
+      const pr=await fetch('/api/partners',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:c.sellerName, fullText:c.sellerFullText, type:'supplier', source:'manual'})});
+      const pd=await pr.json();
+      if(pr.ok){ partnerId=pd.id; await loadPartners(); }
+    }
+    const payload={...c, partnerId, sellerMode:c.sellerMode, manualSellerFullText:c.sellerFullText};
+    const res=await fetch('/api/purchase-contracts/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Eroare generare contract.');
+    if(data.trade && data.tradeId){ data.trade.id=data.tradeId; trades.unshift(data.trade); }
+    await loadPurchaseContracts();
+    render();
+    const emailText=`Buna ziua,\n\nVa transmitem atasat contractul de achizitie nr. ${c.contractNo} pentru ${c.productLabel}, cantitatea de ${purchaseNum(c.quantity)} tone, pret ${purchaseMoney(c.priceRon)} lei/tona, paritate ${c.parity} ${c.deliveryPlace}.\n\nVa rugam sa ni-l returnati semnat si stampilat.\n\nMultumim.`;
+    const emailBox=document.getElementById('pcEmailBox');
+    if(emailBox){
+      emailBox.style.display='block';
+      emailBox.innerHTML=`<h4>Email transmitere</h4><pre style="white-space:pre-wrap;font-family:Arial,Calibri,sans-serif;font-size:13px;line-height:1.45;color:#111;background:#fff;padding:10px;border-radius:4px;">${htmlEsc(emailText)}</pre><div class="purchase-actions"><a class="btn-purchase" href="${data.downloadUrl}" target="_blank">Descarca contract .doc</a><button class="btn-purchase secondary" onclick='navigator.clipboard.writeText(${JSON.stringify(emailText)});this.textContent="Copiat";'>Copiaza email</button></div>`;
+    }
+    if(status) status.innerHTML=`<div class="purchase-ok">Contract generat. Pozitia LONG a fost introdusa automat. <a href="${data.downloadUrl}" target="_blank" style="color:var(--long);font-weight:800;">Descarca .doc</a></div>`;
+  }catch(err){
+    if(status) status.innerHTML=`<div class="purchase-warning">${htmlEsc(err.message)}</div>`;
+  }finally{
+    btn.disabled=false; btn.textContent='Genereaza contract + introdu in Pozitie';
+  }
+}
+function purchaseClearForm(){
+  ['pcContractNo','pcQuantity','pcPriceRon','pcDeliveryPlace','pcDeliveryStart','pcDeliveryEnd','pcNotes','pcManualSeller','pcManualSellerName'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const save=document.getElementById('pcSaveManualPartner'); if(save) save.checked=false;
+  purchaseClearPartner();
+  document.getElementById('pcContractDate').value=today();
+  document.getElementById('pcCropYear').value='2026';
+  document.getElementById('pcPaymentTerm').value='30 de zile de la facturare';
+  document.getElementById('pcEmailBox').style.display='none';
+  document.getElementById('pcStatus').innerHTML='';
+  purchaseRefreshPreview();
+}
+function renderPurchaseHistory(){
+  const box=document.getElementById('pcHistory');
+  if(!box) return;
+  if(!purchaseContracts.length){ box.innerHTML='<div class="purchase-small">Nu exista inca contracte generate.</div>'; return; }
+  box.innerHTML=purchaseContracts.slice(0,50).map(c=>{
+    const product=PURCHASE_PRODUCT_LABELS[c.product]||c.productLabel||c.product||'—';
+    const seller=c.sellerName || (c.sellerFullTextFinal||c.sellerFullText||'').split(',')[0] || '—';
+    const url=c.id?`/api/purchase-contracts/${c.id}/download`:'#';
+    return `<div class="purchase-history-item"><div class="purchase-history-top"><div class="purchase-history-name">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div><span class="purchase-badge">LONG</span></div><div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(c.quantity||0)} t · ${htmlEsc(c.priceRon||0)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(c.tradeId||'—')}</div><div><a class="btn-purchase secondary" href="${url}" target="_blank">Descarca .doc</a></div></div>`;
+  }).join('');
+}
+
 async function bootApp(){
   await loadAll();
   loadFxRates();
@@ -7359,6 +7807,8 @@ async function bootApp(){
   loadNews();
   loadWeatherPresets();
   await loadTrainContracts();
+  await loadPartners();
+  await loadPurchaseContracts();
   setInterval(loadFxRates, 3*60*60*1000);
   setInterval(loadMatif, 5*60*1000);
   setInterval(loadNews, 15*60*1000);
@@ -7374,6 +7824,7 @@ _setVal('fDateEur',_td);
 _setVal('stockDate',_td);
 _setVal('logDeliveryStart',_td);
 _setVal('logDeliveryEnd',_td);
+_setVal('pcContractDate',_td);
 
 fetch('/api/me').then(r=>r.json()).then(async d=>{
   if(d.authenticated){
