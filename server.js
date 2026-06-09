@@ -1057,6 +1057,70 @@ app.get('/api/purchase-contracts/:id/download', requireAuth, (req, res) => {
 });
 
 
+app.patch('/api/purchase-contracts/:id/signed', requireAuth, (req, res) => {
+  try {
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+    const row = db.prepare('SELECT data FROM purchase_contracts WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+
+    const contract = safeJsonParse(row.data, {});
+    const signedReturned = !!req.body?.signedReturned;
+    contract.signedReturned = signedReturned;
+    contract.signedReturnedAt = signedReturned ? new Date().toISOString() : null;
+    contract.signedReturnedBy = signedReturned ? (req.session.user || null) : null;
+
+    db.prepare('UPDATE purchase_contracts SET data = ?, updated_at = datetime('now') WHERE id = ?').run(JSON.stringify(contract), id);
+    audit(req, signedReturned ? 'mark_signed_returned' : 'unmark_signed_returned', 'purchase_contract', id, { contractNo: contract.contractNo || null });
+    res.json({ ok: true, contract });
+  } catch (err) {
+    console.error('Purchase contract signed update error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/purchase-contracts/:id', requireAuth, (req, res) => {
+  try {
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+    const row = db.prepare('SELECT data FROM purchase_contracts WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+
+    const contract = safeJsonParse(row.data, {});
+    const deleteTrade = String(req.query.deleteTrade || '') === '1';
+    const tradeId = validateId(contract.tradeId);
+
+    const tx = db.transaction(() => {
+      db.prepare('UPDATE purchase_contracts SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+        .run(req.session.user || null, id);
+      if (deleteTrade && tradeId) {
+        db.prepare('UPDATE trades SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+          .run(req.session.user || null, tradeId);
+      }
+    });
+    tx();
+
+    try {
+      if (contract.generatedFile) {
+        const full = path.join(GENERATED_CONTRACTS_DIR, path.basename(contract.generatedFile));
+        if (fs.existsSync(full)) fs.unlinkSync(full);
+      }
+    } catch (fileErr) {
+      console.error('Purchase contract file delete warning:', fileErr.message);
+    }
+
+    audit(req, 'soft_delete', 'purchase_contract', id, { contractNo: contract.contractNo || null, tradeId: tradeId || null, tradeDeleted: !!(deleteTrade && tradeId) });
+    res.json({ ok: true, id, tradeId: tradeId || null, tradeDeleted: !!(deleteTrade && tradeId) });
+  } catch (err) {
+    console.error('Purchase contract delete error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 // ── TRAIN CONTRACTS ─────────────────────────────────────────────────────────
 function validateTrainId(raw) {
   const id = String(raw || '').trim();
