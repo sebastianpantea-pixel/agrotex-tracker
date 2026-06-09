@@ -7635,17 +7635,8 @@ function purchasePartnerExportRows(list){
   return (list||[]).map(p=>({
     name:p.name||'',
     cui:p.cui||'',
-    regCom:p.regCom||'',
-    address:p.address||'',
-    iban:p.iban||'',
-    bank:p.bank||'',
-    representative:p.representative||'',
-    representativeRole:p.representativeRole||'',
-    phone:p.phone||'',
-    email:p.email||'',
-    role:p.role||'VANZATOR',
-    active:(p.active===false?'FALSE':'TRUE'),
     fullText:p.fullText||'',
+    active:(p.active===false?'FALSE':'TRUE'),
     notes:p.notes||''
   }));
 }
@@ -7669,17 +7660,8 @@ function purchasePartnerFromImportRow(row){
   return {
     name:pick('name','denumire','furnizor','nume'),
     cui:pick('cui','cif','cod_fiscal'),
-    regCom:pick('regCom','reg_com','registrul_comertului','nr_reg_com'),
-    address:pick('address','adresa','sediu'),
-    iban:pick('iban','cont','cont_iban'),
-    bank:pick('bank','banca'),
-    representative:pick('representative','reprezentant','administrator'),
-    representativeRole:pick('representativeRole','functie_reprezentant','calitate_reprezentant'),
-    phone:pick('phone','telefon','tel','tel_fax'),
-    email:pick('email','mail'),
-    role:pick('role','calitate') || 'VANZATOR',
-    active,
     fullText:pick('fullText','full_text','text_complet','text_contract'),
+    active,
     notes:pick('notes','observatii','nota')
   };
 }
@@ -7689,8 +7671,8 @@ async function purchaseExportPartnersXlsx(){
     const list=await res.json();
     if(!Array.isArray(list)) throw new Error('Nu am putut citi baza FZ.');
     const rows=purchasePartnerExportRows(list);
-    const ws=XLSX.utils.json_to_sheet(rows, {header:['name','cui','regCom','address','iban','bank','representative','representativeRole','phone','email','role','active','fullText','notes']});
-    ws['!cols']=[{wch:34},{wch:14},{wch:16},{wch:42},{wch:30},{wch:24},{wch:24},{wch:18},{wch:16},{wch:24},{wch:12},{wch:10},{wch:90},{wch:36}];
+    const ws=XLSX.utils.json_to_sheet(rows, {header:['name','cui','fullText','active','notes']});
+    ws['!cols']=[{wch:34},{wch:16},{wch:120},{wch:10},{wch:36}];
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Furnizori');
     const stamp=new Date().toISOString().slice(0,10);
@@ -7709,7 +7691,7 @@ async function purchaseImportPartnersXlsx(ev){
     const ws=wb.Sheets[wb.SheetNames[0]];
     const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
     const imported=raw.map(purchasePartnerFromImportRow).filter(p=>p.name || p.fullText);
-    if(!imported.length) throw new Error('Fisierul nu contine furnizori valizi. Verifica antetele coloanelor.');
+    if(!imported.length) throw new Error('Fisierul nu contine furnizori valizi. Coloanele acceptate sunt: name, cui, fullText, active, notes.');
     const replace=confirm(`Am gasit ${imported.length} furnizori in fisier.\n\nOK = inlocuire completa baza FZ\nCancel = actualizare/adaugare dupa CUI sau nume`);
     const res=await fetch('/api/partners/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({partners:imported, mode:replace?'replace':'upsert'})});
     const data=await res.json();
