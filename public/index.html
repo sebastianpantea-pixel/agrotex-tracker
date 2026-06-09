@@ -1180,6 +1180,7 @@
         <div id="pcExistingBox">
           <div class="purchase-search">
             <input id="pcPartnerSearch" class="purchase-input" placeholder="Cauta furnizor dupa nume, CIF, localitate..." oninput="purchaseSearchPartners()" onfocus="purchaseSearchPartners()">
+            <button type="button" class="btn-purchase secondary" style="margin-top:6px;width:100%;font-size:9px;padding:5px 6px;" onclick="purchaseResetPartnersDefault()">Actualizeaza baza FZ curatata</button>
             <div id="pcPartnerResults" class="purchase-results"></div>
           </div>
           <div id="pcSelectedPartner" class="purchase-preview" style="display:none;"></div>
@@ -7621,6 +7622,23 @@ async function loadPartners(){
     if(!Array.isArray(partners)) partners=[];
   }catch(err){ console.error('loadPartners', err); partners=[]; }
 }
+
+async function purchaseResetPartnersDefault(){
+  if(!confirm('Inlocuiesti baza de furnizori din aplicatie cu baza FZ curatata? Contractele generate nu se sterg.')) return;
+  try{
+    const res=await fetch('/api/partners/reset-defaults',{method:'POST'});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error || 'Eroare la actualizarea bazei FZ');
+    await loadPartners();
+    selectedPartner=null;
+    const s=document.getElementById('pcPartnerSearch'); if(s) s.value='';
+    const p=document.getElementById('pcSelectedPartner'); if(p) p.style.display='none';
+    purchaseRefreshPreview();
+    alert(`Baza FZ a fost actualizata: ${data.count || partners.length} furnizori.`);
+  }catch(err){
+    alert(err.message || 'Nu s-a putut actualiza baza FZ.');
+  }
+}
 async function loadPurchaseContracts(){
   try{
     const res=await fetch('/api/purchase-contracts');
@@ -7858,7 +7876,7 @@ function renderPurchaseHistory(){
         <span class="purchase-badge">LONG</span>
         <div class="purchase-sign-wrap ${signed?'on':''}" title="Returnat semnat">
           <span class="purchase-sign-label">Semnat</span>
-          <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} data-pc-action="signed" data-pc-id="${idAttr}" data-pc-next="${signed?'0':'1'}" title="Returnat semnat">✓</button>
+          <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} data-pc-action="signed" data-pc-id="${idAttr}" data-pc-next="${signed?'0':'1'}" title="Returnat semnat">${signed?'✓':''}</button>
         </div>
       </div>
       <div class="purchase-history-meta" title="Pozitie ID: ${htmlEsc(tradeId||'—')}">${htmlEsc(seller)}<br>${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}</div>
