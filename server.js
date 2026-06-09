@@ -748,7 +748,7 @@ function xmlUnescape(value) {
 
 function paragraphText(paragraphXml) {
   const pieces = [];
-  const re = /<w:t[^>]*>([\s\S]*?)<\/w:t>/g;
+  const re = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
   let m;
   while ((m = re.exec(paragraphXml))) pieces.push(xmlUnescape(m[1]));
   return pieces.join('');
