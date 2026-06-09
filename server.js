@@ -1073,7 +1073,7 @@ app.patch('/api/purchase-contracts/:id/signed', requireAuth, (req, res) => {
 
     db.prepare(`UPDATE purchase_contracts SET data = ?, updated_at = datetime('now') WHERE id = ?`).run(JSON.stringify(contract), id);
     audit(req, signedReturned ? 'mark_signed_returned' : 'unmark_signed_returned', 'purchase_contract', id, { contractNo: contract.contractNo || null });
-    res.json({ ok: true, contract });
+    res.json({ ok: true, contract: { ...contract, id } });
   } catch (err) {
     console.error('Purchase contract signed update error:', err);
     res.status(500).json({ error: err.message });
