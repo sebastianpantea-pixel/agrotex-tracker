@@ -7788,6 +7788,40 @@ function purchaseClearForm(){
   document.getElementById('pcStatus').innerHTML='';
   purchaseRefreshPreview();
 }
+async function purchaseSetSigned(id, checked){
+  try{
+    const res=await fetch(`/api/purchase-contracts/${encodeURIComponent(id)}/signed`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({signedReturned:!!checked})});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Eroare la actualizarea contractului.');
+    const idx=purchaseContracts.findIndex(c=>String(c.id)===String(id));
+    if(idx>=0) purchaseContracts[idx]=data.contract;
+    renderPurchaseHistory();
+  }catch(err){
+    alert(err.message||'Eroare la actualizarea contractului.');
+    await loadPurchaseContracts();
+    renderPurchaseHistory();
+  }
+}
+async function purchaseDeleteContract(id, tradeId){
+  if(!confirm('Stergi acest contract din istoric?')) return;
+  let deleteTrade=false;
+  if(tradeId && tradeId!=='—'){
+    deleteTrade=confirm('Stergi si pozitia creata automat pentru acest contract?\n\nOK = sterge contractul si pozitia\nCancel = sterge doar contractul din istoric');
+  }
+  try{
+    const res=await fetch(`/api/purchase-contracts/${encodeURIComponent(id)}?deleteTrade=${deleteTrade?'1':'0'}`,{method:'DELETE'});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Eroare la stergere.');
+    purchaseContracts=purchaseContracts.filter(c=>String(c.id)!==String(id));
+    if(data.tradeDeleted && data.tradeId){
+      trades=trades.filter(t=>String(t.id)!==String(data.tradeId));
+      render();
+    }
+    renderPurchaseHistory();
+  }catch(err){
+    alert(err.message||'Eroare la stergere.');
+  }
+}
 function renderPurchaseHistory(){
   const box=document.getElementById('pcHistory');
   if(!box) return;
@@ -7796,7 +7830,23 @@ function renderPurchaseHistory(){
     const product=PURCHASE_PRODUCT_LABELS[c.product]||c.productLabel||c.product||'—';
     const seller=c.sellerName || (c.sellerFullTextFinal||c.sellerFullText||'').split(',')[0] || '—';
     const url=c.id?`/api/purchase-contracts/${c.id}/download`:'#';
-    return `<div class="purchase-history-item"><div class="purchase-history-top"><div class="purchase-history-name">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div><span class="purchase-badge">LONG</span></div><div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(c.quantity||0)} t · ${htmlEsc(c.priceRon||0)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(c.tradeId||'—')}</div><div><a class="btn-purchase secondary" href="${url}" target="_blank">Descarca .docx</a></div></div>`;
+    const signed=!!c.signedReturned;
+    const signedTxt=signed ? `Returnat semnat${c.signedReturnedAt?' · '+new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'):''}` : 'Nereturnat semnat';
+    return `<div class="purchase-history-item">
+      <div class="purchase-history-top">
+        <div class="purchase-history-name">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div>
+        <span class="purchase-badge">LONG</span>
+      </div>
+      <div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(c.quantity||0)} t · ${htmlEsc(c.priceRon||0)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(c.tradeId||'—')}</div>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:${signed?'var(--long)':'var(--dim)'};">
+        <input type="checkbox" ${signed?'checked':''} onchange="purchaseSetSigned(${Number(c.id)}, this.checked)" style="accent-color:var(--long);">
+        ${htmlEsc(signedTxt)}
+      </label>
+      <div class="purchase-actions" style="margin-top:8px;">
+        <a class="btn-purchase secondary" href="${url}" target="_blank">Descarca .docx</a>
+        <button class="btn-purchase secondary" style="border-color:rgba(240,138,142,.45);color:var(--short);" onclick="purchaseDeleteContract(${Number(c.id)}, '${htmlEsc(String(c.tradeId||''))}')">Sterge</button>
+      </div>
+    </div>`;
   }).join('');
 }
 
