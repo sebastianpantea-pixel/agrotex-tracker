@@ -952,8 +952,8 @@
   .tab.contract-tab-active{background:rgba(114,211,154,.10);color:var(--long);border-color:var(--long);}
   #purchaseSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
   .purchase-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .purchase-grid{display:grid;grid-template-columns:420px 1fr 360px;gap:12px;align-items:start;}
-  @media(max-width:1300px){.purchase-grid{grid-template-columns:1fr 1fr}.purchase-side{grid-column:1 / -1;}}
+  .purchase-grid{display:grid;grid-template-columns:minmax(380px,420px) minmax(430px,1fr) minmax(280px,320px);gap:12px;align-items:start;}
+  @media(max-width:1250px){.purchase-grid{grid-template-columns:1fr 1fr}.purchase-side{grid-column:1 / -1;}}
   @media(max-width:900px){.purchase-grid{grid-template-columns:1fr}.purchase-side{grid-column:auto}}
   .purchase-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
   .purchase-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
@@ -989,12 +989,19 @@
   .btn-purchase.secondary{border-color:var(--border2);background:var(--surface2);color:var(--dim);}
   .btn-purchase.secondary:hover{color:var(--bright);}
   .btn-purchase:disabled{opacity:.45;cursor:not-allowed;}
-  .purchase-history{display:flex;flex-direction:column;gap:6px;max-height:500px;overflow:auto;}
-  .purchase-history-item{border:1px solid var(--border);background:var(--surface2);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;}
-  .purchase-history-top{display:flex;justify-content:space-between;gap:8px;align-items:center;}
-  .purchase-history-name{font-size:12px;font-weight:800;color:var(--bright);line-height:1.3;}
-  .purchase-history-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .purchase-side .purchase-body{padding:8px;}
+  .purchase-history{display:flex;flex-direction:column;gap:7px;max-height:560px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+  .purchase-history-item{border:1px solid var(--border);background:var(--surface2);border-radius:5px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0;overflow:hidden;}
+  .purchase-history-top{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;}
+  .purchase-history-name{font-size:11px;font-weight:800;color:var(--bright);line-height:1.25;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .purchase-history-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;min-width:0;overflow-wrap:anywhere;}
+  .purchase-history-actions{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:2px;}
+  .purchase-history-actions .btn-purchase{width:100%;text-align:center;padding:5px 7px;font-size:9px;}
   .purchase-badge{display:inline-block;padding:2px 6px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;border:1px solid rgba(114,211,154,.35);background:rgba(114,211,154,.08);color:var(--long);white-space:nowrap;}
+  .purchase-tick{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:900;cursor:pointer;line-height:1;}
+  .purchase-tick.on{border-color:rgba(114,211,154,.55);background:rgba(114,211,154,.14);color:var(--long);}
+  .purchase-signed-line{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;}
+  .purchase-signed-line.on{color:var(--long);}
   .purchase-small{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
 
 </style>
@@ -7827,24 +7834,29 @@ function renderPurchaseHistory(){
   if(!box) return;
   if(!purchaseContracts.length){ box.innerHTML='<div class="purchase-small">Nu exista inca contracte generate.</div>'; return; }
   box.innerHTML=purchaseContracts.slice(0,50).map(c=>{
+    const id=String(c.id || c.contractId || c._rowId || '').trim();
+    const tradeId=String(c.tradeId || '').trim();
     const product=PURCHASE_PRODUCT_LABELS[c.product]||c.productLabel||c.product||'—';
     const seller=c.sellerName || (c.sellerFullTextFinal||c.sellerFullText||'').split(',')[0] || '—';
-    const url=c.id?`/api/purchase-contracts/${c.id}/download`:'#';
+    const url=id?`/api/purchase-contracts/${encodeURIComponent(id)}/download`:'#';
     const signed=!!c.signedReturned;
     const signedTxt=signed ? `Returnat semnat${c.signedReturnedAt?' · '+new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'):''}` : 'Nereturnat semnat';
+    const qty=c.quantity ? purchaseNum(c.quantity) : '—';
+    const price=c.priceRon ? purchaseMoney(c.priceRon) : '—';
+    const safeId=JSON.stringify(id);
+    const safeTradeId=JSON.stringify(tradeId);
+    const disabledAttr=id ? '' : ' disabled';
     return `<div class="purchase-history-item">
       <div class="purchase-history-top">
-        <div class="purchase-history-name">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div>
+        <div class="purchase-history-name" title="${htmlEsc((c.contractNo||'Fara nr.')+' · '+product)}">${htmlEsc(c.contractNo||'Fara nr.')} · ${htmlEsc(product)}</div>
         <span class="purchase-badge">LONG</span>
+        <button type="button" class="purchase-tick ${signed?'on':''}" ${disabledAttr} onclick="purchaseSetSigned(${safeId}, ${signed?'false':'true'})" title="Returnat semnat">✓</button>
       </div>
-      <div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(c.quantity||0)} t · ${htmlEsc(c.priceRon||0)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(c.tradeId||'—')}</div>
-      <label style="display:flex;align-items:center;gap:7px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:${signed?'var(--long)':'var(--dim)'};">
-        <input type="checkbox" ${signed?'checked':''} onchange="purchaseSetSigned(${Number(c.id)}, this.checked)" style="accent-color:var(--long);">
-        ${htmlEsc(signedTxt)}
-      </label>
-      <div class="purchase-actions" style="margin-top:8px;">
-        <a class="btn-purchase secondary" href="${url}" target="_blank">Descarca .docx</a>
-        <button class="btn-purchase secondary" style="border-color:rgba(240,138,142,.45);color:var(--short);" onclick="purchaseDeleteContract(${Number(c.id)}, '${htmlEsc(String(c.tradeId||''))}')">Sterge</button>
+      <div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}<br>Pozitie ID: ${htmlEsc(tradeId||'—')}</div>
+      <div class="purchase-signed-line ${signed?'on':''}">${htmlEsc(signedTxt)}</div>
+      <div class="purchase-history-actions">
+        <a class="btn-purchase secondary" href="${url}" target="_blank">Descarca</a>
+        <button class="btn-purchase secondary" ${disabledAttr} style="border-color:rgba(240,138,142,.45);color:var(--short);" onclick="purchaseDeleteContract(${safeId}, ${safeTradeId})">Sterge</button>
       </div>
     </div>`;
   }).join('');
