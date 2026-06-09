@@ -1071,7 +1071,7 @@ app.patch('/api/purchase-contracts/:id/signed', requireAuth, (req, res) => {
     contract.signedReturnedAt = signedReturned ? new Date().toISOString() : null;
     contract.signedReturnedBy = signedReturned ? (req.session.user || null) : null;
 
-    db.prepare('UPDATE purchase_contracts SET data = ?, updated_at = datetime('now') WHERE id = ?').run(JSON.stringify(contract), id);
+    db.prepare(`UPDATE purchase_contracts SET data = ?, updated_at = datetime('now') WHERE id = ?`).run(JSON.stringify(contract), id);
     audit(req, signedReturned ? 'mark_signed_returned' : 'unmark_signed_returned', 'purchase_contract', id, { contractNo: contract.contractNo || null });
     res.json({ ok: true, contract });
   } catch (err) {
@@ -1093,10 +1093,10 @@ app.delete('/api/purchase-contracts/:id', requireAuth, (req, res) => {
     const tradeId = validateId(contract.tradeId);
 
     const tx = db.transaction(() => {
-      db.prepare('UPDATE purchase_contracts SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+      db.prepare(`UPDATE purchase_contracts SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL`)
         .run(req.session.user || null, id);
       if (deleteTrade && tradeId) {
-        db.prepare('UPDATE trades SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL')
+        db.prepare(`UPDATE trades SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL`)
           .run(req.session.user || null, tradeId);
       }
     });
