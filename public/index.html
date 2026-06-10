@@ -6,6 +6,7 @@
 <title>Agrotex Cereale</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
   :root {
     --bg:#252B33;
@@ -7957,6 +7958,10 @@ function reportTradeRows(from,to,dir){
     };
   }).sort((a,b)=>String(a.date).localeCompare(String(b.date)) || String(a.productLabel).localeCompare(String(b.productLabel),'ro') || String(a.crop).localeCompare(String(b.crop)));
 }
+
+function reportContractTradeRows(buys,sells){
+  return [...(buys||[]), ...(sells||[])].filter(r=>String(r.contractNo||'').trim());
+}
 function reportGroupByProduct(rows, kind){
   const m={};
   rows.forEach(r=>{
@@ -8197,7 +8202,7 @@ function renderActivityReport(data){
   const kpis=[
     ['Achizitii', `${fmtN(data.buyQty)} t`],
     ['Vanzari', `${fmtN(data.sellQty)} t`],
-    ['Contracte', fmtN(data.contracts.length)],
+    ['Tranz. cu contract', fmtN(data.contractTradeCount||0)],
     ['Livrari logistica', fmtN(data.logistics.length)],
     ['Facturi in sold', fmtN(data.invoices.inSold.length)],
     ['Facturi depasite', fmtN(data.invoices.depasite.length)],
@@ -8273,6 +8278,8 @@ async function generateActivityReport(){
       buys,sells,
       buyQty:buys.reduce((s,r)=>s+r.qty,0),
       sellQty:sells.reduce((s,r)=>s+r.qty,0),
+      contractTradeRows:reportContractTradeRows(buys,sells),
+      contractTradeCount:reportContractTradeRows(buys,sells).length,
       buySummary:reportGroupByProduct(buys,'buy'),
       sellSummary:reportGroupByProduct(sells,'sell'),
       totalPosRows:reportTotalPositionRows(),
@@ -8360,7 +8367,7 @@ function exportActivityReportExcel(){
   addSection('REZUMAT',['Indicator','Valoare'],[
     {Indicator:'Achizitii t',Valoare:fmtN(d.buyQty)},
     {Indicator:'Vanzari t',Valoare:fmtN(d.sellQty)},
-    {Indicator:'Contracte generate',Valoare:fmtN(d.contracts.length)},
+    {Indicator:'Tranzactii cu nr. contract',Valoare:fmtN(d.contractTradeCount||0)},
     {Indicator:'Livrari logistica',Valoare:fmtN(d.logistics.length)},
     {Indicator:'Facturi in sold',Valoare:fmtN(d.invoices.inSold.length)},
     {Indicator:'Facturi depasite',Valoare:fmtN(d.invoices.depasite.length)},
@@ -8401,18 +8408,33 @@ function exportActivityReportExcel(){
   ws['!freeze']={xSplit:0,ySplit:3};
 
   const range=XLSX.utils.decode_range(ws['!ref']);
+  const thinBorder={top:{style:'thin',color:{rgb:'CBD5E1'}},bottom:{style:'thin',color:{rgb:'CBD5E1'}},left:{style:'thin',color:{rgb:'CBD5E1'}},right:{style:'thin',color:{rgb:'CBD5E1'}}};
+  const baseStyle={font:{name:'Calibri',sz:10,color:{rgb:'111827'}},alignment:{vertical:'center',wrapText:true},border:thinBorder};
+  const titleStyle={font:{name:'Calibri',sz:15,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F2937'}},alignment:{horizontal:'left',vertical:'center'},border:thinBorder};
+  const subtitleStyle={font:{name:'Calibri',sz:10,italic:true,color:{rgb:'475569'}},fill:{fgColor:{rgb:'E2E8F0'}},alignment:{horizontal:'left',vertical:'center'},border:thinBorder};
+  const sectionStyle={font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'334155'}},alignment:{horizontal:'left',vertical:'center'},border:thinBorder};
+  const headerStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'64748B'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:thinBorder};
+  const emptyStyle={font:{name:'Calibri',sz:10,italic:true,color:{rgb:'64748B'}},fill:{fgColor:{rgb:'F8FAFC'}},alignment:{horizontal:'left',vertical:'center'},border:thinBorder};
+  ws['!rows']=ws['!rows']||[];
   for(let R=range.s.r; R<=range.e.r; ++R){
+    const isTitleRow=R===0;
+    const isSubtitleRow=R===1;
+    const isSectionRow=sectionRows.includes(R);
+    const isHeaderRow=headerRows.includes(R);
+    if(isTitleRow) ws['!rows'][R]={hpt:24};
+    else if(isSectionRow) ws['!rows'][R]={hpt:20};
+    else if(isHeaderRow) ws['!rows'][R]={hpt:18};
     for(let C=range.s.c; C<=range.e.c; ++C){
       const addr=XLSX.utils.encode_cell({r:R,c:C});
       const cell=ws[addr];
       if(!cell) continue;
       if(typeof cell.v==='number') cell.z='#,##0.00';
-      cell.s=cell.s||{};
-      if(sectionRows.includes(R)){
-        cell.s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'334155'}},alignment:{horizontal:'left'}};
-      }else if(headerRows.includes(R)){
-        cell.s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'64748B'}},alignment:{horizontal:'left'}};
-      }
+      if(isTitleRow) cell.s=titleStyle;
+      else if(isSubtitleRow) cell.s=subtitleStyle;
+      else if(isSectionRow) cell.s=sectionStyle;
+      else if(isHeaderRow) cell.s=headerStyle;
+      else if(String(cell.v||'').startsWith('Nu exista date')) cell.s=emptyStyle;
+      else cell.s=baseStyle;
     }
   }
 
