@@ -1871,6 +1871,7 @@
         <select id="logCreateEndMonth"></select>
       </div>
       <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
+      <button class="btn-log" onclick="openLogisticsEditModal(null)" title="Pentru contracte fără poziție sursă, de exemplu achiziții DAP unde nu organizăm transportul">+ Contract logistic manual</button>
     </div>
   </div>
 
@@ -2290,6 +2291,40 @@
       <button class="btn-sm btn-log-red" onclick="deleteStockSiteFromModal()" style="margin-right:auto;">Șterge locația</button>
       <button class="btn-cancel" onclick="closeModal('modStockSiteEdit')">Anulează</button>
       <button class="btn-save" onclick="saveStockSiteEditModal()">Salvează</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="overlay" id="modLogisticsEdit">
+  <div class="modal" style="width:760px;max-width:98vw;">
+    <div class="mtitle"><span id="logEditTitle">Editează contract logistic</span></div>
+    <input type="hidden" id="logEditId">
+    <input type="hidden" id="logEditMode">
+    <div class="fr fr3">
+      <div class="fg"><label class="fl">Flux</label><select id="logEditFlow" onchange="onLogEditFlowChange()"><option value="pickup">Intrare / de ridicat</option><option value="delivery">Ieșire / de livrat</option></select></div>
+      <div class="fg"><label class="fl">Tip evidență</label><select id="logEditTransportMode"><option value="truck">Camion</option><option value="train">Tren</option><option value="none">Fără transport Agrotex / DAP</option></select></div>
+      <div class="fg"><label class="fl">Nr. contract</label><input id="logEditContractNo" type="text"></div>
+    </div>
+    <div class="fr fr3">
+      <div class="fg"><label class="fl">Produs</label><select id="logEditProduct"></select></div>
+      <div class="fg"><label class="fl">Recoltă</label><select id="logEditCrop"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
+      <div class="fg"><label class="fl">Cantitate contract t</label><input id="logEditQty" type="number" step="0.01" min="0"></div>
+    </div>
+    <div class="fr fr3">
+      <div class="fg"><label class="fl">Contraparte / client / furnizor</label><input id="logEditCounterparty" type="text"></div>
+      <div class="fg"><label class="fl">Paritate</label><select id="logEditParity"><option value="DAP">DAP</option><option value="FCA">FCA</option><option value="FOR">FOR</option><option value="CPT">CPT</option><option value="FCA-V">FCA-V</option><option value="DAP-V">DAP-V</option></select></div>
+      <div class="fg"><label class="fl">Loc / bază / destinație</label><input id="logEditLocation" type="text"></div>
+    </div>
+    <div class="fr fr2">
+      <div class="fg"><label class="fl">Perioadă de la</label><select id="logEditModalStartMonth"></select></div>
+      <div class="fg"><label class="fl">Perioadă până la</label><select id="logEditModalEndMonth"></select></div>
+    </div>
+    <div class="fg"><label class="fl">Observații logistică</label><input id="logEditNote" type="text"></div>
+    <div class="log-muted" id="logEditSourceHint" style="line-height:1.5"></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeModal('modLogisticsEdit')">Anulează</button>
+      <button class="btn-save" onclick="saveLogisticsEditModal()">Salvează</button>
     </div>
   </div>
 </div>
@@ -2904,7 +2939,7 @@ function getFilteredTrades(){
   return ft;
 }
 function hasLogisticsForTrade(tradeId){
-  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId));
+  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId) || String(c.source_trade_id)===String(tradeId) || String(c.sourceTradeId)===String(tradeId));
 }
 function getLogisticsContractsForTrade(tradeId){
   return logisticsContracts.filter(c=>String(c.tradeId)===String(tradeId));
@@ -4020,6 +4055,122 @@ async function copyTrainEmail(contractId, shipmentId){
   }
 }
 
+
+function fillLogProductSelect(id, selected=''){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const keys=Object.keys(products||{});
+  el.innerHTML=keys.map(k=>`<option value="${escHtml(k)}" ${String(k)===String(selected)?'selected':''}>${escHtml((products[k]?.emoji||'')+' '+(products[k]?.name||k))}</option>`).join('');
+  if(selected && !keys.includes(selected)) el.innerHTML += `<option value="${escHtml(selected)}" selected>${escHtml(selected)}</option>`;
+}
+function onLogEditFlowChange(){
+  const flow=document.getElementById('logEditFlow')?.value || 'pickup';
+  const mode=document.getElementById('logEditTransportMode');
+  if(!mode) return;
+  if(flow==='pickup'){
+    if(!['truck','none'].includes(mode.value)) mode.value='truck';
+  }else{
+    if(mode.value==='none') mode.value='truck';
+  }
+}
+function openLogisticsEditModal(id=null){
+  const c=id ? getLogContract(id) : null;
+  const t=c ? (getLogTrade(c)||{}) : {};
+  const isNew=!c;
+  const flow=c ? logFlow(c) : 'pickup';
+  const product=t.product || 'wheat';
+  fillLogProductSelect('logEditProduct', product);
+  fillLogMonthSelect('logEditModalStartMonth', c?.deliveryStartMonth || today().slice(0,7));
+  fillLogMonthSelect('logEditModalEndMonth', c?.deliveryEndMonth || today().slice(0,7));
+  document.getElementById('logEditTitle').textContent=isNew?'Creează contract logistic manual':'Editează contract logistic';
+  document.getElementById('logEditId').value=c?.id || '';
+  document.getElementById('logEditMode').value=isNew?'create':'edit';
+  document.getElementById('logEditFlow').value=flow;
+  document.getElementById('logEditTransportMode').value=c?.transportMode || (flow==='pickup' && String(t.parity||'').toUpperCase()==='DAP' ? 'none' : 'truck');
+  document.getElementById('logEditContractNo').value=logContractNo(c) || '';
+  document.getElementById('logEditProduct').value=product;
+  document.getElementById('logEditCrop').value=t.crop || String(new Date().getFullYear());
+  document.getElementById('logEditQty').value=t.qty || '';
+  document.getElementById('logEditCounterparty').value=t.cpty || '';
+  const parity=(t.parity || c?.parity || 'DAP').toUpperCase();
+  const parityEl=document.getElementById('logEditParity');
+  parityEl.value=[...parityEl.options].some(o=>o.value===parity)?parity:'DAP';
+  document.getElementById('logEditLocation').value=t.loc || '';
+  document.getElementById('logEditNote').value=c?.note || '';
+  const hint=document.getElementById('logEditSourceHint');
+  if(hint) hint.innerHTML=c?.tradeId ? `Legat de tranzacția sursă #${escHtml(c.tradeId)}. Modificarea de aici corectează afișarea în Logistică și Rapoarte, fără să modifice poziția.` : `Contract logistic manual, fără poziție sursă. Util pentru marfă DAP/intrări unde nu organizezi transportul, dar vrei evidență în Logistică și Rapoarte.`;
+  onLogEditFlowChange();
+  document.getElementById('modLogisticsEdit').classList.add('open');
+}
+async function saveLogisticsEditModal(){
+  const mode=document.getElementById('logEditMode').value;
+  const id=document.getElementById('logEditId').value;
+  const flow=document.getElementById('logEditFlow').value || 'pickup';
+  const transportMode=document.getElementById('logEditTransportMode').value || 'truck';
+  const contractNo=document.getElementById('logEditContractNo').value.trim();
+  const product=document.getElementById('logEditProduct').value;
+  const crop=document.getElementById('logEditCrop').value;
+  const qty=Number(document.getElementById('logEditQty').value)||0;
+  const counterparty=document.getElementById('logEditCounterparty').value.trim();
+  const parity=document.getElementById('logEditParity').value;
+  const loc=document.getElementById('logEditLocation').value.trim();
+  const startMonth=document.getElementById('logEditModalStartMonth').value;
+  const endMonth=document.getElementById('logEditModalEndMonth').value;
+  const note=document.getElementById('logEditNote').value.trim();
+  if(!contractNo){alert('Completează numărul contractului sau o referință.');return;}
+  if(!counterparty){alert('Completează contrapartea.');return;}
+  if(!qty || qty<=0){alert('Completează cantitatea contractului.');return;}
+  if(startMonth && endMonth && startMonth>endMonth){alert('Perioada de început nu poate fi după perioada de final.');return;}
+  const dir=flow==='pickup'?'long':'short';
+  const snap={productKey:product,product,crop,qty,counterparty,cpty:counterparty,dir,parity,loc,date:today(),note:contractNo,contractNo};
+  if(mode==='create'){
+    const contract={
+      id:Date.now(),
+      tradeId:null,
+      source_trade_id:null,
+      manual:true,
+      tradeSnapshot:snap,
+      contractNo,
+      flow,
+      transportMode,
+      problem:false,
+      deliveryStartMonth:startMonth,
+      deliveryEndMonth:endMonth,
+      allocations:[],
+      movements:[],
+      invoices:[],
+      note,
+      createdAt:new Date().toISOString()
+    };
+    if(startMonth && endMonth){
+      const months=monthRange(startMonth+'-01', endMonth+'-01');
+      const perMonth=months.length ? Math.round((qty/months.length)*100)/100 : qty;
+      contract.allocations=months.map((m,idx)=>({month:m, qty: idx===months.length-1 ? Math.round((qty-perMonth*(months.length-1))*100)/100 : perMonth}));
+    }
+    try{
+      const newId=await apiCreateLogisticsContract(contract);
+      contract.id=newId;
+      logisticsContracts.unshift(contract);
+      selectedLogisticsId=contract.id;
+    }catch(e){console.error(e);alert('Eroare la crearea contractului logistic manual.');return;}
+  }else{
+    const c=getLogContract(id);
+    if(!c){alert('Contractul logistic nu mai există.');return;}
+    c.tradeSnapshot={...(c.tradeSnapshot||{}),...snap};
+    c.contractNo=contractNo;
+    c.flow=flow;
+    c.transportMode=transportMode;
+    c.deliveryStartMonth=startMonth;
+    c.deliveryEndMonth=endMonth;
+    c.note=note;
+    c.updatedAt=new Date().toISOString();
+    await saveLogistics(c);
+  }
+  closeModal('modLogisticsEdit');
+  renderLogistics();
+  render();
+}
+
 function setLogisticsFilter(f){
   window.logisticsFilter=f;
   ['logFilterAll','logFilterPickup','logFilterDelivery','logFilterProblem','logFilterDue'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
@@ -4046,7 +4197,7 @@ function selectLogSourceTrade(id){
   const transportRow=document.getElementById('logCreateTransportRow');
   const modeWrap=document.getElementById('logTransportModeWrap');
   if(!t) return;
-  transportRow.style.display='';
+  if(transportRow) transportRow.style.display='';
   if(t.dir==='long'){
     flowInput.value='DE RIDICAT';
     modeWrap.style.display='none';
@@ -4123,9 +4274,9 @@ async function createLogisticsFromTrade(){
       parity:t.parity || '',
       loc:t.loc || '',
       date:t.date || '',
-      note:t.note || ''
+      note:(t.contractNo || t.note || '')
     },
-    contractNo:t.note || '',
+    contractNo:(t.contractNo || t.note || ''),
     flow,
     transportMode:mode,
     problem:false,
@@ -4155,7 +4306,7 @@ async function createLogisticsFromTrade(){
   }
 }
 function hasLogisticsForTrade(tradeId){
-  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId));
+  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId) || String(c.source_trade_id)===String(tradeId) || String(c.sourceTradeId)===String(tradeId));
 }
 function getLogContract(id){
   return logisticsContracts.find(c=>String(c.id)===String(id));
@@ -4918,10 +5069,11 @@ function renderLogisticsDetail(){
   detail.innerHTML=`\n    <div class="log-active-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
         <div class="log-title">${flowBadge} ${logContractName(c)}</div>
-        <div class="log-muted">Tranzacție sursă #${c.tradeId} · ${t ? (t.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${t ? escHtml(t.parity||'—') : '—'} · ${t ? escHtml(t.loc||'—') : '—'}</div>
+        <div class="log-muted">${c.tradeId ? `Tranzacție sursă #${escHtml(c.tradeId)}` : 'Contract logistic manual'} · ${t ? (t.dir==='long'?'Cumpărare':'Vânzare') : '—'} · ${t ? escHtml(t.parity||'—') : '—'} · ${t ? escHtml(t.loc||'—') : '—'}</div>
       </div>
       <div class="log-actions">
         <span class="log-badge ${st.cls}">${st.label}</span>
+        <button class="btn-log" onclick="openLogisticsEditModal('${c.id}')">✎ Editează</button>
         <button class="btn-log" onclick="exportSelectedLogisticsContract()">⬇ Export contract</button>
         <button class="btn-log ${c.manualClosed?'btn-log-green':'btn-log'}" onclick="toggleLogManualClosed()">${c.manualClosed?'Redeschide ctr':'Finalizează ctr'}</button>
         <button class="btn-log ${c.problem?'btn-log-green':'btn-log-red'}" onclick="toggleLogProblem()">${c.problem?'Scoate problema':'Marchează problemă'}</button>
