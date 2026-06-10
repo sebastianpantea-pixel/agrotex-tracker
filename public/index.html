@@ -8319,24 +8319,64 @@ function reportXlsSection(title, headers, rows, mapper){
 function exportActivityReportExcel(){
   if(!reportData){alert('Genereaza intai raportul.');return;}
   const d=reportData;
-  let body='';
-  body+=`<tr><td class="title" colspan="12">Raport activitate ${reportXlsEsc(d.from)} - ${reportXlsEsc(d.to)}</td></tr>`;
-  body+=`<tr><td class="subtitle" colspan="12">Generat la ${reportXlsEsc(new Date().toLocaleString('ro-RO'))}. Trenurile sunt afisate de azi inainte. Valorile raman in valuta originala.</td></tr>`;
-  body+='<tr class="spacer"><td colspan="12"></td></tr>';
-  const rez=[
-    ['Achizitii t',fmtN(d.buyQty)],['Vanzari t',fmtN(d.sellQty)],['Contracte generate',fmtN(d.contracts.length)],['Livrari logistica',fmtN(d.logistics.length)],
-    ['Facturi in sold',fmtN(d.invoices.inSold.length)],['Facturi depasite',fmtN(d.invoices.depasite.length)],['Trenuri de azi inainte',fmtN(d.trains.length)],['Stoc total t',fmtN(d.stockTotal)]
-  ];
-  body+=`<tr><td class="section" colspan="12">REZUMAT</td></tr>${rez.map(r=>`<tr><td class="label">${reportXlsEsc(r[0])}</td><td class="num">${reportXlsEsc(r[1])}</td></tr>`).join('')}<tr class="spacer"><td colspan="12"></td></tr>`;
-  if(d.include.trades){
-    body+=reportXlsSection('ACHIZITII',['Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.buys,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
-    body+=reportXlsSection('TOTAL ACHIZITII',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.buySummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
-    body+=reportXlsSection('VANZARI',['Data','Produs','Recolta','Client','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.sells,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Client:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
-    body+=reportXlsSection('TOTAL VANZARI',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.sellSummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
-    body+=reportXlsSection('POZITIE TOTALA LA ZI',['Produs','Recolta','Long','Short','Net'],d.totalPosRows,(r,h)=>({Produs:r.Produs,Recolta:r.Recolta,Long:r.Long,Short:r.Short,Net:r.Net}[h]));
+
+  const rows=[];
+  const merges=[];
+  const sectionRows=[];
+  const headerRows=[];
+
+  function addRow(arr){ rows.push(arr); return rows.length-1; }
+  function addBlank(){ addRow([]); }
+  function addTitle(text){
+    const r=addRow([text]);
+    merges.push({s:{r,c:0},e:{r,c:10}});
+    sectionRows.push(r);
+    return r;
   }
-  if(d.include.contracts) body+=reportXlsSection('CONTRACTE ACHIZITIE',['Data','Nr','Produs','Furnizor','Cantitate','Pret','Paritate','Loc','Semnat'],d.contracts,(r,h)=>({Data:r.Data,Nr:r.Nr,Produs:r.Produs,Furnizor:r.Furnizor,Cantitate:r.Cantitate,Pret:r.Pret,Paritate:r.Paritate,Loc:r.Loc,Semnat:r.SEMNAT}[h]));
-  if(d.include.logistics) body+=reportXlsSection('LOGISTICA / LIVRARI',['Data','Tip','Contract','Partener','Produs','Cantitate','Ruta','Status','Observatii'],d.logistics,(r,h)=>r[h]??'');
+  function addSubTitle(text){
+    const r=addRow([text]);
+    merges.push({s:{r,c:0},e:{r,c:10}});
+    return r;
+  }
+  function addSection(title, headers, dataRows, mapper){
+    addBlank();
+    addTitle(title);
+    if(headers && headers.length){
+      const hr=addRow(headers);
+      headerRows.push(hr);
+      if(dataRows && dataRows.length){
+        dataRows.forEach(item=>{
+          addRow(headers.map(h=> mapper ? mapper(item,h) : (item[h] ?? '')));
+        });
+      } else {
+        addRow(['Nu exista date pentru aceasta sectiune.']);
+      }
+    }
+  }
+
+  addTitle(`Raport activitate ${d.from} - ${d.to}`);
+  addSubTitle(`Generat la ${new Date().toLocaleString('ro-RO')}. Trenurile sunt afisate de azi inainte. Valorile raman in valuta originala.`);
+
+  addSection('REZUMAT',['Indicator','Valoare'],[
+    {Indicator:'Achizitii t',Valoare:fmtN(d.buyQty)},
+    {Indicator:'Vanzari t',Valoare:fmtN(d.sellQty)},
+    {Indicator:'Contracte generate',Valoare:fmtN(d.contracts.length)},
+    {Indicator:'Livrari logistica',Valoare:fmtN(d.logistics.length)},
+    {Indicator:'Facturi in sold',Valoare:fmtN(d.invoices.inSold.length)},
+    {Indicator:'Facturi depasite',Valoare:fmtN(d.invoices.depasite.length)},
+    {Indicator:'Trenuri de azi inainte',Valoare:fmtN(d.trains.length)},
+    {Indicator:'Stoc total t',Valoare:fmtN(d.stockTotal)}
+  ],(r,h)=>r[h]??'');
+
+  if(d.include.trades){
+    addSection('ACHIZITII',['Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.buys,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
+    addSection('TOTAL ACHIZITII',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.buySummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
+    addSection('VANZARI',['Data','Produs','Recolta','Client','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.sells,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Client:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
+    addSection('TOTAL VANZARI',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.sellSummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
+    addSection('POZITIE TOTALA LA ZI',['Produs','Recolta','Long','Short','Net'],d.totalPosRows,(r,h)=>({Produs:r.Produs,Recolta:r.Recolta,Long:r.Long,Short:r.Short,Net:r.Net}[h]));
+  }
+  if(d.include.contracts) addSection('CONTRACTE ACHIZITIE',['Data','Nr','Produs','Furnizor','Cantitate','Pret','Paritate','Loc','Semnat'],d.contracts,(r,h)=>({Data:r.Data,Nr:r.Nr,Produs:r.Produs,Furnizor:r.Furnizor,Cantitate:r.Cantitate,Pret:r.Pret,Paritate:r.Paritate,Loc:r.Loc,Semnat:r.SEMNAT}[h]));
+  if(d.include.logistics) addSection('LOGISTICA / LIVRARI',['Data','Tip','Contract','Partener','Produs','Cantitate','Ruta','Status','Observatii'],d.logistics,(r,h)=>r[h]??'');
   if(d.include.invoices){
     const invSummary=[
       {Indicator:'Total facturat in interval',Valoare:reportCurrencySummaryLines(d.invoices.totalFacturatByCurrency)},
@@ -8346,34 +8386,41 @@ function exportActivityReportExcel(){
       {Indicator:'Facturi in sold',Valoare:fmtN(d.invoices.inSold.length)},
       {Indicator:'Facturi depasite',Valoare:fmtN(d.invoices.depasite.length)}
     ];
-    body+=reportXlsSection('FINANCIAR LOGISTICA',['Indicator','Valoare'],invSummary,(r,h)=>r[h]??'');
-    body+=reportXlsSection('FACTURI IN SOLD',['Client','Contract','NrFactura','DataFactura','Scadenta','Valuta','Valoare','Incasat','Sold','ZileIntarziere','Status'],d.invoices.inSold,(r,h)=>r[h]??'');
-    body+=reportXlsSection('FACTURI DEPASITE',['Client','Contract','NrFactura','Scadenta','Valuta','Sold','ZileIntarziere'],d.invoices.depasite,(r,h)=>r[h]??'');
+    addSection('FINANCIAR LOGISTICA',['Indicator','Valoare'],invSummary,(r,h)=>r[h]??'');
+    addSection('FACTURI IN SOLD',['Client','Contract','NrFactura','DataFactura','Scadenta','Valuta','Valoare','Incasat','Sold','ZileIntarziere','Status'],d.invoices.inSold,(r,h)=>r[h]??'');
+    addSection('FACTURI DEPASITE',['Client','Contract','NrFactura','Scadenta','Valuta','Sold','ZileIntarziere'],d.invoices.depasite,(r,h)=>r[h]??'');
   }
-  if(d.include.trains) body+=reportXlsSection('TRENURI DE AZI INAINTE',['Perioada','Contract','Produs','Cantitate','Baza','Client','Status','Observatii'],d.trains,(r,h)=>r[h]??'');
-  if(d.include.stock) body+=reportXlsSection('STOCURI LA ZIUA GENERARII',['Locatie','Tip','Produs','Recolta','Cantitate','Calitate','Observatii'],d.stock,(r,h)=>r[h]??'');
-  const html=`<!doctype html><html><head><meta charset="UTF-8"><style>
-    body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#111827;}
-    table{border-collapse:collapse;width:100%;}
-    td,th{border:1px solid #cbd5e1;padding:5px 7px;vertical-align:top;}
-    th{background:#334155;color:#ffffff;font-weight:bold;text-align:left;}
-    .title{background:#1f2937;color:#ffffff;font-size:16pt;font-weight:bold;border:1px solid #1f2937;padding:10px;}
-    .subtitle{background:#e5e7eb;color:#374151;font-style:italic;border:1px solid #cbd5e1;padding:7px;}
-    .section{background:#d9ead3;color:#0f5132;font-weight:bold;font-size:12pt;border:1px solid #93c47d;padding:8px;text-transform:uppercase;}
-    .label{background:#f8fafc;font-weight:bold;width:230px;}
-    .num{text-align:right;font-weight:bold;}
-    .empty{color:#64748b;font-style:italic;}
-    .spacer td{height:12px;border:none;background:#ffffff;}
-  </style></head><body><table>${body}</table></body></html>`;
-  const blob=new Blob(['\ufeff',html],{type:'application/vnd.ms-excel;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`raport_activitate_${d.from}_${d.to}.xls`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},500);
+  if(d.include.trains) addSection('TRENURI DE AZI INAINTE',['Perioada','Contract','Produs','Cantitate','Baza','Client','Status','Observatii'],d.trains,(r,h)=>r[h]??'');
+  if(d.include.stock) addSection('STOCURI LA ZIUA GENERARII',['Locatie','Tip','Produs','Recolta','Cantitate','Calitate','Observatii'],d.stock,(r,h)=>r[h]??'');
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!merges']=merges;
+  ws['!cols']=[
+    {wch:18},{wch:22},{wch:14},{wch:28},{wch:14},{wch:14},{wch:12},{wch:16},{wch:14},{wch:22},{wch:18},{wch:30}
+  ];
+  ws['!freeze']={xSplit:0,ySplit:3};
+
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let R=range.s.r; R<=range.e.r; ++R){
+    for(let C=range.s.c; C<=range.e.c; ++C){
+      const addr=XLSX.utils.encode_cell({r:R,c:C});
+      const cell=ws[addr];
+      if(!cell) continue;
+      if(typeof cell.v==='number') cell.z='#,##0.00';
+      cell.s=cell.s||{};
+      if(sectionRows.includes(R)){
+        cell.s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'334155'}},alignment:{horizontal:'left'}};
+      }else if(headerRows.includes(R)){
+        cell.s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'64748B'}},alignment:{horizontal:'left'}};
+      }
+    }
+  }
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Raport');
+  XLSX.writeFile(wb,`raport_activitate_${d.from}_${d.to}.xlsx`);
 }
+
 
 
 async function loadPurchaseContracts(){
