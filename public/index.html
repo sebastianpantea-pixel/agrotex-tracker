@@ -1023,9 +1023,9 @@
   .tab.report-tab-active{background:rgba(229,185,92,.10);color:var(--acc);border-color:var(--acc);}
   #reportSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
   .report-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .report-grid{display:grid;grid-template-columns:330px 1fr;gap:12px;align-items:start;}
+  .report-grid{display:grid;grid-template-columns:minmax(380px,430px) minmax(0,1fr);gap:12px;align-items:start;}
   @media(max-width:1100px){.report-grid{grid-template-columns:1fr;}}
-  .report-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+  .report-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;min-width:0;}
   .report-head{padding:9px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
   .report-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;}
   .report-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;}
@@ -1034,9 +1034,12 @@
   .report-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
   .report-input,.report-select{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 8px;outline:none;}
   .report-input:focus,.report-select:focus{border-color:var(--acc);box-shadow:0 0 0 1px rgba(224,183,94,.12);}
-  .report-checks{display:grid;grid-template-columns:1fr;gap:6px;}
-  .report-check{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text);line-height:1.35;}
-  .report-check input{accent-color:var(--acc);}
+  .report-checks{display:grid;grid-template-columns:1fr;gap:7px;}
+  .report-check{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text);line-height:1.35;width:100%;white-space:normal;overflow:visible;}
+  .report-check input{accent-color:var(--acc);width:13px;height:13px;margin-top:1px;}
+  .report-check span{display:block;min-width:0;overflow-wrap:anywhere;}
+  .report-loading{padding:18px;text-align:center;color:var(--acc);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.8px;}
+  .report-error{padding:14px;border:1px solid rgba(240,138,142,.45);background:rgba(240,138,142,.08);color:var(--short);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.5;white-space:pre-wrap;}
   .btn-report{padding:6px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;cursor:pointer;border:1px solid rgba(224,183,94,.40);background:rgba(224,183,94,.10);color:var(--acc);transition:all .15s;white-space:nowrap;}
   .btn-report:hover{background:rgba(224,183,94,.18);}
   .btn-report.secondary{border-color:var(--border2);background:var(--surface2);color:var(--dim);}
@@ -1204,17 +1207,17 @@
         <div>
           <div class="report-label">Include</div>
           <div class="report-checks">
-            <label class="report-check"><input type="checkbox" id="reportIncTrades" checked> Achiziții, vânzări și poziție netă</label>
-            <label class="report-check"><input type="checkbox" id="reportIncContracts" checked> Contracte achiziție generate</label>
-            <label class="report-check"><input type="checkbox" id="reportIncLogistics" checked> Logistică / livrări</label>
-            <label class="report-check"><input type="checkbox" id="reportIncInvoices" checked> Facturi logistică, sold și sold depășit</label>
-            <label class="report-check"><input type="checkbox" id="reportIncTrains" checked> Trenuri</label>
-            <label class="report-check"><input type="checkbox" id="reportIncStock" checked> Recepții și stocuri la zi</label>
-            <label class="report-check"><input type="checkbox" id="reportIncProblems" checked> Probleme / observații</label>
+            <label class="report-check"><input type="checkbox" id="reportIncTrades" checked><span>Achizitii, vanzari si pozitie neta</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncContracts" checked><span>Contracte achizitie generate</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncLogistics" checked><span>Logistica / livrari</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncInvoices" checked><span>Facturi logistica, sold si sold depasit</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncTrains" checked><span>Trenuri</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncStock" checked><span>Receptii si stocuri la zi</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncProblems" checked><span>Probleme / observatii</span></label>
           </div>
         </div>
-        <button class="btn-report" onclick="generateActivityReport()">Generează raport</button>
-        <button class="btn-report secondary" onclick="exportActivityReportExcel()">Export Excel</button>
+        <button id="btnGenerateReport" class="btn-report" onclick="generateActivityReport()">Genereaza raport</button>
+        <button id="btnExportReport" class="btn-report secondary" onclick="exportActivityReportExcel()">Export Excel</button>
         <div class="report-hint">Stocurile și facturile în sold se calculează la data „Până la”. Restul secțiunilor se filtrează pe interval.</div>
       </div>
     </div>
@@ -8164,23 +8167,67 @@ function renderActivityReport(data){
 async function generateActivityReport(){
   const from=document.getElementById('reportDateFrom')?.value || today();
   const to=document.getElementById('reportDateTo')?.value || today();
+  const out=document.getElementById('reportOutput');
+  const meta=document.getElementById('reportMeta');
+  const btn=document.getElementById('btnGenerateReport');
   if(from>to){alert('Interval invalid. Data de inceput este dupa data de final.');return;}
-  await Promise.all([loadLogistics(),loadTrainContracts(),loadPurchaseContracts(),loadStockSites(),loadStockEntries()]);
-  const include={
-    trades:document.getElementById('reportIncTrades')?.checked ?? true,
-    contracts:document.getElementById('reportIncContracts')?.checked ?? true,
-    logistics:document.getElementById('reportIncLogistics')?.checked ?? true,
-    invoices:document.getElementById('reportIncInvoices')?.checked ?? true,
-    trains:document.getElementById('reportIncTrains')?.checked ?? true,
-    stock:document.getElementById('reportIncStock')?.checked ?? true,
-    problems:document.getElementById('reportIncProblems')?.checked ?? true
-  };
-  const buys=reportTradeRows(from,to,'long');
-  const sells=reportTradeRows(from,to,'short');
-  const stock=reportStockRows();
-  const invoices=reportInvoiceRows(from,to,to);
-  reportData={from,to,include,buys,sells,buyQty:buys.reduce((s,r)=>s+r.qty,0),sellQty:sells.reduce((s,r)=>s+r.qty,0),buySummary:reportGroupByProduct(buys,'buy'),sellSummary:reportGroupByProduct(sells,'sell'),netRows:reportNetRows(buys,sells),totalPosRows:reportTotalPositionRows(),contracts:reportPurchaseContractRows(from,to),logistics:reportLogRows(from,to),invoices,trains:reportTrainRows(from,to),receipts:reportStockReceiptRows(from,to),stock,stockTotal:stock.reduce((s,r)=>s+Number(r.Cantitate||0),0),problems:reportProblemRows(from,to,invoices)};
-  renderActivityReport(reportData);
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Se genereaza...';}
+    if(out) out.innerHTML='<div class="report-loading">Se citesc datele si se genereaza raportul...</div>';
+    if(meta) meta.textContent='Raport in lucru...';
+    const loaders=[
+      ['logistica', typeof loadLogistics==='function' ? loadLogistics : null],
+      ['trenuri', typeof loadTrainContracts==='function' ? loadTrainContracts : null],
+      ['contracte', typeof loadPurchaseContracts==='function' ? loadPurchaseContracts : null],
+      ['locatii stoc', typeof loadStockSites==='function' ? loadStockSites : null],
+      ['intrari stoc', typeof loadStockEntries==='function' ? loadStockEntries : null]
+    ];
+    const loadResults=await Promise.allSettled(loaders.filter(x=>x[1]).map(x=>x[1]()));
+    const failed=[];
+    loadResults.forEach((r,i)=>{ if(r.status==='rejected') failed.push(loaders.filter(x=>x[1])[i][0]); });
+    const include={
+      trades:document.getElementById('reportIncTrades')?.checked ?? true,
+      contracts:document.getElementById('reportIncContracts')?.checked ?? true,
+      logistics:document.getElementById('reportIncLogistics')?.checked ?? true,
+      invoices:document.getElementById('reportIncInvoices')?.checked ?? true,
+      trains:document.getElementById('reportIncTrains')?.checked ?? true,
+      stock:document.getElementById('reportIncStock')?.checked ?? true,
+      problems:document.getElementById('reportIncProblems')?.checked ?? true
+    };
+    const buys=reportTradeRows(from,to,'long');
+    const sells=reportTradeRows(from,to,'short');
+    const stock=reportStockRows();
+    const invoices=reportInvoiceRows(from,to,to);
+    reportData={
+      from,to,include,failedLoads:failed,
+      buys,sells,
+      buyQty:buys.reduce((s,r)=>s+r.qty,0),
+      sellQty:sells.reduce((s,r)=>s+r.qty,0),
+      buySummary:reportGroupByProduct(buys,'buy'),
+      sellSummary:reportGroupByProduct(sells,'sell'),
+      netRows:reportNetRows(buys,sells),
+      totalPosRows:reportTotalPositionRows(),
+      contracts:reportPurchaseContractRows(from,to),
+      logistics:reportLogRows(from,to),
+      invoices,
+      trains:reportTrainRows(from,to),
+      receipts:reportStockReceiptRows(from,to),
+      stock,
+      stockTotal:stock.reduce((s,r)=>s+Number(r.Cantitate||0),0),
+      problems:reportProblemRows(from,to,invoices)
+    };
+    renderActivityReport(reportData);
+    if(failed.length && out){
+      out.insertAdjacentHTML('afterbegin', `<div class="report-error">Unele module nu au putut fi reincarcate: ${escHtml(failed.join(', '))}. Raportul a fost generat cu datele disponibile deja in aplicatie.</div>`);
+    }
+  }catch(err){
+    console.error('generateActivityReport',err);
+    reportData=null;
+    if(meta) meta.textContent='Raportul nu a putut fi generat.';
+    if(out) out.innerHTML=`<div class="report-error">Nu s-a putut genera raportul.\n${escHtml(err?.message || String(err))}</div>`;
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Genereaza raport';}
+  }
 }
 function sheetFromObjects(rows, headers){
   return XLSX.utils.json_to_sheet((rows||[]).map(r=>{const o={}; headers.forEach(h=>o[h]=r[h]??''); return o;}),{header:headers});
