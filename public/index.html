@@ -3490,6 +3490,21 @@ function trainStatus(raw){
   if(s === 'plan') return 'planned';
   return TRAIN_STATUS[s] ? s : 'planned';
 }
+function trainStatusLabel(raw){
+  const s = trainStatus(raw);
+  const labels = {
+    planned:'Planificat',
+    requested:'Nominalizat',
+    nominated:'Nominalizat',
+    confirmed:'Confirmat',
+    loading:'In incarcare',
+    loaded:'Incarcat',
+    problem:'Problema',
+    cancelled:'Anulat'
+  };
+  if(typeof TRAIN_STATUS !== 'undefined' && TRAIN_STATUS[s] && TRAIN_STATUS[s].label) return TRAIN_STATUS[s].label;
+  return labels[s] || s || '';
+}
 function trShipmentDateFrom(sh){ return sh?.date || sh?.dateFrom || sh?.from || sh?.plannedDate || ''; }
 function trShipmentDateTo(sh){ return sh?.dateTo || sh?.to || sh?.endDate || trShipmentDateFrom(sh); }
 function trShipmentDateLabel(sh){
