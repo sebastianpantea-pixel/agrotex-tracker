@@ -87,6 +87,7 @@
   .tab.news-tab-active{background:rgba(167,139,250,.1);color:var(--basis);border-color:var(--basis);}
   .tab.meteo-tab-active{background:rgba(56,189,248,.10);color:var(--meteo);border-color:var(--meteo);}
   .tab.log-tab-active{background:rgba(245,158,11,.10);color:var(--acc);border-color:var(--acc);}
+  .tab.position-tab-active{background:rgba(114,211,154,.10);color:var(--long);border-color:var(--long);}
   .tab:not(:first-child){border-left:none;}
   .tab:first-child{border-radius:4px 0 0 0;}
   .tab:last-child{border-radius:0 4px 0 0;}
@@ -1181,7 +1182,8 @@
 <div class="tabs">
   <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
   <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
-  <div class="tab" id="tabStock" onclick="setStockTab()" style="margin-left:auto;">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
+  <div class="tab position-tab-active" id="tabPosition" onclick="setPositionTab()" style="margin-left:auto;">📈 Poziție</div>
+  <div class="tab" id="tabStock" onclick="setStockTab()">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabPurchase" onclick="setPurchaseTab()">📄 Contracte <span class="tbadge" id="bPurchase" style="background:var(--long);color:#000;">0</span></div>
   <div class="tab" id="tabTrain" onclick="setTrainTab()">🚂 Trenuri <span class="tbadge" id="bTrain" style="background:var(--transport);color:#000;">0</span></div>
@@ -2559,6 +2561,19 @@ function setCropTabsVisible(visible){
     if(el) el.style.display = visible ? '' : 'none';
   });
 }
+
+function setPositionTabVisual(active){
+  const el=document.getElementById('tabPosition');
+  if(!el) return;
+  el.className='tab'+(active?' position-tab-active':'');
+}
+function setPositionTab(){
+  closeAllSideTabs();
+  setCropTabsVisible(true);
+  document.querySelector('.main').style.display='flex';
+  setPositionTabVisual(true);
+  render();
+}
 function closeAllSideTabs(){
   if(newsTabActive){
     newsTabActive=false;
@@ -2620,6 +2635,7 @@ function closeAllSideTabs(){
     document.getElementById('adminSection').style.display='none';
     setCropTabsVisible(true);
   }
+  setPositionTabVisual(true);
   document.querySelector('.main').style.display='flex';
 }
 
@@ -3500,6 +3516,7 @@ function setLogisticsTab(){
   document.getElementById('tabLogistics').className='tab log-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('logisticsSection').style.display='flex';
   fillLogMonthSelect('logCreateStartMonth');
   fillLogMonthSelect('logCreateEndMonth');
@@ -6248,6 +6265,7 @@ function setStockTab(){
   stockTabActive=true;
   document.getElementById('tabStock').className='tab news-tab-active';
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('stockSection').style.display='flex';
   populateStockProductSelect();
   Promise.all([loadStockSites(),loadStockEntries()]).then(async()=>{await ensureStockSitesFromEntries(stockEntries); renderStock(); resetStockEntryForm(); resetStockSiteForm();});
@@ -6966,6 +6984,7 @@ function setAdminTab(){
   document.getElementById('tabAdmin').className='btn-sm admin-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('adminSection').style.display='flex';
   loadAdminStatus();
   loadAdminBackups();
@@ -7106,6 +7125,7 @@ function setEmailTab(){
   document.getElementById('tabEmail').className='tab email-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('emailSection').style.display='flex';
 }
 function closeEmailTab(){
@@ -7205,6 +7225,7 @@ function setContextTab(){
   document.getElementById('tabContext').className='tab context-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('contextSection').style.display='flex';
   renderContextSources();
   if(!globalContextData.length) loadGlobalContext();
@@ -7521,6 +7542,7 @@ function setNewsTab(){
   tn.style.color='var(--acc)';
   tn.style.borderColor='var(--acc)';
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('newsSection').style.display='flex';
   if(newsData.length===0) loadNews();
   else renderNews();
@@ -7731,6 +7753,7 @@ function setMeteoTab(){
   meteoTabActive=true;
   document.getElementById('tabMeteo').className='tab meteo-tab-active';
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   document.getElementById('meteoSection').style.display='flex';
   if(!weatherPresets.length) loadWeatherPresets();
   else renderWeatherPresets();
@@ -8087,6 +8110,7 @@ function setReportTab(){
   closeAllSideTabs();
   reportTabActive=true;
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   setCropTabsVisible(false);
   const tab=document.getElementById('tabReport'); if(tab) tab.className='tab report-tab-active';
   const sec=document.getElementById('reportSection'); if(sec) sec.style.display='flex';
@@ -8650,6 +8674,7 @@ function setPurchaseTab(){
   closeAllSideTabs();
   purchaseTabActive=true;
   document.querySelector('.main').style.display='none';
+  setPositionTabVisual(false);
   setCropTabsVisible(false);
   document.getElementById('tabPurchase').className='tab contract-tab-active';
   document.getElementById('purchaseSection').style.display='flex';
@@ -8924,6 +8949,7 @@ async function bootApp(){
   await loadTrainContracts();
   await loadPartners();
   await loadPurchaseContracts();
+  setPositionTab();
   setInterval(loadFxRates, 3*60*60*1000);
   setInterval(loadMatif, 5*60*1000);
   setInterval(loadNews, 15*60*1000);
