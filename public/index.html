@@ -9,42 +9,46 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
   :root {
-    --bg:#252B33;
-    --surface:#2D3540;
-    --surface2:#37414D;
-    --surface3:#424E5B;
+    /* Cron-inspired dark theme */
+    --bg:#0F0D0A;
+    --surface:#161412;
+    --surface2:#1D1A17;
+    --surface3:#26211D;
 
-    --border:#556575;
-    --border2:#718296;
+    --border:rgba(204,204,204,0.14);
+    --border2:rgba(204,204,204,0.28);
 
-    --text:#DCE4EC;
-    --dim:#AAB6C3;
-    --bright:#F8FAFC;
-    --fg:#F8FAFC;
+    --text:#CCCCCC;
+    --dim:rgba(204,204,204,0.66);
+    --bright:#FFFFFF;
+    --fg:#FFFFFF;
 
-    --long:#72D39A;
-    --long-dim:#3E7A57;
-    --long-bg:rgba(114,211,154,0.12);
+    --long:#7ACB8A;
+    --long-dim:rgba(122,203,138,0.45);
+    --long-bg:rgba(122,203,138,0.10);
 
-    --short:#F08A8E;
-    --short-dim:#8A464A;
-    --short-bg:rgba(240,138,142,0.12);
+    --short:#E06B6B;
+    --short-dim:rgba(224,107,107,0.45);
+    --short-bg:rgba(224,107,107,0.10);
 
-    --neutral:#9BC4F6;
-    --neutral-dim:#4C6F99;
+    --neutral:#CCCCCC;
+    --neutral-dim:rgba(204,204,204,0.30);
 
-    --acc:#E0B75E;
-    --basis:#C5B3F0;
-    --transport:#E8A06A;
+    --acc:#FF4700;
+    --acc-dim:#8B2E09;
+    --acc-smoke:#451E0E;
+    --acc-bg:rgba(255,71,0,0.12);
 
-    --old:#9BC4F6;
-    --new:#82D9AA;
-    --eur:#E0B75E;
+    --basis:#FF4700;
+    --transport:#FF4700;
 
-    --meteo:#7FD4E5;
-    --meteo2:#52B9CF;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
+    --old:#CCCCCC;
+    --new:#FFFFFF;
+    --eur:#FF4700;
+
+    --meteo:#CCCCCC;
+    --meteo2:#FFFFFF;
+  }  *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh;}
 
   #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
@@ -1073,6 +1077,119 @@
   .report-problem{color:var(--short);font-weight:800;}
   .report-ok{color:var(--long);font-weight:800;}
   .report-hint{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+
+  /* Cron-inspired polish overrides */
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Inter,Arial,sans-serif;
+    letter-spacing:-0.005em;
+  }
+  .hdr{
+    background:rgba(15,13,10,0.92);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(204,204,204,0.12);
+  }
+  .logo,.login-logo{
+    letter-spacing:1.5px;
+    color:var(--bright);
+  }
+  .logo span,.login-logo span{color:var(--acc);}
+  .tabs{
+    gap:6px;
+    padding:14px 22px 0;
+    align-items:flex-end;
+    flex-wrap:wrap;
+  }
+  .tab,.tools-btn{
+    border-radius:9999px!important;
+    border:1px solid transparent!important;
+    background:transparent!important;
+    color:var(--dim)!important;
+    padding:7px 14px;
+    letter-spacing:.8px;
+  }
+  .tab:hover,.tools-btn:hover,.tools-btn.open{
+    color:var(--bright)!important;
+    background:rgba(204,204,204,0.07)!important;
+    border-color:rgba(204,204,204,0.14)!important;
+  }
+  .tab.old,.tab.new,.tab.news-tab-active,.tab.meteo-tab-active,.tab.log-tab-active,
+  .tab.position-tab-active,.tab.contract-tab-active,.tab.train-tab-active,
+  .tab.admin-tab-active,.btn-sm.admin-tab-active{
+    background:var(--acc-bg)!important;
+    color:var(--bright)!important;
+    border-color:rgba(255,71,0,0.38)!important;
+  }
+  .tbadge{
+    background:var(--acc)!important;
+    color:#fff!important;
+    border-radius:9999px;
+  }
+  .tools-menu{
+    background:#161412;
+    border-color:rgba(204,204,204,0.20);
+    box-shadow:none;
+  }
+  .tools-item:hover{
+    background:rgba(204,204,204,0.07);
+  }
+  .panel,.card,.log-card,.train-panel,.tr-detail,.tr-qform,.admin-card,.admin-panel,
+  .email-panel,.ctx-card,.meteo-card,.meteo-detail,.login-box,.stock-panel,.contract-panel,
+  .report-panel,.report-card{
+    background:var(--surface)!important;
+    border-color:var(--border)!important;
+    box-shadow:none!important;
+  }
+  .ph,.log-panel-head,.train-panel-head,.tr-detail-head,.tr-qform-head,.admin-panel-head,
+  .email-panel-head,.contract-panel-head,.report-panel-head{
+    background:var(--surface2)!important;
+    border-color:var(--border)!important;
+  }
+  input,select,textarea,.email-textarea,.meteo-search-input{
+    background:#0F0D0A!important;
+    border-color:rgba(204,204,204,0.26)!important;
+    color:var(--bright)!important;
+  }
+  input:focus,select:focus,textarea:focus,.email-textarea:focus,.meteo-search-input:focus{
+    border-color:rgba(255,71,0,0.72)!important;
+    box-shadow:0 0 0 1px rgba(255,71,0,0.16)!important;
+  }
+  button,.btn,.btn-add,.btn-log,.btn-tr,.btn-admin,.btn-email,.btn-sm,.news-refresh-btn,.meteo-refresh-btn{
+    border-radius:4px!important;
+  }
+  .btn-add,.login-btn,.btn-email:not(.secondary),.btn-admin:not(.secondary){
+    background:var(--acc)!important;
+    border-color:var(--acc)!important;
+    color:#fff!important;
+    box-shadow:inset 0 0 0 1px var(--acc-smoke), 0 0 24px 4px rgba(139,46,9,.25);
+  }
+  .btn-log,.btn-tr{
+    color:var(--acc)!important;
+    border-color:rgba(255,71,0,0.38)!important;
+    background:rgba(255,71,0,0.09)!important;
+  }
+  .btn-log:hover,.btn-tr:hover,.btn-add:hover,.btn-email:hover,.btn-admin:hover{
+    filter:brightness(1.08);
+  }
+  table th,.tbl th,.log-table th,.tr-table th,.meteo-table th,.admin-table th,.water-need-table th{
+    background:var(--surface2)!important;
+    color:var(--dim)!important;
+    border-color:var(--border)!important;
+  }
+  table td,.tbl td,.log-table td,.tr-table td,.meteo-table td,.admin-table td,.water-need-table td{
+    border-color:var(--border)!important;
+  }
+  .dbadge.long,.wn-status-ok{background:var(--long-bg);color:var(--long);border-color:var(--long-dim);}
+  .dbadge.short,.wn-status-deficit{background:var(--short-bg);color:var(--short);border-color:var(--short-dim);}
+  .dbadge.flat,.wn-status-partial{background:rgba(204,204,204,.08);color:var(--text);border-color:rgba(204,204,204,.25);}
+  .fx-widget,.cbasis,.log-filter-strip,.ctx-signal,.meteo-summary-box,.meteo-kpi,.meteo-soil-box,
+  .log-kpi,.train-kpi,.tr-sub-kpi{
+    background:var(--surface2)!important;
+    border-color:var(--border)!important;
+  }
+  .fx-rate,.basis-badge,.basis-qty,.log-month-value.money,.tools-item.report{
+    color:var(--acc)!important;
+  }
+  ::selection{background:rgba(255,71,0,0.38);color:#fff;}
 
 </style>
 </head>
