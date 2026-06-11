@@ -94,6 +94,16 @@
   .tab.old .tbadge{background:var(--old);color:#000;}
   .tab.new .tbadge{background:var(--new);color:#000;}
 
+  .tools-wrap{position:relative;display:flex;align-items:stretch;}
+  .tools-btn{padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;white-space:nowrap;}
+  .tools-btn:hover,.tools-btn.open{color:var(--bright);border-color:var(--acc);background:rgba(224,183,94,.08);}
+  .tools-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:210px;background:var(--surface);border:1px solid var(--border2);border-radius:5px;box-shadow:0 12px 32px rgba(0,0,0,.35);z-index:250;padding:6px;}
+  .tools-menu.open{display:flex;flex-direction:column;gap:4px;}
+  .tools-item{width:100%;padding:8px 10px;border:1px solid transparent;background:transparent;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;text-align:left;cursor:pointer;border-radius:3px;white-space:nowrap;}
+  .tools-item:hover{background:var(--surface2);border-color:var(--border);color:var(--bright);}
+  .tools-item.report{color:var(--acc);}
+  .tools-sep{height:1px;background:var(--border);margin:3px 0;}
+
   #newsSection{display:none;padding:14px 22px;flex-direction:column;gap:12px;}
   .news-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .news-filter-btn{padding:4px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .15s;white-space:nowrap;}
@@ -1174,11 +1184,21 @@
   <div class="tab" id="tabStock" onclick="setStockTab()" style="margin-left:auto;">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabPurchase" onclick="setPurchaseTab()">📄 Contracte <span class="tbadge" id="bPurchase" style="background:var(--long);color:#000;">0</span></div>
-  <div class="tab" id="tabReport" onclick="setReportTab()">📊 Rapoarte</div>
   <div class="tab" id="tabTrain" onclick="setTrainTab()">🚂 Trenuri <span class="tbadge" id="bTrain" style="background:var(--transport);color:#000;">0</span></div>
-  <div class="tab" id="tabEmail" onclick="setEmailTab()">✉️ Email</div>
-  <div class="tab" id="tabContext" onclick="setContextTab()">🌍 Context global</div>
-  <div class="tab" id="tabMeteo" onclick="setMeteoTab()">🌦 Meteo</div>
+  <div class="tools-wrap" id="toolsWrap">
+    <button type="button" class="tools-btn" id="toolsBtn" onclick="toggleToolsMenu(event)">☰ Unelte ▾</button>
+    <div class="tools-menu" id="toolsMenu">
+      <button type="button" class="tools-item report" onclick="setReportTab(); closeToolsMenu();">📊 Rapoarte</button>
+      <div class="tools-sep"></div>
+      <button type="button" class="tools-item" onclick="setEmailTab(); closeToolsMenu();">✉️ Email</button>
+      <button type="button" class="tools-item" onclick="setMeteoTab(); closeToolsMenu();">🌦 Meteo</button>
+      <button type="button" class="tools-item" onclick="setContextTab(); closeToolsMenu();">🌍 Context global</button>
+    </div>
+  </div>
+  <div class="tab" id="tabReport" style="display:none;">📊 Rapoarte</div>
+  <div class="tab" id="tabEmail" style="display:none;">✉️ Email</div>
+  <div class="tab" id="tabContext" style="display:none;">🌍 Context global</div>
+  <div class="tab" id="tabMeteo" style="display:none;">🌦 Meteo</div>
 </div>
 
 
@@ -2497,6 +2517,26 @@ function monthRange(start,end){
   }
   return out;
 }
+function toggleToolsMenu(ev){
+  if(ev) ev.stopPropagation();
+  const menu=document.getElementById('toolsMenu');
+  const btn=document.getElementById('toolsBtn');
+  if(!menu || !btn) return;
+  const open=menu.classList.contains('open');
+  menu.classList.toggle('open', !open);
+  btn.classList.toggle('open', !open);
+}
+function closeToolsMenu(){
+  const menu=document.getElementById('toolsMenu');
+  const btn=document.getElementById('toolsBtn');
+  if(menu) menu.classList.remove('open');
+  if(btn) btn.classList.remove('open');
+}
+document.addEventListener('click', function(ev){
+  const wrap=document.getElementById('toolsWrap');
+  if(wrap && !wrap.contains(ev.target)) closeToolsMenu();
+});
+
 function closeModal(id){
   const el=document.getElementById(id);
   if(!el) return;
