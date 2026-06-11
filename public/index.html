@@ -1191,6 +1191,32 @@
   }
   ::selection{background:rgba(224,183,94,0.38);color:#fff;}
 
+
+
+  /* Tracker Assistant */
+  .assistant-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:46px;height:46px;border-radius:50%;border:1px solid var(--border2);background:var(--acc);color:#0F0D0A;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:900;cursor:pointer;box-shadow:0 14px 34px rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;transition:transform .15s,opacity .15s;}
+  .assistant-fab:hover{transform:translateY(-1px);opacity:.92;}
+  .assistant-panel{position:fixed;right:22px;bottom:78px;z-index:901;width:min(430px,calc(100vw - 30px));height:min(620px,calc(100vh - 110px));background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 22px 60px rgba(0,0,0,.55);display:none;flex-direction:column;overflow:hidden;}
+  .assistant-panel.open{display:flex;}
+  .assistant-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .assistant-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.4px;}
+  .assistant-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px;line-height:1.35;}
+  .assistant-close{border:1px solid var(--border2);background:var(--surface3);color:var(--dim);border-radius:5px;width:28px;height:28px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-weight:900;}
+  .assistant-close:hover{color:var(--bright);border-color:var(--acc);}
+  .assistant-body{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .assistant-msg{border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:12px;line-height:1.55;white-space:pre-wrap;}
+  .assistant-msg.user{align-self:flex-end;max-width:88%;background:var(--acc-bg);border-color:rgba(224,183,94,.32);color:var(--bright);}
+  .assistant-msg.bot{align-self:flex-start;max-width:96%;background:rgba(255,255,255,.025);color:var(--text);}
+  .assistant-msg.err{border-color:rgba(224,107,107,.45);background:rgba(224,107,107,.08);color:var(--short);}
+  .assistant-examples{display:flex;flex-direction:column;gap:6px;margin-top:auto;}
+  .assistant-chip{border:1px solid var(--border);background:var(--surface2);color:var(--dim);border-radius:6px;padding:7px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.35;cursor:pointer;}
+  .assistant-chip:hover{color:var(--bright);border-color:var(--acc);background:var(--acc-bg);}
+  .assistant-inputrow{border-top:1px solid var(--border);padding:10px;display:grid;grid-template-columns:1fr auto;gap:8px;background:var(--surface2);}
+  .assistant-input{min-height:38px;max-height:110px;resize:vertical;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--bright);font-family:'IBM Plex Sans',sans-serif;font-size:12px;line-height:1.45;padding:8px 9px;outline:none;}
+  .assistant-input:focus{border-color:var(--acc);box-shadow:0 0 0 1px rgba(224,183,94,.14);}
+  .assistant-send{border:1px solid var(--acc);background:var(--acc);color:#0F0D0A;border-radius:6px;padding:0 13px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:1px;}
+  .assistant-send:disabled{opacity:.55;cursor:not-allowed;}
+
 </style>
 </head>
 <body>
@@ -2491,6 +2517,32 @@
       <button class="btn-cancel" onclick="closeModal('modImport')">Închide</button>
       <button class="btn-save" id="btnConfirmImport" style="display:none" onclick="confirmImport()">Importă</button>
     </div>
+  </div>
+</div>
+
+
+
+<button class="assistant-fab" id="assistantFab" title="Asistent tracker" onclick="toggleAssistantPanel()">AI</button>
+<div class="assistant-panel" id="assistantPanel">
+  <div class="assistant-head">
+    <div>
+      <div class="assistant-title">Asistent Tracker</div>
+      <div class="assistant-sub">Raspunde din datele din aplicatie: pozitie, stocuri, logistica, trenuri, contracte.</div>
+    </div>
+    <button class="assistant-close" onclick="toggleAssistantPanel(false)">×</button>
+  </div>
+  <div class="assistant-body" id="assistantBody">
+    <div class="assistant-msg bot">Intreaba-ma despre datele din tracker. Nu modific nimic, doar citesc si raspund din baza aplicatiei.</div>
+    <div class="assistant-examples" id="assistantExamples">
+      <button class="assistant-chip" onclick="assistantAskExample('Ce stoc de porumb 2026 am azi pe locatii?')">Ce stoc de porumb 2026 am azi pe locatii?</button>
+      <button class="assistant-chip" onclick="assistantAskExample('Care este pozitia la zi pe grau 2026?')">Care este pozitia la zi pe grau 2026?</button>
+      <button class="assistant-chip" onclick="assistantAskExample('Ce trenuri sunt planificate de azi inainte?')">Ce trenuri sunt planificate de azi inainte?</button>
+      <button class="assistant-chip" onclick="assistantAskExample('Ce facturi logistice sunt depasite?')">Ce facturi logistice sunt depasite?</button>
+    </div>
+  </div>
+  <div class="assistant-inputrow">
+    <textarea class="assistant-input" id="assistantInput" placeholder="Scrie intrebarea..." onkeydown="assistantInputKey(event)"></textarea>
+    <button class="assistant-send" id="assistantSend" onclick="sendAssistantQuestion()">Trimite</button>
   </div>
 </div>
 
@@ -9056,6 +9108,61 @@ function purchaseHandleHistoryClick(ev){
 
 document.addEventListener('click', purchaseHandleHistoryClick, true);
 
+
+
+// ── TRACKER ASSISTANT UI ────────────────────────────────────────────────────
+function toggleAssistantPanel(force){
+  const panel=document.getElementById('assistantPanel');
+  if(!panel) return;
+  const open = typeof force==='boolean' ? force : !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  if(open){ setTimeout(()=>document.getElementById('assistantInput')?.focus(),80); }
+}
+function assistantAddMessage(text, cls){
+  const body=document.getElementById('assistantBody');
+  if(!body) return null;
+  const ex=document.getElementById('assistantExamples');
+  if(ex) ex.style.display='none';
+  const div=document.createElement('div');
+  div.className='assistant-msg '+(cls||'bot');
+  div.textContent=text;
+  body.appendChild(div);
+  body.scrollTop=body.scrollHeight;
+  return div;
+}
+function assistantInputKey(e){
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendAssistantQuestion();
+  }
+}
+function assistantAskExample(q){
+  const el=document.getElementById('assistantInput');
+  if(el) el.value=q;
+  sendAssistantQuestion();
+}
+async function sendAssistantQuestion(){
+  const input=document.getElementById('assistantInput');
+  const btn=document.getElementById('assistantSend');
+  const q=(input?.value||'').trim();
+  if(!q) return;
+  assistantAddMessage(q,'user');
+  input.value='';
+  btn.disabled=true;
+  const wait=assistantAddMessage('Caut in tracker...','bot');
+  try{
+    const res=await fetch('/api/assistant/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error||'Eroare asistent');
+    wait.textContent=data.result||'Nu am primit raspuns.';
+  }catch(err){
+    wait.className='assistant-msg err';
+    wait.textContent='Eroare: '+(err.message||err);
+  }finally{
+    btn.disabled=false;
+    input?.focus();
+  }
+}
 
 async function bootApp(){
   await loadAll();
