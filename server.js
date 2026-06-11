@@ -2448,6 +2448,62 @@ function assistantProductName(p) {
   return map[key] || String(p || '');
 }
 
+function assistantPick(...vals) {
+  for (const v of vals) {
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+
+function assistantBool(v) {
+  if (v === true || v === 1) return true;
+  const s = String(v || '').trim().toLowerCase();
+  return ['true', '1', 'da', 'yes', 'paid', 'incasata', 'încasată'].includes(s);
+}
+
+function assistantInvoiceRows(logContract) {
+  const sources = [];
+  if (Array.isArray(logContract.invoices)) sources.push(...logContract.invoices);
+  if (Array.isArray(logContract.receipts)) sources.push(...logContract.receipts);
+  if (Array.isArray(logContract.invoiceRows)) sources.push(...logContract.invoiceRows);
+  if (Array.isArray(logContract.financialRows)) sources.push(...logContract.financialRows);
+  if (Array.isArray(logContract.payments)) sources.push(...logContract.payments);
+  if (Array.isArray(logContract.collections)) sources.push(...logContract.collections);
+
+  if (!sources.length && (
+    logContract.invoiceNo || logContract.invoiceNumber || logContract.nrFactura ||
+    logContract.invoiceValue || logContract.amount || logContract.value || logContract.valoare
+  )) {
+    sources.push(logContract);
+  }
+
+  return sources.map((r, idx) => {
+    const invoiceNo = assistantPick(r.invoiceNo, r.invoiceNumber, r.nrFactura, r.factura, r.number, r.no);
+    const invoiceDate = assistantDate(assistantPick(r.invoiceDate, r.invoice_date, r.dataFactura, r.data_factura, r.date));
+    const dueDate = assistantDate(assistantPick(r.dueDate, r.due_date, r.scadenta, r.dataScadenta, r.data_scadenta));
+    const amount = assistantNum(assistantPick(r.amount, r.invoiceValue, r.value, r.valoare, r.suma, r.total));
+    const explicitPaidValue = assistantNum(assistantPick(r.paidValue, r.paidAmount, r.incasat, r.collectionValue, r.receivedValue));
+    const paid = assistantBool(r.paid) || assistantBool(r.incasata) || assistantBool(r.status === 'paid' ? 'paid' : r.status);
+    const paidValue = explicitPaidValue || (paid ? amount : 0);
+    const currency = String(assistantPick(r.currency, r.invoiceCurrency, r.moneda, logContract.currency, logContract.invoiceCurrency, 'RON')).toUpperCase();
+    const paidDate = assistantDate(assistantPick(r.paidDate, r.incasareDate, r.collectionDate, r.dataIncasare));
+
+    return {
+      idx,
+      invoiceNo,
+      invoiceDate,
+      dueDate,
+      amount,
+      paidValue,
+      sold: Math.max(0, amount - paidValue),
+      paid,
+      paidDate,
+      currency,
+      note: r.note || r.notes || r.observations || ''
+    };
+  }).filter(inv => inv.invoiceNo || inv.invoiceDate || inv.dueDate || inv.amount || inv.paidValue);
+}
+
 function buildAssistantSnapshot() {
   const trades = parseDbJsonRows('trades').map(t => ({
     id: t.id,
@@ -2490,30 +2546,36 @@ function buildAssistantSnapshot() {
     stockTotalsMap.set(key, cur);
   });
 
-  const logistics = parseDbJsonRows('logistics_contracts').map(l => ({
-    id: l.id,
-    createdAt: assistantDate(l.createdAt),
-    sourceTradeId: l.sourceTradeId || '',
-    status: l.status || '',
-    flow: l.flow || l.direction || '',
-    transportType: l.transportType || l.type || '',
-    counterparty: l.counterparty || l.cpty || l.client || l.partner || l.name || '',
-    contractNo: l.contractNo || l.contractNumber || l.contract || '',
-    product: assistantProductName(l.product),
-    crop: String(l.crop || ''),
-    qty: assistantNum(l.qty || l.quantity),
-    pickupLocation: l.pickupLocation || l.loadingLocation || l.from || l.base || '',
-    deliveryLocation: l.deliveryLocation || l.unloadingLocation || l.to || l.destination || '',
-    deliveryStart: assistantDate(l.deliveryStart || l.startDate || l.dateFrom),
-    deliveryEnd: assistantDate(l.deliveryEnd || l.endDate || l.dateTo),
-    invoiceNo: l.invoiceNo || l.invoiceNumber || '',
-    invoiceDate: assistantDate(l.invoiceDate),
-    dueDate: assistantDate(l.dueDate),
-    invoiceValue: assistantNum(l.invoiceValue || l.amount || l.value),
-    paidValue: assistantNum(l.paidValue || l.paid || l.received),
-    currency: String(l.currency || l.invoiceCurrency || 'RON').toUpperCase(),
-    note: l.note || l.notes || l.observations || '',
-  })).slice(0, 900);
+  const logistics = parseDbJsonRows('logistics_contracts').map(l => {
+    const invoices = assistantInvoiceRows(l);
+    const invoiceValue = invoices.reduce((s, inv) => s + assistantNum(inv.amount), 0);
+    const paidValue = invoices.reduce((s, inv) => s + assistantNum(inv.paidValue), 0);
+    return {
+      id: l.id,
+      createdAt: assistantDate(l.createdAt),
+      sourceTradeId: l.sourceTradeId || l.source_trade_id || '',
+      status: l.status || '',
+      flow: l.flow || l.direction || '',
+      transportType: l.transportType || l.type || '',
+      counterparty: l.counterparty || l.cpty || l.client || l.partner || l.name || '',
+      contractNo: l.contractNo || l.contractNumber || l.contract || '',
+      product: assistantProductName(l.product),
+      crop: String(l.crop || l.cropYear || ''),
+      qty: assistantNum(l.qty || l.quantity),
+      pickupLocation: l.pickupLocation || l.loadingLocation || l.from || l.base || '',
+      deliveryLocation: l.deliveryLocation || l.unloadingLocation || l.to || l.destination || '',
+      deliveryStart: assistantDate(l.deliveryStart || l.startDate || l.dateFrom),
+      deliveryEnd: assistantDate(l.deliveryEnd || l.endDate || l.dateTo),
+      invoiceNo: l.invoiceNo || l.invoiceNumber || '',
+      invoiceDate: assistantDate(l.invoiceDate),
+      dueDate: assistantDate(l.dueDate),
+      invoiceValue,
+      paidValue,
+      currency: String(l.currency || l.invoiceCurrency || 'RON').toUpperCase(),
+      invoices,
+      note: l.note || l.notes || l.observations || '',
+    };
+  }).slice(0, 900);
 
   const trains = parseDbJsonRows('train_contracts').map(t => ({
     id: t.id,
@@ -2557,18 +2619,32 @@ function buildAssistantSnapshot() {
   });
 
   const todayIso = new Date().toISOString().slice(0, 10);
-  const overdueInvoices = logistics.filter(l => {
-    const sold = assistantNum(l.invoiceValue) - assistantNum(l.paidValue);
-    return sold > 0 && l.dueDate && l.dueDate < todayIso;
-  }).map(l => ({
-    id: l.id,
-    counterparty: l.counterparty,
-    invoiceNo: l.invoiceNo,
-    dueDate: l.dueDate,
-    sold: assistantNum(l.invoiceValue) - assistantNum(l.paidValue),
-    currency: l.currency,
-    contractNo: l.contractNo,
-  }));
+  const allLogisticsInvoices = [];
+  logistics.forEach(l => {
+    (l.invoices || []).forEach(inv => {
+      const sold = assistantNum(inv.sold);
+      allLogisticsInvoices.push({
+        logisticsId: l.id,
+        counterparty: l.counterparty,
+        contractNo: l.contractNo,
+        product: l.product,
+        crop: l.crop,
+        invoiceNo: inv.invoiceNo,
+        invoiceDate: inv.invoiceDate,
+        dueDate: inv.dueDate,
+        amount: assistantNum(inv.amount),
+        paidValue: assistantNum(inv.paidValue),
+        sold,
+        currency: inv.currency || l.currency || 'RON',
+        paid: !!inv.paid,
+        paidDate: inv.paidDate || '',
+        note: inv.note || ''
+      });
+    });
+  });
+
+  const openInvoices = allLogisticsInvoices.filter(inv => assistantNum(inv.sold) > 0);
+  const overdueInvoices = openInvoices.filter(inv => inv.dueDate && inv.dueDate < todayIso);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -2579,7 +2655,9 @@ function buildAssistantSnapshot() {
     },
     positionTotals: Array.from(positionTotalsMap.values()),
     stockTotals: Array.from(stockTotalsMap.values()),
+    openInvoices,
     overdueInvoices,
+    allLogisticsInvoices,
     trades,
     stockEntries,
     logistics,
