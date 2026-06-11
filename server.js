@@ -2442,6 +2442,59 @@ function assistantDate(v) {
   return String(v || '').slice(0, 10);
 }
 
+function assistantTrainStatus(raw) {
+  const s = String(raw || 'planned').toLowerCase();
+  if (s === 'done') return 'loaded';
+  if (s === 'plan') return 'planned';
+  const allowed = ['planned','requested','nominated','confirmed','loading','loaded','problem','cancelled'];
+  return allowed.includes(s) ? s : 'planned';
+}
+
+function assistantTrainStatusLabel(raw) {
+  const s = assistantTrainStatus(raw);
+  return {
+    planned: 'Planificat',
+    requested: 'Nominalizat',
+    nominated: 'Nominalizat',
+    confirmed: 'Confirmat',
+    loading: 'In incarcare',
+    loaded: 'Incarcat',
+    problem: 'Problema',
+    cancelled: 'Anulat'
+  }[s] || s;
+}
+
+function assistantTrainDateFrom(sh) {
+  return assistantDate(assistantPick(sh?.date, sh?.dateFrom, sh?.from, sh?.plannedDate, sh?.loadingStart, sh?.startDate));
+}
+
+function assistantTrainDateTo(sh) {
+  return assistantDate(assistantPick(sh?.dateTo, sh?.to, sh?.endDate, sh?.loadingEnd, assistantTrainDateFrom(sh)));
+}
+
+function assistantQuestionScope(question) {
+  const q = String(question || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return {
+    trainOnly: /tren(uri)?|vagon(e|ul|ul)?|nomina(t|liz|re|ri|te|t)|incarcare\s+tren/.test(q),
+  };
+}
+
+function assistantScopedSnapshot(snapshot, scope) {
+  if (scope && scope.trainOnly) {
+    return {
+      generatedAt: snapshot.generatedAt,
+      rules: {
+        ...snapshot.rules,
+        scope: 'Intrebarea este despre trenuri. Foloseste EXCLUSIV sursa Trenuri: trainEvents si trains. Ignora complet Logistica, livrarile auto si contractele logistice.'
+      },
+      trainEvents: snapshot.trainEvents || [],
+      trains: snapshot.trains || []
+    };
+  }
+  return snapshot;
+}
+
 function assistantProductName(p) {
   const key = String(p || '').toLowerCase();
   const map = { wheat: 'Grau', corn: 'Porumb', rapeseed: 'Rapita', sunflower: 'Floarea-soarelui', barley: 'Orz', soybean: 'Soia' };
@@ -2577,21 +2630,88 @@ function buildAssistantSnapshot() {
     };
   }).slice(0, 900);
 
-  const trains = parseDbJsonRows('train_contracts').map(t => ({
-    id: t.id,
-    sourceTradeId: t.sourceTradeId || '',
-    status: t.status || '',
-    contractNo: t.contractNo || t.contractNumber || t.contract || '',
-    product: assistantProductName(t.product),
-    crop: String(t.crop || ''),
-    qty: assistantNum(t.qty || t.quantity),
-    base: t.base || t.location || t.loadingLocation || '',
-    client: t.client || t.counterparty || t.cpty || '',
-    loadingStart: assistantDate(t.loadingStart || t.startDate || t.loadStart),
-    loadingEnd: assistantDate(t.loadingEnd || t.endDate || t.loadEnd),
-    nominations: Array.isArray(t.nominations) ? t.nominations.slice(-10) : [],
-    note: t.note || t.notes || '',
-  })).slice(0, 700);
+  const trains = parseDbJsonRows('train_contracts').map(t => {
+    const shipments = Array.isArray(t.shipments) ? t.shipments.map(sh => ({
+      id: sh.id || '',
+      date: assistantTrainDateFrom(sh),
+      dateTo: assistantTrainDateTo(sh),
+      qty: assistantNum(assistantPick(sh.qty, sh.quantity, t.qty, t.quantity)),
+      station: assistantPick(sh.station, sh.loadingBase, t.defaultStation, t.station, t.base, t.location, ''),
+      destination: assistantPick(sh.destination, sh.deliveryLocation, sh.to, ''),
+      status: assistantTrainStatus(sh.status || t.status),
+      statusLabel: assistantTrainStatusLabel(sh.status || t.status),
+      trainNo: sh.trainNo || '',
+      wagons: sh.wagons || '',
+      surveyor: sh.surveyor || '',
+      note: sh.note || sh.notes || ''
+    })).filter(sh => sh.date || sh.dateTo || sh.qty || sh.station || sh.status) : [];
+
+    return {
+      id: t.id,
+      sourceTradeId: t.sourceTradeId || t.source_trade_id || '',
+      status: assistantTrainStatus(t.status),
+      statusLabel: assistantTrainStatusLabel(t.status),
+      contractNo: assistantPick(t.sourceContractNo, t.contractNo, t.contractNumber, t.contract, t.name, ''),
+      name: t.name || '',
+      product: assistantProductName(t.product),
+      productKey: t.product || '',
+      crop: String(t.crop || t.cropYear || ''),
+      qty: assistantNum(t.qty || t.quantity),
+      base: assistantPick(t.defaultStation, t.station, t.base, t.location, t.loadingLocation, ''),
+      client: assistantPick(t.client, t.counterparty, t.cpty, ''),
+      loadingStart: assistantDate(assistantPick(t.start, t.trainStart, t.loadingStart, t.startDate, t.loadStart)),
+      loadingEnd: assistantDate(assistantPick(t.end, t.trainEnd, t.loadingEnd, t.endDate, t.loadEnd, t.start, t.trainStart)),
+      shipments,
+      note: t.note || t.notes || '',
+    };
+  }).slice(0, 700);
+
+  const trainEvents = [];
+  trains.forEach(c => {
+    if (Array.isArray(c.shipments) && c.shipments.length) {
+      c.shipments.forEach(sh => {
+        trainEvents.push({
+          contractId: c.id,
+          shipmentId: sh.id,
+          contractNo: c.contractNo,
+          product: c.product,
+          crop: c.crop,
+          qty: assistantNum(sh.qty || c.qty),
+          client: c.client,
+          station: sh.station || c.base,
+          destination: sh.destination || '',
+          loadingStart: sh.date,
+          loadingEnd: sh.dateTo || sh.date,
+          status: sh.status,
+          statusLabel: sh.statusLabel,
+          trainNo: sh.trainNo || '',
+          wagons: sh.wagons || '',
+          note: sh.note || c.note || '',
+          sourceTradeId: c.sourceTradeId || ''
+        });
+      });
+    } else if (c.loadingStart || c.loadingEnd || c.qty) {
+      trainEvents.push({
+        contractId: c.id,
+        shipmentId: '',
+        contractNo: c.contractNo,
+        product: c.product,
+        crop: c.crop,
+        qty: c.qty,
+        client: c.client,
+        station: c.base,
+        destination: '',
+        loadingStart: c.loadingStart,
+        loadingEnd: c.loadingEnd || c.loadingStart,
+        status: c.status,
+        statusLabel: c.statusLabel,
+        trainNo: '',
+        wagons: '',
+        note: c.note || '',
+        sourceTradeId: c.sourceTradeId || ''
+      });
+    }
+  });
 
   const purchaseContracts = parseDbJsonRows('purchase_contracts').map(c => ({
     id: c.id,
@@ -2662,6 +2782,7 @@ function buildAssistantSnapshot() {
     stockEntries,
     logistics,
     trains,
+    trainEvents,
     purchaseContracts,
   };
 }
@@ -2672,9 +2793,15 @@ app.post('/api/assistant/chat', requireAuth, assistantLimiter, async (req, res) 
     if (!question) return res.status(400).json({ error: 'Intrebarea lipseste.' });
 
     const snapshot = buildAssistantSnapshot();
+    const scope = assistantQuestionScope(question);
+    const scopedSnapshot = assistantScopedSnapshot(snapshot, scope);
     const result = await callOpenAIEmail({
-      instructions: `Esti asistent operational pentru Agrotex Tracker. Raspunzi in romana, scurt si verificabil, folosind doar datele primite in JSON. Nu inventa. Daca lipsesc date, spune ca nu gasesti informatia in tracker. Cand dai cifre, spune sursa interna folosita: Pozitie, Stocuri, Logistica, Trenuri sau Contracte. Nu modifica date si nu promite actiuni. Pentru valori financiare, pastreaza valuta originala. Pentru pozitie, grupeaza separat pe produs si recolta.`,
-      userInput: `INTREBARE UTILIZATOR:\n${question}\n\nDATE TRACKER JSON:\n${JSON.stringify(snapshot)}`,
+      instructions: `Esti asistent operational pentru Agrotex Tracker. Raspunzi in romana, scurt si verificabil, folosind doar datele primite in JSON. Nu inventa. Daca lipsesc date, spune ca nu gasesti informatia in tracker. Cand dai cifre, spune sursa interna folosita: Pozitie, Stocuri, Logistica, Trenuri sau Contracte. Nu modifica date si nu promite actiuni. Pentru valori financiare, pastreaza valuta originala. Pentru pozitie, grupeaza separat pe produs si recolta. Daca intrebarea este despre trenuri, vagoane, nominalizari sau incarcari tren, foloseste doar datele din trainEvents/trains si nu folosi livrarile auto din Logistica.`,
+      userInput: `INTREBARE UTILIZATOR:
+${question}
+
+DATE TRACKER JSON:
+${JSON.stringify(scopedSnapshot)}`,
     });
 
     audit(req, 'assistant_chat', 'assistant', 'chat', { chars: question.length });
