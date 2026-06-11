@@ -2415,6 +2415,198 @@ app.post('/api/email/draft', requireAuth, emailLimiter, async (req, res) => {
   }
 });
 
+
+
+// ── TRACKER ASSISTANT OPENAI ────────────────────────────────────────────────
+const assistantLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 25,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Prea multe cereri catre asistent. Incearca din nou imediat.' },
+});
+
+function parseDbJsonRows(table) {
+  return db.prepare(`SELECT id, data, created_at, updated_at FROM ${table} WHERE deleted_at IS NULL ORDER BY id DESC`).all().map(row => {
+    const data = safeJsonParse(row.data, {});
+    return { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at, ...(data || {}) };
+  });
+}
+
+function assistantNum(v) {
+  const n = Number(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function assistantDate(v) {
+  return String(v || '').slice(0, 10);
+}
+
+function assistantProductName(p) {
+  const key = String(p || '').toLowerCase();
+  const map = { wheat: 'Grau', corn: 'Porumb', rapeseed: 'Rapita', sunflower: 'Floarea-soarelui', barley: 'Orz', soybean: 'Soia' };
+  return map[key] || String(p || '');
+}
+
+function buildAssistantSnapshot() {
+  const trades = parseDbJsonRows('trades').map(t => ({
+    id: t.id,
+    date: assistantDate(t.date || t.createdAt),
+    product: assistantProductName(t.product),
+    productKey: t.product || '',
+    crop: String(t.crop || ''),
+    type: t.dir === 'long' ? 'achizitie' : (t.dir === 'short' ? 'vanzare' : String(t.dir || '')),
+    qty: assistantNum(t.qty),
+    priceRon: assistantNum(t.price),
+    priceEur: assistantNum(t.priceEur),
+    currency: String(t.currency || 'ron').toUpperCase(),
+    parity: t.parity || '',
+    counterparty: t.cpty || t.counterparty || '',
+    location: t.loc || t.location || '',
+    contractNo: t.contractNo || t.contractNumber || t.note || '',
+    incomplete: !!t.incomplete,
+    note: t.note || '',
+  })).slice(0, 1200);
+
+  const stockEntries = parseDbJsonRows('stock_entries').map(s => ({
+    id: s.id,
+    date: assistantDate(s.date || s.createdAt),
+    base: s.base || s.location || '',
+    type: s.type || '',
+    product: assistantProductName(s.product),
+    productKey: s.product || '',
+    crop: String(s.crop || ''),
+    qty: assistantNum(s.qty),
+    owner: s.owner || '',
+    contractNo: s.contractNo || s.contract || '',
+    note: s.note || s.notes || '',
+  })).slice(0, 1200);
+
+  const stockTotalsMap = new Map();
+  stockEntries.forEach(s => {
+    const key = [s.base, s.type, s.product, s.crop].join('|');
+    const cur = stockTotalsMap.get(key) || { base: s.base, type: s.type, product: s.product, crop: s.crop, qty: 0 };
+    cur.qty += assistantNum(s.qty);
+    stockTotalsMap.set(key, cur);
+  });
+
+  const logistics = parseDbJsonRows('logistics_contracts').map(l => ({
+    id: l.id,
+    createdAt: assistantDate(l.createdAt),
+    sourceTradeId: l.sourceTradeId || '',
+    status: l.status || '',
+    flow: l.flow || l.direction || '',
+    transportType: l.transportType || l.type || '',
+    counterparty: l.counterparty || l.cpty || l.client || l.partner || l.name || '',
+    contractNo: l.contractNo || l.contractNumber || l.contract || '',
+    product: assistantProductName(l.product),
+    crop: String(l.crop || ''),
+    qty: assistantNum(l.qty || l.quantity),
+    pickupLocation: l.pickupLocation || l.loadingLocation || l.from || l.base || '',
+    deliveryLocation: l.deliveryLocation || l.unloadingLocation || l.to || l.destination || '',
+    deliveryStart: assistantDate(l.deliveryStart || l.startDate || l.dateFrom),
+    deliveryEnd: assistantDate(l.deliveryEnd || l.endDate || l.dateTo),
+    invoiceNo: l.invoiceNo || l.invoiceNumber || '',
+    invoiceDate: assistantDate(l.invoiceDate),
+    dueDate: assistantDate(l.dueDate),
+    invoiceValue: assistantNum(l.invoiceValue || l.amount || l.value),
+    paidValue: assistantNum(l.paidValue || l.paid || l.received),
+    currency: String(l.currency || l.invoiceCurrency || 'RON').toUpperCase(),
+    note: l.note || l.notes || l.observations || '',
+  })).slice(0, 900);
+
+  const trains = parseDbJsonRows('train_contracts').map(t => ({
+    id: t.id,
+    sourceTradeId: t.sourceTradeId || '',
+    status: t.status || '',
+    contractNo: t.contractNo || t.contractNumber || t.contract || '',
+    product: assistantProductName(t.product),
+    crop: String(t.crop || ''),
+    qty: assistantNum(t.qty || t.quantity),
+    base: t.base || t.location || t.loadingLocation || '',
+    client: t.client || t.counterparty || t.cpty || '',
+    loadingStart: assistantDate(t.loadingStart || t.startDate || t.loadStart),
+    loadingEnd: assistantDate(t.loadingEnd || t.endDate || t.loadEnd),
+    nominations: Array.isArray(t.nominations) ? t.nominations.slice(-10) : [],
+    note: t.note || t.notes || '',
+  })).slice(0, 700);
+
+  const purchaseContracts = parseDbJsonRows('purchase_contracts').map(c => ({
+    id: c.id,
+    contractDate: assistantDate(c.contractDate || c.createdAt),
+    contractNo: c.contractNo || c.contractNumber || '',
+    product: assistantProductName(c.product),
+    crop: String(c.crop || c.cropYear || ''),
+    supplier: c.supplierName || c.partnerName || c.counterparty || c.sellerName || '',
+    qty: assistantNum(c.qty || c.quantity),
+    price: assistantNum(c.price),
+    currency: String(c.currency || 'RON').toUpperCase(),
+    parity: c.parity || '',
+    signedReturned: !!c.signedReturned,
+    tradeId: c.tradeId || '',
+  })).slice(0, 700);
+
+  const positionTotalsMap = new Map();
+  trades.forEach(t => {
+    const key = [t.product, t.crop].join('|');
+    const cur = positionTotalsMap.get(key) || { product: t.product, crop: t.crop, long: 0, short: 0, net: 0 };
+    if (t.type === 'achizitie') cur.long += t.qty;
+    if (t.type === 'vanzare') cur.short += t.qty;
+    cur.net = cur.long - cur.short;
+    positionTotalsMap.set(key, cur);
+  });
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const overdueInvoices = logistics.filter(l => {
+    const sold = assistantNum(l.invoiceValue) - assistantNum(l.paidValue);
+    return sold > 0 && l.dueDate && l.dueDate < todayIso;
+  }).map(l => ({
+    id: l.id,
+    counterparty: l.counterparty,
+    invoiceNo: l.invoiceNo,
+    dueDate: l.dueDate,
+    sold: assistantNum(l.invoiceValue) - assistantNum(l.paidValue),
+    currency: l.currency,
+    contractNo: l.contractNo,
+  }));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    rules: {
+      currency: 'Nu amesteca valutele. Raporteaza sumele in valuta originala.',
+      crop: 'Grupeaza separat pe recolta cand raspunzi despre pozitie.',
+      noGuessing: 'Daca datele nu exista in snapshot, spune clar ca nu le gasesti.'
+    },
+    positionTotals: Array.from(positionTotalsMap.values()),
+    stockTotals: Array.from(stockTotalsMap.values()),
+    overdueInvoices,
+    trades,
+    stockEntries,
+    logistics,
+    trains,
+    purchaseContracts,
+  };
+}
+
+app.post('/api/assistant/chat', requireAuth, assistantLimiter, async (req, res) => {
+  try {
+    const question = limitText(req.body?.question, 3000);
+    if (!question) return res.status(400).json({ error: 'Intrebarea lipseste.' });
+
+    const snapshot = buildAssistantSnapshot();
+    const result = await callOpenAIEmail({
+      instructions: `Esti asistent operational pentru Agrotex Tracker. Raspunzi in romana, scurt si verificabil, folosind doar datele primite in JSON. Nu inventa. Daca lipsesc date, spune ca nu gasesti informatia in tracker. Cand dai cifre, spune sursa interna folosita: Pozitie, Stocuri, Logistica, Trenuri sau Contracte. Nu modifica date si nu promite actiuni. Pentru valori financiare, pastreaza valuta originala. Pentru pozitie, grupeaza separat pe produs si recolta.`,
+      userInput: `INTREBARE UTILIZATOR:\n${question}\n\nDATE TRACKER JSON:\n${JSON.stringify(snapshot)}`,
+    });
+
+    audit(req, 'assistant_chat', 'assistant', 'chat', { chars: question.length });
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error('Assistant chat error:', err.message);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 // ── STATIC ───────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
