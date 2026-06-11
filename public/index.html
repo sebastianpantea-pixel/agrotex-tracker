@@ -6435,6 +6435,7 @@ function setStockTab(){
   document.getElementById('tabStock').className='tab news-tab-active';
   document.querySelector('.main').style.display='none';
   setPositionTabVisual(false);
+  setCropTabsVisible(false);
   document.getElementById('stockSection').style.display='flex';
   populateStockProductSelect();
   Promise.all([loadStockSites(),loadStockEntries()]).then(async()=>{await ensureStockSitesFromEntries(stockEntries); renderStock(); resetStockEntryForm(); resetStockSiteForm();});
