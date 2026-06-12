@@ -2477,6 +2477,139 @@ function assistantNormalizeText(v) {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+function assistantTokenize(v) {
+  return assistantNormalizeText(v)
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(/\s+/)
+    .filter(tok => tok.length >= 3 && !['srl','sa','sc','ltd','international','internationa','cu','din','ctr','contract','contracte','derulare','activ','active','doar','ma','intereseaza'].includes(tok));
+}
+
+function assistantExtractPartnerFromQuestion(question, snapshot) {
+  const qNorm = assistantNormalizeText(question);
+  const qTokens = new Set(assistantTokenize(question));
+  const names = new Map();
+
+  function addName(name) {
+    const n = String(name || '').trim();
+    if (!n) return;
+    const norm = assistantNormalizeText(n);
+    if (!norm || norm.length < 3) return;
+    names.set(norm, n);
+  }
+
+  (snapshot.trades || []).forEach(t => addName(t.counterparty));
+  (snapshot.logistics || []).forEach(l => addName(l.counterparty));
+  (snapshot.purchaseContracts || []).forEach(c => addName(c.supplier || c.counterparty));
+  (snapshot.trainEvents || []).forEach(t => addName(t.client || t.counterparty));
+
+  let best = null;
+  for (const [norm, original] of names.entries()) {
+    const nameTokens = assistantTokenize(norm);
+    if (!nameTokens.length) continue;
+    let score = 0;
+    for (const tok of nameTokens) {
+      if (qTokens.has(tok)) score += tok.length + 4;
+      else if (qNorm.includes(tok)) score += tok.length;
+    }
+    if (qNorm.includes(norm)) score += 100;
+    if (score > 0 && (!best || score > best.score)) {
+      best = { name: original, norm, score };
+    }
+  }
+  return best && best.score >= 4 ? best.name : '';
+}
+
+function assistantSameContractNo(a, b) {
+  const aa = assistantNormalizeText(a).replace(/[^a-z0-9]/g, '');
+  const bb = assistantNormalizeText(b).replace(/[^a-z0-9]/g, '');
+  return !!aa && !!bb && aa === bb;
+}
+
+function assistantFindLinkedTradeForLogistics(l, trades) {
+  if (l.sourceTradeId) {
+    const byId = (trades || []).find(t => String(t.id) === String(l.sourceTradeId));
+    if (byId) return byId;
+  }
+  if (l.contractNo) {
+    const byCtr = (trades || []).find(t => assistantSameContractNo(t.contractNo, l.contractNo));
+    if (byCtr) return byCtr;
+  }
+  return null;
+}
+
+function assistantIsFinalLogisticsStatus(status) {
+  const s = assistantNormalizeText(status);
+  if (!s) return false;
+  return /finalizat|finalizata|inchis|inchisa|completed|done|loaded|livrat|livrata|de livrat|anulat|anulata|cancel/.test(s);
+}
+
+function assistantPartnerMatches(value, partnerName) {
+  if (!partnerName) return true;
+  const v = assistantNormalizeText(value);
+  const p = assistantNormalizeText(partnerName);
+  if (!v || !p) return false;
+  if (v.includes(p) || p.includes(v)) return true;
+  const pTokens = assistantTokenize(p);
+  if (!pTokens.length) return false;
+  return pTokens.every(tok => v.includes(tok));
+}
+
+function assistantBuildOpenLogisticsContracts(snapshot, partnerName = '') {
+  return (snapshot.logistics || [])
+    .map(l => {
+      const trade = assistantFindLinkedTradeForLogistics(l, snapshot.trades || []);
+      const counterparty = assistantPick(trade?.counterparty, l.counterparty);
+      const contractNo = assistantPick(trade?.contractNo, l.contractNo, `ID ${l.id}`);
+      const product = assistantPick(trade?.product, l.product);
+      const crop = assistantPick(trade?.crop, l.crop);
+      const qty = assistantNum(assistantPick(trade?.qty, l.qty));
+      const type = assistantPick(trade?.type, l.flow, 'contract');
+      return {
+        type: 'Logistica',
+        id: l.id,
+        contractNo,
+        product,
+        crop,
+        counterparty,
+        tradeType: type,
+        qty,
+        doneQty: l.doneQty,
+        remainingQty: l.remainingQty,
+        status: l.status || 'In derulare'
+      };
+    })
+    .filter(x => x.contractNo && assistantPartnerMatches(x.counterparty, partnerName))
+    .filter(x => !assistantIsFinalLogisticsStatus(x.status));
+}
+
+function assistantFormatTons(v) {
+  const n = assistantNum(v);
+  if (!n) return '';
+  return `${new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 2 }).format(n)} t`;
+}
+
+function assistantAnswerOpenContractsForPartner(question, snapshot) {
+  const partner = assistantExtractPartnerFromQuestion(question, snapshot);
+  if (!partner) return '';
+  const rows = assistantBuildOpenLogisticsContracts(snapshot, partner);
+  if (!rows.length) return `Nu gasesc contracte in derulare cu ${partner}.`;
+
+  const shown = rows.slice(0, 8).map(r => {
+    const parts = [
+      `CTR ${r.contractNo}`,
+      r.product,
+      r.crop,
+      r.tradeType,
+      assistantFormatTons(r.qty),
+      r.status
+    ].filter(Boolean);
+    return `- ${parts.join(', ')}`;
+  }).join('\n');
+
+  const more = rows.length > 8 ? `\n+ inca ${rows.length - 8} contracte.` : '';
+  return `${rows.length} contract${rows.length === 1 ? '' : 'e'} in derulare cu ${partner}:\n${shown}${more}`;
+}
+
 function assistantQuestionScope(question) {
   const q = assistantNormalizeText(question);
   const trainOnly = /\btren(uri)?\b|\bvagon(e|ul|ul)?\b|\bnomina(t|liz|re|ri|te|t)\b|\bincarcare\s+tren\b/.test(q);
@@ -2545,20 +2678,18 @@ function assistantBuildOpenContracts(snapshot) {
       status: 'Nereturnat semnat'
     }));
 
-  const openLogistics = (snapshot.logistics || [])
-    .filter(l => assistantIsOpenStatus(l.status) && assistantNum(l.remainingQty) > 0)
-    .map(l => ({
-      type: 'Logistica auto',
-      id: l.id,
-      contractNo: l.contractNo || `ID ${l.id}`,
-      product: l.product,
-      crop: l.crop,
-      counterparty: l.counterparty,
-      qty: l.qty,
-      doneQty: l.doneQty,
-      remainingQty: l.remainingQty,
-      status: l.status || 'In derulare'
-    }));
+  const openLogistics = assistantBuildOpenLogisticsContracts(snapshot).map(l => ({
+    type: 'Logistica auto',
+    id: l.id,
+    contractNo: l.contractNo || `ID ${l.id}`,
+    product: l.product,
+    crop: l.crop,
+    counterparty: l.counterparty,
+    qty: l.qty,
+    doneQty: l.doneQty,
+    remainingQty: l.remainingQty,
+    status: l.status || 'In derulare'
+  }));
 
   const today = new Date().toISOString().slice(0,10);
   const openTrains = (snapshot.trainEvents || [])
@@ -2967,6 +3098,15 @@ app.post('/api/assistant/chat', requireAuth, assistantLimiter, async (req, res) 
 
     const snapshot = buildAssistantSnapshot();
     const scope = assistantQuestionScope(question);
+
+    const deterministicOpenPartnerAnswer = scope.intent === 'open_contracts'
+      ? assistantAnswerOpenContractsForPartner(question, snapshot)
+      : '';
+    if (deterministicOpenPartnerAnswer) {
+      audit(req, 'assistant_chat', 'assistant', 'chat', { chars: question.length, deterministic: 'open_contracts_partner' });
+      return res.json({ ok: true, result: deterministicOpenPartnerAnswer });
+    }
+
     const scopedSnapshot = assistantScopedSnapshot(snapshot, scope);
     const result = await callOpenAIEmail({
       instructions: `Esti asistent operational pentru Agrotex Tracker. Raspunzi in romana, foarte scurt si la obiect, folosind doar datele primite in JSON. Nu inventa. Nu include sectiuni de tip Sursa, Date folosite sau explicatii despre provenienta datelor. Nu promite actiuni si nu modifica date. Raspunsul ideal are 1-5 randuri. Daca sunt multe rezultate, arata doar un rezumat si maximum 8 randuri relevante. Pentru contracte in derulare, foloseste lista openContracts daca exista si nu lista toate contractele brute. Pentru valori financiare, pastreaza valuta originala. Pentru pozitie, grupeaza separat pe produs si recolta. Daca lipsesc date, spune simplu: Nu gasesc informatia in tracker. Daca intrebarea este despre trenuri, vagoane, nominalizari sau incarcari tren, foloseste doar datele din trainEvents/trains si nu folosi livrarile auto din Logistica.`,
