@@ -2472,27 +2472,196 @@ function assistantTrainDateTo(sh) {
   return assistantDate(assistantPick(sh?.dateTo, sh?.to, sh?.endDate, sh?.loadingEnd, assistantTrainDateFrom(sh)));
 }
 
+function assistantNormalizeText(v) {
+  return String(v || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function assistantQuestionScope(question) {
-  const q = String(question || '').toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '');
-  return {
-    trainOnly: /tren(uri)?|vagon(e|ul|ul)?|nomina(t|liz|re|ri|te|t)|incarcare\s+tren/.test(q),
-  };
+  const q = assistantNormalizeText(question);
+  const trainOnly = /\btren(uri)?\b|\bvagon(e|ul|ul)?\b|\bnomina(t|liz|re|ri|te|t)\b|\bincarcare\s+tren\b/.test(q);
+  const invoiceOnly = /\bfactur|\bscadent|\bsold|\bdepasit|\bincas/.test(q);
+  const stockOnly = /\bstoc|\bmagaz|\bsiloz|\bbaza|\bdepozit/.test(q);
+  const positionOnly = /\bpozitie|\blong|\bshort|\bnet\b|\bcumparat|\bvandut|\bachizitii|\bvanzari/.test(q);
+  const unsignedContracts = /nesemnat|nereturnat|returnat\s+semnat|semnat/.test(q) && /contract/.test(q);
+  const openContracts = /contract/.test(q) && /(derulare|deschis|active|activ|neinchis|in curs|ramas|nelivrat)/.test(q);
+  const purchaseContracts = /contract/.test(q) && /(achizitie|achizitii|cumparare|furnizor|furnizori)/.test(q);
+  const logisticsOnly = /logistic|auto|camion|livrare|transport/.test(q) && !trainOnly;
+
+  let intent = 'general';
+  if (trainOnly) intent = 'trains';
+  else if (invoiceOnly) intent = 'invoices';
+  else if (unsignedContracts) intent = 'unsigned_contracts';
+  else if (openContracts) intent = 'open_contracts';
+  else if (purchaseContracts) intent = 'purchase_contracts';
+  else if (stockOnly) intent = 'stocks';
+  else if (positionOnly) intent = 'position';
+  else if (logisticsOnly) intent = 'logistics';
+
+  return { trainOnly, invoiceOnly, stockOnly, positionOnly, unsignedContracts, openContracts, purchaseContracts, logisticsOnly, intent };
+}
+
+function assistantIsOpenStatus(status) {
+  const s = assistantNormalizeText(status);
+  if (!s) return true;
+  if (/inchis|finalizat|completed|done|loaded|anulat|cancel/.test(s)) return false;
+  return true;
+}
+
+function assistantDeliveryRows(logContract) {
+  const sources = [];
+  ['deliveries','deliveryRows','shipments','loads','transportRows','dailyDeliveries'].forEach(k => {
+    if (Array.isArray(logContract[k])) sources.push(...logContract[k]);
+  });
+  return sources.map(r => ({
+    date: assistantDate(assistantPick(r.date, r.deliveryDate, r.loadingDate, r.data)),
+    qty: assistantNum(assistantPick(r.qty, r.quantity, r.tons, r.cantitate)),
+    truck: assistantPick(r.truck, r.truckNo, r.camion, r.transport),
+    note: assistantPick(r.note, r.notes, r.observations)
+  })).filter(r => r.date || r.qty || r.truck || r.note);
+}
+
+function assistantLogisticsRemaining(l) {
+  const qty = assistantNum(assistantPick(l.qty, l.quantity, l.contractQty, l.totalQty));
+  const explicitDone = assistantNum(assistantPick(l.executedQty, l.deliveredQty, l.loadedQty, l.completedQty, l.doneQty));
+  const deliveryRows = assistantDeliveryRows(l);
+  const rowsDone = deliveryRows.reduce((sum, r) => sum + assistantNum(r.qty), 0);
+  const done = Math.max(explicitDone, rowsDone);
+  const remaining = qty ? Math.max(0, qty - done) : 0;
+  return { qty, done, remaining, deliveryRows };
+}
+
+function assistantBuildOpenContracts(snapshot) {
+  const openPurchase = (snapshot.purchaseContracts || [])
+    .filter(c => !c.signedReturned)
+    .map(c => ({
+      type: 'Achizitie nesemnata',
+      id: c.id,
+      contractNo: c.contractNo || `ID ${c.id}`,
+      product: c.product,
+      crop: c.crop,
+      counterparty: c.supplier,
+      qty: c.qty,
+      status: 'Nereturnat semnat'
+    }));
+
+  const openLogistics = (snapshot.logistics || [])
+    .filter(l => assistantIsOpenStatus(l.status) && assistantNum(l.remainingQty) > 0)
+    .map(l => ({
+      type: 'Logistica auto',
+      id: l.id,
+      contractNo: l.contractNo || `ID ${l.id}`,
+      product: l.product,
+      crop: l.crop,
+      counterparty: l.counterparty,
+      qty: l.qty,
+      doneQty: l.doneQty,
+      remainingQty: l.remainingQty,
+      status: l.status || 'In derulare'
+    }));
+
+  const today = new Date().toISOString().slice(0,10);
+  const openTrains = (snapshot.trainEvents || [])
+    .filter(t => !['loaded','cancelled'].includes(String(t.status || '').toLowerCase()) && (!t.loadingEnd || t.loadingEnd >= today))
+    .map(t => ({
+      type: 'Tren',
+      id: t.contractId,
+      contractNo: t.contractNo || `ID ${t.contractId}`,
+      product: t.product,
+      crop: t.crop,
+      counterparty: t.client,
+      qty: t.qty,
+      period: t.loadingStart && t.loadingEnd && t.loadingEnd !== t.loadingStart ? `${t.loadingStart} - ${t.loadingEnd}` : (t.loadingStart || t.loadingEnd || ''),
+      station: t.station,
+      status: t.statusLabel || t.status || 'Planificat'
+    }));
+
+  return { openPurchase, openLogistics, openTrains, all: [...openPurchase, ...openLogistics, ...openTrains] };
 }
 
 function assistantScopedSnapshot(snapshot, scope) {
-  if (scope && scope.trainOnly) {
+  const baseRules = snapshot.rules || {};
+  const intent = scope?.intent || 'general';
+  if (intent === 'trains') {
     return {
       generatedAt: snapshot.generatedAt,
-      rules: {
-        ...snapshot.rules,
-        scope: 'Intrebarea este despre trenuri. Foloseste EXCLUSIV sursa Trenuri: trainEvents si trains. Ignora complet Logistica, livrarile auto si contractele logistice.'
-      },
+      intent,
+      rules: { ...baseRules, scope: 'Foloseste exclusiv trainEvents/trains. Nu folosi Logistica auto.' },
       trainEvents: snapshot.trainEvents || [],
       trains: snapshot.trains || []
     };
   }
-  return snapshot;
+  if (intent === 'invoices') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Foloseste doar facturile logistice calculate.' },
+      overdueInvoices: snapshot.overdueInvoices || [],
+      openInvoices: snapshot.openInvoices || [],
+      allLogisticsInvoices: snapshot.allLogisticsInvoices || []
+    };
+  }
+  if (intent === 'open_contracts') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Contracte in derulare = achizitii nesemnate, logistica auto cu cantitate ramasa, trenuri neincarcate/neanulate de azi inainte.' },
+      openContracts: assistantBuildOpenContracts(snapshot)
+    };
+  }
+  if (intent === 'unsigned_contracts') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Contracte nesemnate = purchaseContracts unde signedReturned este fals.' },
+      unsignedPurchaseContracts: (snapshot.purchaseContracts || []).filter(c => !c.signedReturned)
+    };
+  }
+  if (intent === 'purchase_contracts') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Foloseste doar Contracte achizitie generate.' },
+      purchaseContracts: snapshot.purchaseContracts || []
+    };
+  }
+  if (intent === 'stocks') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Foloseste doar stocuri.' },
+      stockTotals: snapshot.stockTotals || [],
+      stockEntries: snapshot.stockEntries || []
+    };
+  }
+  if (intent === 'position') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Foloseste doar pozitie/trades.' },
+      positionTotals: snapshot.positionTotals || [],
+      trades: snapshot.trades || []
+    };
+  }
+  if (intent === 'logistics') {
+    return {
+      generatedAt: snapshot.generatedAt,
+      intent,
+      rules: { ...baseRules, scope: 'Foloseste doar logistica auto.' },
+      logistics: snapshot.logistics || []
+    };
+  }
+  return {
+    generatedAt: snapshot.generatedAt,
+    intent,
+    rules: baseRules,
+    positionTotals: snapshot.positionTotals || [],
+    stockTotals: snapshot.stockTotals || [],
+    overdueInvoices: snapshot.overdueInvoices || [],
+    openInvoices: snapshot.openInvoices || [],
+    trainEvents: snapshot.trainEvents || [],
+    purchaseContracts: snapshot.purchaseContracts || []
+  };
 }
 
 function assistantProductName(p) {
@@ -2603,6 +2772,7 @@ function buildAssistantSnapshot() {
     const invoices = assistantInvoiceRows(l);
     const invoiceValue = invoices.reduce((s, inv) => s + assistantNum(inv.amount), 0);
     const paidValue = invoices.reduce((s, inv) => s + assistantNum(inv.paidValue), 0);
+    const logProgress = assistantLogisticsRemaining(l);
     return {
       id: l.id,
       createdAt: assistantDate(l.createdAt),
@@ -2614,7 +2784,10 @@ function buildAssistantSnapshot() {
       contractNo: l.contractNo || l.contractNumber || l.contract || '',
       product: assistantProductName(l.product),
       crop: String(l.crop || l.cropYear || ''),
-      qty: assistantNum(l.qty || l.quantity),
+      qty: assistantNum(l.qty || l.quantity || l.contractQty || l.totalQty),
+      doneQty: logProgress.done,
+      remainingQty: logProgress.remaining,
+      deliveryRows: logProgress.deliveryRows,
       pickupLocation: l.pickupLocation || l.loadingLocation || l.from || l.base || '',
       deliveryLocation: l.deliveryLocation || l.unloadingLocation || l.to || l.destination || '',
       deliveryStart: assistantDate(l.deliveryStart || l.startDate || l.dateFrom),
@@ -2796,7 +2969,7 @@ app.post('/api/assistant/chat', requireAuth, assistantLimiter, async (req, res) 
     const scope = assistantQuestionScope(question);
     const scopedSnapshot = assistantScopedSnapshot(snapshot, scope);
     const result = await callOpenAIEmail({
-      instructions: `Esti asistent operational pentru Agrotex Tracker. Raspunzi in romana, foarte scurt si la obiect, folosind doar datele primite in JSON. Nu inventa. Nu include sectiuni de tip Sursa, Date folosite sau explicatii despre provenienta datelor. Nu promite actiuni si nu modifica date. Raspunsul ideal are 1-5 randuri. Daca sunt multe rezultate, arata doar lista compacta cu cele relevante. Pentru valori financiare, pastreaza valuta originala. Pentru pozitie, grupeaza separat pe produs si recolta. Daca lipsesc date, spune simplu: Nu gasesc informatia in tracker. Daca intrebarea este despre trenuri, vagoane, nominalizari sau incarcari tren, foloseste doar datele din trainEvents/trains si nu folosi livrarile auto din Logistica.`,
+      instructions: `Esti asistent operational pentru Agrotex Tracker. Raspunzi in romana, foarte scurt si la obiect, folosind doar datele primite in JSON. Nu inventa. Nu include sectiuni de tip Sursa, Date folosite sau explicatii despre provenienta datelor. Nu promite actiuni si nu modifica date. Raspunsul ideal are 1-5 randuri. Daca sunt multe rezultate, arata doar un rezumat si maximum 8 randuri relevante. Pentru contracte in derulare, foloseste lista openContracts daca exista si nu lista toate contractele brute. Pentru valori financiare, pastreaza valuta originala. Pentru pozitie, grupeaza separat pe produs si recolta. Daca lipsesc date, spune simplu: Nu gasesc informatia in tracker. Daca intrebarea este despre trenuri, vagoane, nominalizari sau incarcari tren, foloseste doar datele din trainEvents/trains si nu folosi livrarile auto din Logistica.`,
       userInput: `INTREBARE UTILIZATOR:
 ${question}
 
