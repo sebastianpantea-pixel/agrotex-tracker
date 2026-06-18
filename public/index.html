@@ -1391,6 +1391,7 @@
           <div class="report-label">Include</div>
           <div class="report-checks">
             <label class="report-check"><input type="checkbox" id="reportIncTrades" checked><span>Achizitii, vanzari si pozitie la zi</span></label>
+            <label class="report-check"><input type="checkbox" id="reportIncAgents" checked><span>Achizitii per agent la zi</span></label>
             <label class="report-check"><input type="checkbox" id="reportIncContracts" checked><span>Contracte achizitie generate</span></label>
             <label class="report-check"><input type="checkbox" id="reportIncLogistics" checked><span>Logistica / livrari</span></label>
             <label class="report-check"><input type="checkbox" id="reportIncInvoices" checked><span>Facturi logistica, sold si sold depasit</span></label>
@@ -8507,6 +8508,11 @@ function reportTradeRows(from,to,dir){
   }).sort((a,b)=>String(a.date).localeCompare(String(b.date)) || String(a.productLabel).localeCompare(String(b.productLabel),'ro') || String(a.crop).localeCompare(String(b.crop)));
 }
 
+
+function reportTradeRowsToDate(to,dir){
+  const minDate='0000-01-01';
+  return reportTradeRows(minDate,to,dir);
+}
 function reportContractTradeRows(buys,sells){
   return [...(buys||[]), ...(sells||[])].filter(r=>String(r.contractNo||'').trim());
 }
@@ -8520,6 +8526,69 @@ function reportGroupByProduct(rows, kind){
   });
   return Object.values(m).map(r=>({...r,PretMediu:r.Cantitate?r.Valoare/r.Cantitate:0})).sort((a,b)=>String(a.Produs).localeCompare(String(b.Produs),'ro') || String(a.Recolta).localeCompare(String(b.Recolta)) || String(a.Valuta).localeCompare(String(b.Valuta)));
 }
+
+function reportAgentNameFromRow(r){
+  return normalizeAgentName ? normalizeAgentName(r.agent) : (String(r.agent||'').trim() || 'Fara agent');
+}
+function reportAgentTotalRows(buys){
+  const m={};
+  (buys||[]).forEach(r=>{
+    const agent=reportAgentNameFromRow(r);
+    if(!m[agent]) m[agent]={Agent:agent,Cantitate:0,ValoareRON:0,ValoareEUR:0,Contracte:new Set(),Produse:{}};
+    const qty=Number(r.qty)||0;
+    const val=Number(r.value)||0;
+    m[agent].Cantitate+=qty;
+    if(String(r.valuta||'RON').toUpperCase()==='EUR') m[agent].ValoareEUR+=val;
+    else m[agent].ValoareRON+=val;
+    const cn=String(r.contractNo||'').trim();
+    if(cn) m[agent].Contracte.add(cn); else if(r.id!=null) m[agent].Contracte.add('poz-'+r.id);
+    const prod=[r.productLabel||r.product||'Produs', r.crop||''].filter(Boolean).join(' ');
+    m[agent].Produse[prod]=(m[agent].Produse[prod]||0)+qty;
+  });
+  return Object.values(m).map(x=>({
+    Agent:x.Agent,
+    Cantitate:x.Cantitate,
+    ValoareRON:x.ValoareRON,
+    ValoareEUR:x.ValoareEUR,
+    Contracte:x.Contracte.size,
+    Produse:Object.entries(x.Produse).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${fmtN(v)} t`).join(' | ')
+  })).sort((a,b)=>b.Cantitate-a.Cantitate || String(a.Agent).localeCompare(String(b.Agent),'ro'));
+}
+function reportAgentProductRows(buys){
+  const m={};
+  (buys||[]).forEach(r=>{
+    const agent=reportAgentNameFromRow(r);
+    const k=[agent,r.productLabel||r.product||'Produs',r.crop||'',r.valuta||'RON'].join('|');
+    if(!m[k]) m[k]={Agent:agent,Produs:r.productLabel||r.product||'Produs',Recolta:r.crop||'',Valuta:r.valuta||'RON',Cantitate:0,Valoare:0,PretMediu:0,Contracte:new Set()};
+    const qty=Number(r.qty)||0;
+    const val=Number(r.value)||0;
+    m[k].Cantitate+=qty;
+    m[k].Valoare+=val;
+    const cn=String(r.contractNo||'').trim();
+    if(cn) m[k].Contracte.add(cn); else if(r.id!=null) m[k].Contracte.add('poz-'+r.id);
+  });
+  return Object.values(m).map(x=>({
+    Agent:x.Agent,Produs:x.Produs,Recolta:x.Recolta,Valuta:x.Valuta,
+    Cantitate:x.Cantitate,Valoare:x.Valoare,PretMediu:x.Cantitate?x.Valoare/x.Cantitate:0,Contracte:x.Contracte.size
+  })).sort((a,b)=>String(a.Agent).localeCompare(String(b.Agent),'ro') || String(a.Produs).localeCompare(String(b.Produs),'ro') || String(a.Recolta).localeCompare(String(b.Recolta)) || String(a.Valuta).localeCompare(String(b.Valuta)));
+}
+function reportAgentDetailRows(buys){
+  return (buys||[]).map(r=>({
+    Agent:reportAgentNameFromRow(r),
+    Data:r.date,
+    Produs:r.productLabel,
+    Recolta:r.crop,
+    Furnizor:r.partner,
+    Cantitate:r.qty,
+    Pret:r.price,
+    Valuta:r.valuta,
+    Valoare:r.value,
+    Paritate:r.parity,
+    Loc:r.loc,
+    Contract:r.contractNo
+  })).sort((a,b)=>String(a.Agent).localeCompare(String(b.Agent),'ro') || String(a.Data).localeCompare(String(b.Data)) || String(a.Produs).localeCompare(String(b.Produs),'ro'));
+}
+
 function reportNetRows(buys,sells){
   const m={};
   const add=(label,field,qty)=>{ if(!m[label]) m[label]={Produs:label,Achizitii:0,Vanzari:0,Net:0}; m[label][field]+=qty; };
@@ -8751,6 +8820,7 @@ function renderActivityReport(data){
     ['Achizitii', `${fmtN(data.buyQty)} t`],
     ['Vanzari', `${fmtN(data.sellQty)} t`],
     ['Tranz. cu contract', fmtN(data.contractTradeCount||0)],
+    ['Agenti cu achizitii la zi', fmtN((data.agentTotals||[]).length)],
     ['Livrari logistica', fmtN(data.logistics.length)],
     ['Facturi in sold', fmtN(data.invoices.inSold.length)],
     ['Facturi depasite', fmtN(data.invoices.depasite.length)],
@@ -8760,8 +8830,13 @@ function renderActivityReport(data){
   const sec=(title,note,html)=>`<div class="report-section"><div class="report-section-head"><div class="report-section-title">${escHtml(title)}</div><div class="report-section-note">${escHtml(note||'')}</div></div>${html}</div>`;
   let html=`<div class="report-kpis">${kpis.map(k=>`<div class="report-kpi"><div class="report-kpi-l">${escHtml(k[0])}</div><div class="report-kpi-v">${escHtml(k[1])}</div></div>`).join('')}</div>`;
   if(data.include.trades){
-    html+=sec('Achizitii',`${fmtN(data.buyQty)} t`,reportTable(['Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.buys,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:fmtN(r.qty),Pret:r.price?fmtN(r.price):'—',Valuta:r.valuta,Valoare:fmtN(r.value),Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h])));
+    html+=sec('Achizitii',`${fmtN(data.buyQty)} t`,reportTable(['Data','Agent','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.buys,(r,h)=>({Data:r.date,Agent:reportAgentNameFromRow(r),Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:fmtN(r.qty),Pret:r.price?fmtN(r.price):'—',Valuta:r.valuta,Valoare:fmtN(r.value),Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h])));
     html+=sec('Total achizitii','grupat pe produs, recolta si valuta',reportTable(['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],data.buySummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—','Valoare':fmtN(r.Valoare)}[h])));
+    if(data.include.agents){
+      html+=sec('Achizitii per agent la zi','total pe agent pana la data Pana la',reportTable(['Agent','Cantitate','Valoare RON','Valoare EUR','Contracte','Produse'],data.agentTotals,(r,h)=>({Agent:r.Agent,Cantitate:fmtN(r.Cantitate),'Valoare RON':r.ValoareRON?fmtN(r.ValoareRON):'—','Valoare EUR':r.ValoareEUR?fmtN(r.ValoareEUR):'—',Contracte:r.Contracte,Produse:r.Produse}[h])));
+      html+=sec('Achizitii per agent si produs la zi','grupat pe agent, produs, recolta si valuta, pana la data Pana la',reportTable(['Agent','Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare','Contracte'],data.agentByProduct,(r,h)=>({Agent:r.Agent,Produs:r.Produs,Recolta:r.Recolta,Valuta:r.Valuta,Cantitate:fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—',Valoare:fmtN(r.Valoare),Contracte:r.Contracte}[h])));
+      html+=sec('Detaliu achizitii pe agent la zi','tranzactii LONG pana la data Pana la',reportTable(['Agent','Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.agentDetails,(r,h)=>({Agent:r.Agent,Data:r.Data,Produs:r.Produs,Recolta:r.Recolta,Furnizor:r.Furnizor,Cantitate:fmtN(r.Cantitate),Pret:r.Pret?fmtN(r.Pret):'—',Valuta:r.Valuta,Valoare:fmtN(r.Valoare),Paritate:r.Paritate,Loc:r.Loc,Contract:r.Contract}[h])));
+    }
     html+=sec('Vanzari',`${fmtN(data.sellQty)} t`,reportTable(['Data','Produs','Recolta','Client','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.sells,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Client:r.partner,Cantitate:fmtN(r.qty),Pret:r.price?fmtN(r.price):'—',Valuta:r.valuta,Valoare:fmtN(r.value),Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h])));
     html+=sec('Total vanzari','grupat pe produs, recolta si valuta',reportTable(['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],data.sellSummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—','Valoare':fmtN(r.Valoare)}[h])));
     html+=sec('Pozitie totala la zi','separat pe produs si recolta',reportTable(['Produs','Recolta','Long','Short','Net'],data.totalPosRows,(r,h)=>({Produs:r.Produs,Recolta:r.Recolta,Long:fmtN(r.Long),Short:fmtN(r.Short),Net:fmtNet(r.Net)}[h])));
@@ -8810,6 +8885,7 @@ async function generateActivityReport(){
     loadResults.forEach((r,i)=>{ if(r.status==='rejected') failed.push(loaders.filter(x=>x[1])[i][0]); });
     const include={
       trades:document.getElementById('reportIncTrades')?.checked ?? true,
+      agents:document.getElementById('reportIncAgents')?.checked ?? true,
       contracts:document.getElementById('reportIncContracts')?.checked ?? true,
       logistics:document.getElementById('reportIncLogistics')?.checked ?? true,
       invoices:document.getElementById('reportIncInvoices')?.checked ?? true,
@@ -8819,11 +8895,15 @@ async function generateActivityReport(){
     };
     const buys=reportTradeRows(from,to,'long');
     const sells=reportTradeRows(from,to,'short');
+    const agentBuysToDate=reportTradeRowsToDate(to,'long');
     const stock=reportStockRows();
     const invoices=reportInvoiceRows(from,to,to);
     reportData={
       from,to,include,failedLoads:failed,
-      buys,sells,
+      buys,sells,agentBuysToDate,
+      agentTotals:reportAgentTotalRows(agentBuysToDate),
+      agentByProduct:reportAgentProductRows(agentBuysToDate),
+      agentDetails:reportAgentDetailRows(agentBuysToDate),
       buyQty:buys.reduce((s,r)=>s+r.qty,0),
       sellQty:sells.reduce((s,r)=>s+r.qty,0),
       contractTradeRows:reportContractTradeRows(buys,sells),
@@ -8916,6 +8996,7 @@ function exportActivityReportExcel(){
     {Indicator:'Achizitii t',Valoare:fmtN(d.buyQty)},
     {Indicator:'Vanzari t',Valoare:fmtN(d.sellQty)},
     {Indicator:'Tranzactii cu nr. contract',Valoare:fmtN(d.contractTradeCount||0)},
+    {Indicator:'Agenti cu achizitii la zi',Valoare:fmtN((d.agentTotals||[]).length)},
     {Indicator:'Livrari logistica',Valoare:fmtN(d.logistics.length)},
     {Indicator:'Facturi in sold',Valoare:fmtN(d.invoices.inSold.length)},
     {Indicator:'Facturi depasite',Valoare:fmtN(d.invoices.depasite.length)},
@@ -8924,8 +9005,13 @@ function exportActivityReportExcel(){
   ],(r,h)=>r[h]??'');
 
   if(d.include.trades){
-    addSection('ACHIZITII',['Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.buys,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
+    addSection('ACHIZITII',['Data','Agent','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.buys,(r,h)=>({Data:r.date,Agent:reportAgentNameFromRow(r),Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
     addSection('TOTAL ACHIZITII',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.buySummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
+    if(d.include.agents){
+      addSection('ACHIZITII PER AGENT LA ZI',['Agent','Cantitate','Valoare RON','Valoare EUR','Contracte','Produse'],d.agentTotals,(r,h)=>({'Agent':r.Agent,'Cantitate':r.Cantitate,'Valoare RON':r.ValoareRON,'Valoare EUR':r.ValoareEUR,'Contracte':r.Contracte,'Produse':r.Produse}[h]));
+      addSection('ACHIZITII PER AGENT SI PRODUS LA ZI',['Agent','Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare','Contracte'],d.agentByProduct,(r,h)=>({'Agent':r.Agent,'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare,'Contracte':r.Contracte}[h]));
+      addSection('DETALIU ACHIZITII PE AGENT LA ZI',['Agent','Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.agentDetails,(r,h)=>r[h]??'');
+    }
     addSection('VANZARI',['Data','Produs','Recolta','Client','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.sells,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Client:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
     addSection('TOTAL VANZARI',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.sellSummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
     addSection('POZITIE TOTALA LA ZI',['Produs','Recolta','Long','Short','Net'],d.totalPosRows,(r,h)=>({Produs:r.Produs,Recolta:r.Recolta,Long:r.Long,Short:r.Short,Net:r.Net}[h]));
