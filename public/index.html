@@ -1093,6 +1093,25 @@
   .report-ok{color:var(--long);font-weight:800;}
   .report-hint{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
 
+
+  /* Modul temporar: introducere agenti pe contracte */
+  .agentbulk-top{display:grid;grid-template-columns:1.2fr 130px 160px 160px 1fr;gap:8px;align-items:end;}
+  @media(max-width:980px){.agentbulk-top{grid-template-columns:1fr 1fr;}}
+  .agentbulk-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .agentbulk-table-wrap{border:1px solid var(--border);border-radius:4px;overflow:auto;max-height:56vh;background:rgba(255,255,255,.012);}
+  .agentbulk-table{width:100%;border-collapse:collapse;min-width:980px;}
+  .agentbulk-table th{padding:7px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);background:var(--surface2);position:sticky;top:0;z-index:1;}
+  .agentbulk-table td{padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;vertical-align:middle;}
+  .agentbulk-table tr:last-child td{border-bottom:none;}
+  .agentbulk-table tbody tr:hover td{background:rgba(255,255,255,.018);}
+  .agentbulk-agent-input{width:170px;background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 6px;outline:none;}
+  .agentbulk-agent-input:focus{border-color:var(--acc);box-shadow:0 0 0 1px rgba(224,183,94,.12);}
+  .agentbulk-changed{color:var(--acc);font-weight:900;}
+  .agentbulk-empty{padding:20px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.8px;}
+  .agentbulk-status{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;}
+  .agentbulk-status.ok{color:var(--long);}
+  .agentbulk-status.err{color:var(--short);}
+
   /* Cron-inspired polish overrides */
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Inter,Arial,sans-serif;
@@ -1351,6 +1370,7 @@
     <button type="button" class="tools-btn" id="toolsBtn" onclick="toggleToolsMenu(event)">☰ Unelte ▾</button>
     <div class="tools-menu" id="toolsMenu">
       <button type="button" class="tools-item report" onclick="setReportTab(); closeToolsMenu();">📊 Rapoarte</button>
+      <button type="button" class="tools-item" onclick="openAgentBulkModal(); closeToolsMenu();">👤 Agenți contracte</button>
       <div class="tools-sep"></div>
       <button type="button" class="tools-item" onclick="setEmailTab(); closeToolsMenu();">✉️ Email</button>
       <button type="button" class="tools-item" onclick="setMeteoTab(); closeToolsMenu();">🌦 Meteo</button>
@@ -2282,6 +2302,43 @@
 </footer>
 </div>
 
+
+<div class="overlay" id="modAgentBulk">
+  <div class="modal" style="width:min(1180px,98vw);max-height:92vh;overflow:hidden;">
+    <div class="mtitle" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <span>Introducere agenți pe contracte <span style="color:var(--dim);font-size:10px;font-weight:500;">temporar</span></span>
+      <button class="btn-cancel" style="padding:4px 9px;" onclick="closeModal('modAgentBulk')">×</button>
+    </div>
+
+    <div class="agentbulk-status" id="agentBulkStatus">Modul pentru completare rapidă agent pe contractele de achiziție din Poziție.</div>
+
+    <div class="agentbulk-top">
+      <div class="fg"><label class="fl">Caută contract / furnizor / loc</label><input id="agentBulkSearch" type="text" oninput="renderAgentBulkTable()" placeholder="ex. 217, Nagy, Vaida"></div>
+      <div class="fg"><label class="fl">Recoltă</label><select id="agentBulkCrop" onchange="renderAgentBulkTable()"><option value="">Toate</option><option value="2025">2025</option><option value="2026">2026</option></select></div>
+      <div class="fg"><label class="fl">Produs</label><select id="agentBulkProduct" onchange="renderAgentBulkTable()"><option value="">Toate</option></select></div>
+      <div class="fg"><label class="fl">Status agent</label><select id="agentBulkStatusFilter" onchange="renderAgentBulkTable()"><option value="missing">Fără agent</option><option value="all">Toate</option><option value="assigned">Cu agent</option><option value="changed">Modificate</option></select></div>
+      <div class="fg"><label class="fl">Agent rapid</label><input id="agentBulkQuickAgent" type="text" list="agentList" placeholder="nume agent"></div>
+    </div>
+
+    <div class="agentbulk-actions">
+      <button class="btn-save" onclick="agentBulkApplyToVisible(true)">Aplică la vizibile fără agent</button>
+      <button class="btn-cancel" onclick="agentBulkApplyToVisible(false)">Aplică la toate vizibile</button>
+      <button class="btn-cancel" onclick="agentBulkClearVisible()">Golește agent la vizibile</button>
+      <label class="contract-check-row" style="margin-left:auto;"><input id="agentBulkIncludeNoContract" type="checkbox" onchange="renderAgentBulkTable()"> Arată și poziții fără nr. contract</label>
+    </div>
+
+    <div class="agentbulk-table-wrap" id="agentBulkTableWrap">
+      <div class="agentbulk-empty">Se încarcă lista...</div>
+    </div>
+
+    <div class="mbtns" style="margin-top:10px;align-items:center;">
+      <div class="agentbulk-status" id="agentBulkMeta" style="margin-right:auto;"></div>
+      <button class="btn-cancel" onclick="closeModal('modAgentBulk')">Închide</button>
+      <button class="btn-save" id="agentBulkSaveBtn" onclick="saveAgentBulkChanges()">Salvează modificările</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="modCfo" style="display:none;">
   <div class="modal" style="width:520px;max-width:98vw;">
     <div class="mtitle" style="color:#f59e0b;display:flex;align-items:center;gap:8px;">⚠️ Tranzacție peste 1.000.000 RON — Notifică CFO</div>
@@ -2652,6 +2709,7 @@ let purchaseSelectedPartner = null;
 let logisticsTabActive = false;
 let logisticsContracts = [];
 let selectedLogisticsId = null;
+let agentBulkDraft = {};
 let logisticsMonthFilter = null;
 let logisticsOverviewProductFilter = '';
 let logisticsOverviewFlowFilter = '';
@@ -3325,6 +3383,154 @@ function renderAgentDatalist(){
   const el=document.getElementById('agentList');
   if(!el) return;
   el.innerHTML=getKnownAgents().map(a=>`<option value="${escHtml(a)}"></option>`).join('');
+}
+
+function agentBulkContractNo(t){
+  return String(t?.note || t?.contractNo || t?.contract || '').trim();
+}
+function agentBulkCurrentAgent(t){
+  if(Object.prototype.hasOwnProperty.call(agentBulkDraft, t.id)) return String(agentBulkDraft[t.id]||'').trim();
+  return String(t.agent||'').trim();
+}
+function agentBulkIsChanged(t){
+  return String(agentBulkCurrentAgent(t)) !== String(t.agent||'').trim();
+}
+function agentBulkRows(){
+  const q=(document.getElementById('agentBulkSearch')?.value||'').toLowerCase().trim();
+  const cropF=document.getElementById('agentBulkCrop')?.value||'';
+  const prodF=document.getElementById('agentBulkProduct')?.value||'';
+  const statF=document.getElementById('agentBulkStatusFilter')?.value||'missing';
+  const includeNoContract=!!document.getElementById('agentBulkIncludeNoContract')?.checked;
+  let rows=(trades||[]).filter(t=>t && t.dir==='long');
+  if(!includeNoContract) rows=rows.filter(t=>agentBulkContractNo(t));
+  if(cropF) rows=rows.filter(t=>String(t.crop||'')===String(cropF));
+  if(prodF) rows=rows.filter(t=>String(t.product||'')===String(prodF));
+  if(q){
+    rows=rows.filter(t=>{
+      const p=products[t.product]||{};
+      const hay=[agentBulkContractNo(t),t.cpty,t.loc,t.crop,p.name,t.product,t.qty,t.price,t.agent].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  if(statF==='missing') rows=rows.filter(t=>!agentBulkCurrentAgent(t));
+  if(statF==='assigned') rows=rows.filter(t=>!!agentBulkCurrentAgent(t));
+  if(statF==='changed') rows=rows.filter(t=>agentBulkIsChanged(t));
+  return rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || Number(b.id||0)-Number(a.id||0));
+}
+function openAgentBulkModal(){
+  agentBulkDraft={};
+  const prod=document.getElementById('agentBulkProduct');
+  if(prod){
+    prod.innerHTML='<option value="">Toate</option>'+Object.entries(products||{}).map(([k,p])=>`<option value="${escAttr(k)}">${escHtml((p.emoji||'')+' '+(p.name||k))}</option>`).join('');
+  }
+  const cropSel=document.getElementById('agentBulkCrop'); if(cropSel) cropSel.value=crop || '';
+  const stat=document.getElementById('agentBulkStatusFilter'); if(stat) stat.value='missing';
+  const search=document.getElementById('agentBulkSearch'); if(search) search.value='';
+  const quick=document.getElementById('agentBulkQuickAgent'); if(quick) quick.value='';
+  const inc=document.getElementById('agentBulkIncludeNoContract'); if(inc) inc.checked=false;
+  renderAgentDatalist();
+  renderAgentBulkTable();
+  const modal=document.getElementById('modAgentBulk'); if(modal) modal.classList.add('open');
+}
+function renderAgentBulkTable(){
+  const wrap=document.getElementById('agentBulkTableWrap');
+  const meta=document.getElementById('agentBulkMeta');
+  const status=document.getElementById('agentBulkStatus');
+  if(!wrap) return;
+  const rows=agentBulkRows();
+  const totalLong=(trades||[]).filter(t=>t && t.dir==='long').length;
+  const missing=(trades||[]).filter(t=>t && t.dir==='long' && !String(t.agent||'').trim() && agentBulkContractNo(t)).length;
+  const changed=(trades||[]).filter(t=>t && t.dir==='long' && agentBulkIsChanged(t)).length;
+  if(status) status.textContent=`Contracte achiziție în poziție: ${totalLong}. Fără agent: ${missing}. Modificate nesalvate: ${changed}.`;
+  if(meta) meta.textContent=`Rânduri afișate: ${rows.length} · modificări nesalvate: ${changed}`;
+  const btn=document.getElementById('agentBulkSaveBtn'); if(btn) btn.textContent=changed?`Salvează ${changed} modificări`:'Salvează modificările';
+  if(!rows.length){
+    wrap.innerHTML='<div class="agentbulk-empty">Nu sunt contracte pentru filtrul ales.</div>';
+    return;
+  }
+  wrap.innerHTML=`<table class="agentbulk-table"><thead><tr>
+    <th>Data</th><th>Contract</th><th>Produs</th><th>Recoltă</th><th>Furnizor</th><th>Cantitate</th><th>Preț</th><th>Paritate</th><th>Loc</th><th>Agent</th><th>Status</th>
+  </tr></thead><tbody>${rows.map(t=>{
+    const p=products[t.product]||{name:t.product||'Produs',emoji:''};
+    const agent=agentBulkCurrentAgent(t);
+    const changedRow=agentBulkIsChanged(t);
+    const price=Number(t.price)||0;
+    const cur=(t.currency==='eur'?'EUR':'RON');
+    return `<tr>
+      <td>${escHtml(t.date||'—')}</td>
+      <td><b>${escHtml(agentBulkContractNo(t)||'—')}</b></td>
+      <td>${escHtml((p.emoji||'')+' '+(p.name||t.product||''))}</td>
+      <td>${escHtml(t.crop||'—')}</td>
+      <td title="${escAttr(t.cpty||'')}">${escHtml(t.cpty||'—')}</td>
+      <td>${fmtN(t.qty)} t</td>
+      <td>${price?fmtN(price)+' '+cur+'/t':'—'}</td>
+      <td>${escHtml(t.parity||'—')}</td>
+      <td>${escHtml(t.loc||'—')}</td>
+      <td><input class="agentbulk-agent-input" list="agentList" value="${escAttr(agent)}" onchange="agentBulkSet(${Number(t.id)}, this.value)" oninput="agentBulkSet(${Number(t.id)}, this.value, true)"></td>
+      <td class="${changedRow?'agentbulk-changed':''}">${changedRow?'modificat':(agent?'ok':'fără agent')}</td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+function agentBulkSet(id, value, silent=false){
+  const t=(trades||[]).find(x=>Number(x.id)===Number(id));
+  if(!t) return;
+  const v=String(value||'').trim();
+  if(v===String(t.agent||'').trim()) delete agentBulkDraft[id];
+  else agentBulkDraft[id]=v;
+  if(!silent) renderAgentBulkTable();
+  else {
+    const changed=(trades||[]).filter(x=>x && x.dir==='long' && agentBulkIsChanged(x)).length;
+    const meta=document.getElementById('agentBulkMeta'); if(meta) meta.textContent=`modificări nesalvate: ${changed}`;
+    const btn=document.getElementById('agentBulkSaveBtn'); if(btn) btn.textContent=changed?`Salvează ${changed} modificări`:'Salvează modificările';
+  }
+}
+function agentBulkApplyToVisible(onlyEmpty){
+  const agent=(document.getElementById('agentBulkQuickAgent')?.value||'').trim();
+  if(!agent){ alert('Completează întâi Agent rapid.'); return; }
+  const rows=agentBulkRows().filter(t=>!onlyEmpty || !agentBulkCurrentAgent(t));
+  rows.forEach(t=>{ if(agent===String(t.agent||'').trim()) delete agentBulkDraft[t.id]; else agentBulkDraft[t.id]=agent; });
+  renderAgentBulkTable();
+}
+function agentBulkClearVisible(){
+  const rows=agentBulkRows();
+  if(!rows.length) return;
+  if(!confirm(`Golești agentul pentru ${rows.length} rânduri vizibile?`)) return;
+  rows.forEach(t=>{ if(String(t.agent||'').trim()==='') delete agentBulkDraft[t.id]; else agentBulkDraft[t.id]=''; });
+  renderAgentBulkTable();
+}
+async function saveAgentBulkChanges(){
+  const changes=(trades||[]).filter(t=>t && t.dir==='long' && agentBulkIsChanged(t));
+  if(!changes.length){ alert('Nu există modificări de salvat.'); return; }
+  if(!confirm(`Salvezi agentul pentru ${changes.length} contracte?`)) return;
+  const status=document.getElementById('agentBulkStatus');
+  const btn=document.getElementById('agentBulkSaveBtn');
+  if(btn) btn.disabled=true;
+  try{
+    setSyncStatus('saving','● saving...');
+    for(let i=0;i<changes.length;i++){
+      const t=changes[i];
+      const agent=agentBulkCurrentAgent(t);
+      const payload={...t, agent};
+      delete payload.id;
+      const res=await fetch(`/api/trades/${encodeURIComponent(t.id)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!res.ok) throw new Error(`Nu s-a putut salva contractul ${agentBulkContractNo(t)||'#'+t.id}.`);
+      t.agent=agent;
+      if(status) status.textContent=`Salvare ${i+1}/${changes.length}...`;
+    }
+    agentBulkDraft={};
+    renderAgentDatalist();
+    render();
+    renderAgentBulkTable();
+    setSyncStatus('saved','● saved');
+    if(status){ status.textContent='Modificările au fost salvate.'; status.className='agentbulk-status ok'; setTimeout(()=>{status.className='agentbulk-status'; renderAgentBulkTable();},1400); }
+  }catch(e){
+    console.error(e);
+    setSyncStatus('error','● error');
+    if(status){ status.textContent=e.message||'Eroare la salvare.'; status.className='agentbulk-status err'; }
+    alert(e.message||'Eroare la salvare.');
+  }finally{
+    if(btn) btn.disabled=false;
+  }
 }
 function getAgentSummary(cropFilter){
   const map={};
@@ -8228,7 +8434,7 @@ document.addEventListener('click', (e)=>{
 
 /* Sync */
 async function syncTrades(){
-  const anyModalOpen=['modEdit','modProd','modImport','modCfo'].some(id=>{
+  const anyModalOpen=['modEdit','modProd','modImport','modCfo','modAgentBulk'].some(id=>{
     const el=document.getElementById(id);
     return el && (el.classList.contains('open') || el.style.display==='flex');
   });
