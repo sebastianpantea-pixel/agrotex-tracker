@@ -166,6 +166,9 @@ if (!prodRow) {
     corn:      { name:'Porumb',           emoji:'🌽', color:'#f0c040', symbol:'CRN' },
     rapeseed:  { name:'Rapiță',           emoji:'🌿', color:'#8bc34a', symbol:'RAP' },
     sunflower: { name:'Floarea-soarelui', emoji:'🌻', color:'#ffb300', symbol:'SFW' },
+    barley:    { name:'Orz',              emoji:'📦', color:'#d6a34a', symbol:'ORZ' },
+    soybean:   { name:'Soia',             emoji:'🫘', color:'#b8894a', symbol:'SOY' },
+    triticale: { name:'Triticale',        emoji:'🌾', color:'#c9a35f', symbol:'TRI' },
   });
   db.prepare('INSERT INTO products (data) VALUES (?)').run(defaultProducts);
 }
@@ -745,6 +748,21 @@ const PURCHASE_PRODUCTS = {
     templateFile: 'FLS .2026_Fls_CVC_sp.docx',
     defaultPeriodText: '01.09.2026 -31.10.2026',
   },
+  triticale: {
+    label: 'TRITICALE',
+    templateFile: 'triticale 2026CVC_sp.docx',
+    defaultPeriodText: '31.08.2026',
+  },
+  soybean: {
+    label: 'SOIA',
+    templateFile: 'CTR SOIA 2026.docx',
+    defaultPeriodText: '30.10.2026',
+  },
+  barley: {
+    label: 'ORZ',
+    templateFile: 'ORZ 2026 CVC_sp.docx',
+    defaultPeriodText: '31.08.2026',
+  },
 };
 
 const CONTRACT_TEMPLATE_DIRS = [
@@ -813,6 +831,28 @@ function normalizePurchaseQualityParams(product, raw) {
       conditioningCost: qualityValue(q, 'conditioningCost', '15 RON/to'),
       broken: qualityValue(q, 'broken', '3.5%'),
       aflatoxin: qualityValue(q, 'aflatoxin', '5 ppb'),
+    };
+  }
+  if (product === 'triticale') {
+    return {
+      humidity: qualityValue(q, 'humidity', '14%'),
+      foreignBodies: qualityValue(q, 'foreignBodies', '2%'),
+    };
+  }
+  if (product === 'barley') {
+    return {
+      humidity: qualityValue(q, 'humidity', '14%'),
+      foreignBodies: qualityValue(q, 'foreignBodies', '2%'),
+      hl: qualityValue(q, 'hl', '60 kg/hl'),
+    };
+  }
+  if (product === 'soybean') {
+    return {
+      humidity: qualityValue(q, 'humidity', '13%'),
+      foreignBodies: qualityValue(q, 'foreignBodies', '2%'),
+      protein: qualityValue(q, 'protein', '33%'),
+      oil: qualityValue(q, 'oil', '18%'),
+      gmo: qualityValue(q, 'gmo', 'NON GMO'),
     };
   }
   return {};
@@ -961,6 +1001,39 @@ function applyQualityToParagraph(text, contract, normalized) {
   return null;
 }
 
+
+function replaceDeliveryDateLike(text, period) {
+  let out = String(text || '');
+  if (!period) return out;
+  out = out.replace(/pana\s+la\s+data\s+de\s+_+\.?/i, `pana la data de ${period}`);
+  out = out.replace(/pana\s+la\s+data\s+de\s+[0-9]{2}\.[0-9]{2}\.[0-9]{4}\.?/i, `pana la data de ${period}`);
+  out = out.replace(/livrare\s+pana\s+la\s+data\s+de\s+_?[0-9]{2}\.[0-9]{2}\.[0-9]{4}\.?_?/i, `livrare pana la data de ${period}`);
+  out = out.replace(/cu\s+livrare\s+pana\s+la\s+data\s+de\s+_?[0-9]{2}\.[0-9]{2}\.[0-9]{4}\.?_?/i, `cu livrare pana la data de ${period}`);
+  return out;
+}
+
+function replaceGenericQtyPriceDelivery(text, contract, qty, price, period) {
+  let out = String(text || '');
+  out = out.replace(/_+\s*(?:tone|tona|to|tone\s+metrice)/i, `${qty} tone`);
+  out = out.replace(/cantitatea\s+de\s+_+\s*(?:to|tone|tone\s+metrice)/i, `cantitatea de ${qty} tone`);
+  out = out.replace(/Cantitatea\s*:\s*_+\s*tone\s+metrice/i, `Cantitatea : ${qty} tone metrice`);
+  out = out.replace(/Prețul\s+_+/i, `Prețul ${price}`);
+  out = out.replace(/Pretul\s+_+/i, `Pretul ${price}`);
+  out = out.replace(/Pret:\s*este\s*_+/i, `Pret: este ${price}`);
+  out = out.replace(/Preț:\s*este\s*_+/i, `Preț: este ${price}`);
+  out = replaceDeliveryDateLike(out, period);
+  out = out.replace(/FCA\s*\/\s*DAP\s*_+/i, `${contract.parity} ${contract.deliveryPlace}`);
+  out = out.replace(/FCA\s*\/\s*DAP/i, contract.parity);
+  return out;
+}
+
+function isPurchaseProductLine(normalized, product) {
+  if (product === 'triticale') return normalized.includes('triticale') && (normalized.includes('tone') || normalized.includes(' to'));
+  if (product === 'barley') return (normalized.includes('orz') || normalized.includes('orz furajer')) && (normalized.includes('tone') || normalized.includes(' to'));
+  if (product === 'soybean') return normalized.includes('soia') && (normalized.includes('cantitatea') || normalized.includes('tone') || normalized.includes('pret'));
+  return false;
+}
+
 function replaceContractParagraphs(documentXml, contract) {
   const spec = PURCHASE_PRODUCTS[contract.product];
   const qty = String(contract.quantity).replace('.', ',');
@@ -1006,6 +1079,31 @@ function replaceContractParagraphs(documentXml, contract) {
     if (contract.product === 'corn' && n.startsWith('perioada si termenii de livrare')) {
       const out = text.replace(/pana\s+la\s+data\s+de\s+[0-9.]+/i, `pana la data de ${period}`);
       return makeParagraphLike(p, out);
+    }
+
+    if (['triticale', 'barley'].includes(contract.product) && isPurchaseProductLine(n, contract.product)) {
+      let out = replaceGenericQtyPriceDelivery(text, contract, qty, price, period);
+      if (!/(?:FCA|DAP)/i.test(out) && contract.parity && contract.deliveryPlace) out = out.replace(/\.?\s*$/, `, ${contract.parity} ${contract.deliveryPlace}.`);
+      return makeParagraphLike(p, out);
+    }
+
+    if (contract.product === 'soybean') {
+      if (n.includes('vanzatorul vinde cumparatorului cantitatea') || n.includes('vânzătorul vinde cumpărătorului cantitatea')) {
+        const out = replaceGenericQtyPriceDelivery(text, contract, qty, price, period);
+        return makeParagraphLike(p, out);
+      }
+      if (n.startsWith('cantitatea :')) {
+        const out = replaceGenericQtyPriceDelivery(text, contract, qty, price, period);
+        return makeParagraphLike(p, out);
+      }
+      if (n.startsWith('pretul')) {
+        const out = replaceGenericQtyPriceDelivery(text, contract, qty, price, period);
+        return makeParagraphLike(p, out);
+      }
+      if (n.startsWith('perioada si termenii de livrare')) {
+        const out = `Perioada si termenii de livrare : Marfa va fi livrata de Vanzator in locul indicat de Cumparator, ${contract.parity} ${contract.deliveryPlace}, in perioada ${period}. Partile vor agrea un grafic de livrari de comun acord, in cazul livrarilor pe camioane.`;
+        return makeParagraphLike(p, out);
+      }
     }
 
     if (n.includes('art.3') && n.includes('cantitate') && text.includes('____')) {
@@ -2809,7 +2907,7 @@ function assistantScopedSnapshot(snapshot, scope) {
 
 function assistantProductName(p) {
   const key = String(p || '').toLowerCase();
-  const map = { wheat: 'Grau', corn: 'Porumb', rapeseed: 'Rapita', sunflower: 'Floarea-soarelui', barley: 'Orz', soybean: 'Soia' };
+  const map = { wheat: 'Grau', corn: 'Porumb', rapeseed: 'Rapita', sunflower: 'Floarea-soarelui', barley: 'Orz', soybean: 'Soia', triticale: 'Triticale' };
   return map[key] || String(p || '');
 }
 
