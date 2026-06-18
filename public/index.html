@@ -654,6 +654,16 @@
   .agg-row{display:flex;align-items:center;padding:7px 13px;border-bottom:1px solid var(--border);gap:6px;}
   .agg-row:hover{background:var(--surface2);}
   .agg-row:last-child{border-bottom:none;}
+
+  .agent-summary-row{display:grid;grid-template-columns:minmax(0,1.1fr) 74px 74px 52px;gap:8px;align-items:center;padding:7px 13px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;}
+  .agent-summary-row:hover{background:var(--surface2);}
+  .agent-summary-row:last-child{border-bottom:none;}
+  .agent-name{font-weight:900;color:var(--bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .agent-qty{font-weight:900;color:var(--long);text-align:right;}
+  .agent-val{font-weight:900;color:var(--acc);text-align:right;}
+  .agent-cnt{color:var(--dim);text-align:right;}
+  .agent-mini{font-size:8px;color:var(--dim);margin-top:2px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tag-agent{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;color:var(--acc);border:1px solid rgba(224,183,94,.35);background:rgba(224,183,94,.08);vertical-align:middle;}
   .adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
   .aname{flex:1;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--bright);}
   .anum{font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;min-width:52px;}
@@ -1239,6 +1249,8 @@
   </div>
 </div>
 
+<datalist id="agentList"></datalist>
+
 <div id="app">
 <header class="hdr">
   <div style="display:flex;align-items:center;gap:13px;">
@@ -1448,6 +1460,11 @@
             <div class="purchase-label">Data contract</div>
             <input id="pcContractDate" type="date" class="purchase-input" onchange="purchaseRefreshPreview()">
           </div>
+        </div>
+
+        <div>
+          <div class="purchase-label">Agent</div>
+          <input id="pcAgent" class="purchase-input" list="agentList" oninput="purchaseRefreshPreview()">
         </div>
 
         <div>
@@ -2172,9 +2189,10 @@
           </div>
         </div>
 
-        <div class="fr fr2">
+        <div class="fr fr3">
           <div class="fg"><label class="fl">Contraparte</label><input id="fCpty" type="text"></div>
           <div class="fg"><label class="fl">Număr contract</label><input id="fNote" type="text"></div>
+          <div class="fg"><label class="fl">Agent</label><input id="fAgent" type="text" list="agentList"></div>
           <div class="fg" id="grpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="fBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
         </div>
 
@@ -2205,10 +2223,10 @@
             <tr>
               <th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th>
               <th>Preț / Basis</th><th>Monedă</th><th>Paritate</th><th>Locație</th><th>Transp.</th>
-              <th>Contraparte</th><th>Data</th><th>Log.</th><th></th>
+              <th>Contraparte</th><th>Agent</th><th>Data</th><th>Log.</th><th></th>
             </tr>
             <tr class="filter-row" id="filterBar">
-              <td colspan="13">
+              <td colspan="14">
                 <div class="filter-bar-inner">
                   <select id="ffProd" onchange="applyFilter()"><option value="">Toate</option></select>
                   <div class="filter-sep"></div>
@@ -2224,6 +2242,7 @@
                   </select>
                   <div class="filter-sep"></div>
                   <input type="text" id="ffCpty" placeholder="🔍 Contraparte..." oninput="applyFilter()">
+                  <input type="text" id="ffAgent" placeholder="Agent..." oninput="applyFilter()">
                   <div class="filter-sep"></div>
                   <input type="date" id="ffDateFrom" onchange="applyFilter()" title="De la">
                   <span class="filter-label">→</span>
@@ -2243,6 +2262,11 @@
       <div class="panel">
         <div class="ph"><div class="pt">Poziție Netă — Ambele Recolte</div></div>
         <div id="aggSection"></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><div class="pt">Realizat agenți — recolta selectată</div><div class="pc" id="agentSummaryMeta"></div></div>
+        <div id="agentSummarySection"></div>
       </div>
     </div>
   </div>
@@ -2355,9 +2379,10 @@
       </div>
     </div>
 
-    <div class="fr fr2">
+    <div class="fr fr3">
       <div class="fg"><label class="fl">Contraparte</label><input id="eCpty" type="text"></div>
       <div class="fg"><label class="fl">Număr contract</label><input id="eNote" type="text"></div>
+      <div class="fg"><label class="fl">Agent</label><input id="eAgent" type="text" list="agentList"></div>
       <div class="fg" id="eGrpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="eBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
     </div>
 
@@ -3019,6 +3044,7 @@ async function addTrade(){
   const loc=document.getElementById('fLoc').value.trim();
   const cpty=document.getElementById('fCpty').value.trim();
   const note=document.getElementById('fNote').value.trim();
+  const agent=(document.getElementById('fAgent')?.value||'').trim();
   const manualIncomplete=document.getElementById('fIncomplete')?.checked || false;
   const bonif=parseFloat(document.getElementById('fBonif').value)||0;
   const ptype=document.getElementById('fPtype').value;
@@ -3028,7 +3054,7 @@ async function addTrade(){
   const needT=chosen.transport;
   const isEur=(dir==='short' && ptype==='fix' && formCurrency==='eur');
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('f')};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,agent,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('f')};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -3071,7 +3097,7 @@ async function addTrade(){
   document.getElementById('btnAdd').disabled=false;
   render();
   checkCfoAlert(t);
-  ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fBonif'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  ['fQty','fPriceRon','fPriceEur','fCursEur','fTransp','fTranspEur','fMatif','fBasis','fTranspB','fLoc','fCpty','fNote','fAgent','fBonif'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const fInc=document.getElementById('fIncomplete'); if(fInc) fInc.checked=false;
 }
 async function deleteTrade(id){
@@ -3162,6 +3188,7 @@ function applyFilter(){
     dir:document.getElementById('ffDir').value,
     ptype:document.getElementById('ffPtype').value,
     cpty:document.getElementById('ffCpty').value.trim().toLowerCase(),
+    agent:(document.getElementById('ffAgent')?.value||'').trim().toLowerCase(),
     dateFrom:document.getElementById('ffDateFrom').value,
     dateTo:document.getElementById('ffDateTo').value,
   };
@@ -3171,11 +3198,12 @@ function applyFilter(){
   renderIncompleteContracts();
 }
 function resetFilter(){
-  activeFilter={prod:'',dir:'',ptype:'',cpty:'',dateFrom:'',dateTo:''};
+  activeFilter={prod:'',dir:'',ptype:'',cpty:'',agent:'',dateFrom:'',dateTo:''};
   document.getElementById('ffProd').value='';
   document.getElementById('ffDir').value='';
   document.getElementById('ffPtype').value='';
   document.getElementById('ffCpty').value='';
+  const ffAgent=document.getElementById('ffAgent'); if(ffAgent) ffAgent.value='';
   document.getElementById('ffDateFrom').value='';
   document.getElementById('ffDateTo').value='';
   document.getElementById('btnResetFilter').style.display='none';
@@ -3189,6 +3217,7 @@ function getFilteredTrades(){
   if(f.dir) ft=ft.filter(t=>t.dir===f.dir);
   if(f.ptype) ft=ft.filter(t=>t.ptype===f.ptype);
   if(f.cpty) ft=ft.filter(t=>(t.cpty||'').toLowerCase().includes(f.cpty));
+  if(f.agent) ft=ft.filter(t=>(t.agent||'').toLowerCase().includes(f.agent));
   if(f.dateFrom) ft=ft.filter(t=>t.date && t.date>=f.dateFrom);
   if(f.dateTo) ft=ft.filter(t=>t.date && t.date<=f.dateTo);
   return ft;
@@ -3237,7 +3266,7 @@ function renderTable(){
 
   const tbody=document.getElementById('tbody');
   if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="13"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="14"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
     return;
   }
 
@@ -3260,10 +3289,11 @@ function renderTable(){
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
     const trainBadge=t.isTrain?`<span class="train-badge">🚂 tren</span>`:'';
+    const agentTag=t.agent?`<span class="tag-agent">${escHtml(t.agent)}</span>`:'';
     const finishedBadge=isTradeLogisticsFinished(t.id)?`<span class="finished-badge">✓ finalizat</span>`:'';
     const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
     return `<tr class="tr-click${t.incomplete?' tr-incomplete':''}" onclick="openEdit(${t.id})">
-      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}${trainBadge}${finishedBadge}</td>
+      <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}${trainBadge}${finishedBadge}${agentTag}</td>
       <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
       <td style="color:var(--bright)">${fmtN(t.qty)}</td>
@@ -3273,12 +3303,63 @@ function renderTable(){
       <td class="tdim">${escHtml(t.loc||'—')}</td>
       <td>${trsp}</td>
       <td class="tdim">${escHtml(t.cpty||'—')}</td>
+      <td class="tdim">${escHtml(t.agent||'—')}</td>
       <td class="tdim">${t.date||'—'}</td>
       <td>${logBadge}</td>
       <td><button class="btn-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</button></td>
     </tr>`;
   }).join('');
 }
+
+function normalizeAgentName(v){
+  return String(v||'').trim() || 'Fara agent';
+}
+function getKnownAgents(){
+  const set=new Set();
+  (trades||[]).forEach(t=>{ if(t.agent) set.add(String(t.agent).trim()); });
+  (purchaseContracts||[]).forEach(c=>{ if(c.agent) set.add(String(c.agent).trim()); });
+  return Array.from(set).filter(Boolean).sort((a,b)=>a.localeCompare(b,'ro'));
+}
+function renderAgentDatalist(){
+  const el=document.getElementById('agentList');
+  if(!el) return;
+  el.innerHTML=getKnownAgents().map(a=>`<option value="${escHtml(a)}"></option>`).join('');
+}
+function getAgentSummary(cropFilter){
+  const map={};
+  (trades||[]).filter(t=>String(t.crop||'')===String(cropFilter||crop) && t.dir==='long').forEach(t=>{
+    const agent=normalizeAgentName(t.agent);
+    if(!map[agent]) map[agent]={agent,qty:0,value:0,count:0,products:{}};
+    const qty=Number(t.qty)||0;
+    const price=Number(t.price)||0;
+    map[agent].qty+=qty;
+    map[agent].value+=qty*price;
+    map[agent].count+=1;
+    const prod=products[t.product]||{name:t.product||'Produs'};
+    map[agent].products[prod.name]=(map[agent].products[prod.name]||0)+qty;
+  });
+  return Object.values(map).sort((a,b)=>b.qty-a.qty || a.agent.localeCompare(b.agent,'ro'));
+}
+function renderAgentSummary(){
+  const box=document.getElementById('agentSummarySection');
+  const meta=document.getElementById('agentSummaryMeta');
+  if(!box) return;
+  const rows=getAgentSummary(crop);
+  const total=rows.reduce((s,r)=>s+r.qty,0);
+  if(meta) meta.textContent=`${rows.length} agenti · ${fmtN(total)} t`;
+  if(!rows.length){ box.innerHTML='<div class="empty">// nu exista achizitii cu agent pe recolta selectata</div>'; return; }
+  box.innerHTML=`<div class="agent-summary-row" style="background:var(--surface3);color:var(--dim);font-size:8px;text-transform:uppercase;letter-spacing:1px;font-weight:900;"><div>Agent</div><div style="text-align:right">Tone</div><div style="text-align:right">Valoare</div><div style="text-align:right">Ctr.</div></div>`+
+    rows.map(r=>{
+      const prodLine=Object.entries(r.products).sort((a,b)=>b[1]-a[1]).map(([name,qty])=>`${name}: ${fmtN(qty)} t`).join(' · ');
+      return `<div class="agent-summary-row">
+        <div><div class="agent-name">${escHtml(r.agent)}</div><div class="agent-mini">${escHtml(prodLine)}</div></div>
+        <div class="agent-qty">${fmtN(r.qty)} t</div>
+        <div class="agent-val">${fmtN(r.value)} RON</div>
+        <div class="agent-cnt">${r.count}</div>
+      </div>`;
+    }).join('');
+}
+
 function render(){
   document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
@@ -3348,6 +3429,8 @@ function render(){
     <div class="albl">NET</div><div class="anum ${tnc}">${fmtNet(totalNet)}</div>
   </div>`;
   document.getElementById('aggSection').innerHTML=aggHTML;
+  renderAgentDatalist();
+  renderAgentSummary();
   document.getElementById('ftotal').textContent=`ALL · Long: ${fmtN(totalLong)} t · Short: ${fmtN(totalShort)} t · Net: ${fmtNet(totalLong-totalShort)} t`;
 
   if(logisticsTabActive){
@@ -3379,6 +3462,7 @@ function openEdit(id){
   document.getElementById('eBonif').value=t.bonif||'';
   document.getElementById('eCpty').value=t.cpty||'';
   document.getElementById('eNote').value=t.note||'';
+  const eAgent=document.getElementById('eAgent'); if(eAgent) eAgent.value=t.agent||'';
   const eInc=document.getElementById('eIncomplete');
   if(eInc) eInc.checked=!!t.incomplete;
   trainWriteMeta('e', t);
@@ -3446,6 +3530,7 @@ async function saveEdit(){
   const bonif=parseFloat(document.getElementById('eBonif').value)||0;
   const cpty=document.getElementById('eCpty').value.trim();
   const note=document.getElementById('eNote').value.trim();
+  const agent=(document.getElementById('eAgent')?.value||'').trim();
   const manualIncomplete=document.getElementById('eIncomplete')?.checked || false;
   const ptype=document.getElementById('ePtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
@@ -3455,7 +3540,7 @@ async function saveEdit(){
   const chosen=rules.find(r=>r.val===parity)||rules[0];
   const needT=chosen.transport;
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('e')};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,agent,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('e')};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -8988,6 +9073,7 @@ function purchaseReadForm(){
     cropYear:(document.getElementById('pcCropYear').value||'2026').trim(),
     contractNo:(document.getElementById('pcContractNo').value||'').trim(),
     contractDate:document.getElementById('pcContractDate').value||'',
+    agent:(document.getElementById('pcAgent')?.value||'').trim(),
     sellerMode:purchaseSellerMode,
     partnerId: purchaseSellerMode==='existing' ? (sellerExisting?.id||null) : null,
     partner: purchaseSellerMode==='existing' ? sellerExisting : null,
@@ -9010,6 +9096,7 @@ function purchaseValidate(c){
   const w=[];
   if(!c.contractNo) w.push('Lipseste numarul contractului.');
   if(!c.contractDate) w.push('Lipseste data contractului.');
+  if(!c.agent) w.push('Lipseste agentul. Completeaza agentul pentru realizat la zi pe agenti.');
   if(!c.sellerFullText) w.push('Lipsesc datele furnizorului. Alege din baza FZ sau completeaza manual.');
   if(!c.quantity || c.quantity<=0) w.push('Cantitatea trebuie sa fie mai mare decat 0.');
   if(!c.priceRon || c.priceRon<=0) w.push('Pretul in lei trebuie sa fie mai mare decat 0.');
@@ -9031,13 +9118,14 @@ function purchaseRefreshPreview(){
       <h4>Contract care se va genera</h4>
       <b>${htmlEsc(c.productLabel)}</b>, nr. <b>${htmlEsc(c.contractNo||'—')}</b>, data ${htmlEsc(purchaseDateRo(c.contractDate)||'—')}<br>
       Furnizor: <b>${htmlEsc(c.sellerName||'—')}</b><br>
+      Agent: <b>${htmlEsc(c.agent||'—')}</b><br>
       Cantitate: <b>${htmlEsc(c.quantity?purchaseNum(c.quantity):'—')}</b> t<br>
       Pret: <b>${htmlEsc(c.priceRon?purchaseMoney(c.priceRon):'—')}</b> lei/t, fara TVA<br>
       Paritate: <b>${htmlEsc(c.parity)}</b><br>
       Loc livrare: <b>${htmlEsc(c.deliveryPlace||'—')}</b><br>
       Perioada livrare: <b>${htmlEsc(purchaseDeliveryPeriod())}</b><br>
       <br><h4>Pozitie creata automat</h4>
-      BUY / LONG ${htmlEsc(c.productLabel)}, ${htmlEsc(c.quantity?purchaseNum(c.quantity):'—')} t, ${htmlEsc(c.priceRon?purchaseMoney(c.priceRon):'—')} lei/t, ${htmlEsc(c.parity)} ${htmlEsc(c.deliveryPlace||'—')}<br>
+      BUY / LONG ${htmlEsc(c.productLabel)}, ${htmlEsc(c.quantity?purchaseNum(c.quantity):'—')} t, ${htmlEsc(c.priceRon?purchaseMoney(c.priceRon):'—')} lei/t, ${htmlEsc(c.parity)} ${htmlEsc(c.deliveryPlace||'—')} · Agent ${htmlEsc(c.agent||'—')}<br>
       <br><h4>Parametri calitate folositi</h4><ul>${quality}</ul>
     `;
   }
@@ -9079,7 +9167,7 @@ async function purchaseGenerateContract(){
   }
 }
 function purchaseClearForm(){
-  ['pcContractNo','pcQuantity','pcPriceRon','pcDeliveryPlace','pcDeliveryStart','pcDeliveryEnd','pcNotes','pcManualSeller','pcManualSellerName'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  ['pcContractNo','pcAgent','pcQuantity','pcPriceRon','pcDeliveryPlace','pcDeliveryStart','pcDeliveryEnd','pcNotes','pcManualSeller','pcManualSellerName'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const save=document.getElementById('pcSaveManualPartner'); if(save) save.checked=false;
   purchaseClearPartner();
   document.getElementById('pcContractDate').value=today();
