@@ -493,6 +493,8 @@
   .log-badge.done{color:var(--long);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08);}
   .log-badge.problem{color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);}
   .log-badge.warn{color:var(--short);border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.10);}
+  .log-badge.due{color:var(--acc);border-color:rgba(224,183,94,.55);background:rgba(224,183,94,.12);}
+  .log-badge.today{color:var(--acc);border-color:rgba(224,183,94,.75);background:rgba(224,183,94,.18);}
   .log-badge.info{color:var(--meteo);border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.08);}
   .log-badge.pickup{color:var(--old);border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.08);}
   .log-badge.delivery{color:var(--new);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.08);}
@@ -516,6 +518,9 @@
   .btn-log-green{color:var(--long);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08);}
   .btn-log-red{color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);}
   .log-warning-line{padding:7px 9px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);border-radius:4px;color:var(--short);font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
+  .log-warning-line.due{border-color:rgba(224,183,94,.45);background:rgba(224,183,94,.10);color:var(--acc);}
+  .log-warning-line.today{border-color:rgba(224,183,94,.65);background:rgba(224,183,94,.14);color:var(--acc);}
+  .log-warning-line.overdue{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.10);color:var(--short);}
   .log-ok-line{padding:7px 9px;border:1px solid rgba(34,197,94,.30);background:rgba(34,197,94,.07);border-radius:4px;color:var(--long);font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
   .log-progress{height:5px;background:var(--surface2);border-radius:4px;overflow:hidden;border:1px solid var(--border);margin-top:6px;}
   .log-progress-inner{height:100%;background:var(--acc);}
@@ -4669,12 +4674,28 @@ function invoiceAlert(inv){
   const d=daysUntil(inv.dueDate);
   if(d===null) return '';
   if(d<0) return 'overdue';
+  if(d===0) return 'today';
   if(d<=5) return 'due';
   return '';
 }
 function hasDueInvoice(c){
   if(logFlow(c)!=='delivery') return false;
   return (c.invoices||[]).some(inv=>invoiceAlert(inv));
+}
+function logisticsInvoiceSeverity(c){
+  if(logFlow(c)!=='delivery') return '';
+  const alerts=(c.invoices||[]).map(invoiceAlert).filter(Boolean);
+  if(alerts.includes('overdue')) return 'overdue';
+  if(alerts.includes('today')) return 'today';
+  if(alerts.includes('due')) return 'due';
+  return '';
+}
+function logisticsInvoiceBadge(c){
+  const sev=logisticsInvoiceSeverity(c);
+  if(sev==='overdue') return '<span class="log-badge warn">factură depășită</span>';
+  if(sev==='today') return '<span class="log-badge today">scadentă azi</span>';
+  if(sev==='due') return '<span class="log-badge due">scadentă curând</span>';
+  return '';
 }
 function computedLogStatus(c){
   if(c.problem) return {key:'problem',label:'Problemă',cls:'problem'};
@@ -5024,7 +5045,7 @@ function renderLogisticsMonthOverview(){
         const flowBadge=flow==='pickup'
           ? '<span class="log-badge pickup">DE RIDICAT</span>'
           : '<span class="log-badge delivery">DE LIVRAT</span>';
-        const dueBadge=hasDueInvoice(c)?'<span class="log-badge warn">factură scadentă</span>':'';
+        const dueBadge=logisticsInvoiceBadge(c);
         return `<div class="log-month-overview-item" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail();renderLogisticsList();document.getElementById('logisticsDetail')?.scrollIntoView({behavior:'smooth',block:'center'});">
           <div class="log-month-overview-name">${flowBadge} ${logContractName(c)}</div>
           <div class="log-month-overview-meta">${monthLabel(c.deliveryStartMonth||'')} → ${monthLabel(c.deliveryEndMonth||'')} · executat ${fmtN(moved)} t · rămas ${fmtN(left)} t</div>
@@ -5056,7 +5077,7 @@ function renderLogisticsList(){
     const flowBadge=flow==='pickup'
       ? '<span class="log-badge pickup">DE RIDICAT</span>'
       : '<span class="log-badge delivery">DE LIVRAT</span>';
-    const dueBadge=hasDueInvoice(c)?'<span class="log-badge warn">factură scadentă</span>':'';
+    const dueBadge=logisticsInvoiceBadge(c);
     return `<div class="log-item ${String(selectedLogisticsId)===String(c.id)?'active':''}" onclick="selectedLogisticsId=${c.id};renderLogisticsDetail();renderLogisticsList();">
       <div class="log-item-top">
         <div class="log-item-name">${flowBadge} ${logContractName(c)}</div>
@@ -5077,11 +5098,12 @@ function renderWarnings(c){
   const due=logFlow(c)==='delivery' ? (c.invoices||[]).filter(inv=>invoiceAlert(inv)) : [];
   due.forEach(inv=>{
     const d=daysUntil(inv.dueDate);
-    if(d<0) warnings.push(`Factura ${inv.invoiceNo||'fără număr'} este depășită cu ${Math.abs(d)} zile.`);
-    else warnings.push(`Factura ${inv.invoiceNo||'fără număr'} ajunge la scadență în ${d} zile.`);
+    if(d<0) warnings.push({type:'overdue', text:`Factura ${inv.invoiceNo||'fără număr'} este depășită cu ${Math.abs(d)} zile.`});
+    else if(d===0) warnings.push({type:'today', text:`Factura ${inv.invoiceNo||'fără număr'} este scadentă azi.`});
+    else warnings.push({type:'due', text:`Factura ${inv.invoiceNo||'fără număr'} ajunge la scadență în ${d} zile.`});
   });
   if(!warnings.length) return '<div class="log-ok-line">Nu sunt avertismente active pe contract.</div>';
-  return warnings.map(w=>`<div class="log-warning-line">${escHtml(w)}</div>`).join('');
+  return warnings.map(w=>`<div class="log-warning-line ${escHtml(w.type)}">${escHtml(w.text)}</div>`).join('');
 }
 
 function makeMovementId(){
@@ -5482,13 +5504,16 @@ function renderInvoicesTable(c){
       const rate=Number(r.rate)||fxRates.eurRon||5;
       const ron=invoiceValueRon(r);
       const alert=invoiceAlert(r);
+      const d=daysUntil(r.dueDate);
       const status=r.paid
         ? `<span class="log-badge done">Încasată ${r.paidDate||''}</span>`
         : alert==='overdue'
-          ? '<span class="log-badge warn">Depășită</span>'
-          : alert==='due'
-            ? '<span class="log-badge warn">Scadentă ≤5z</span>'
-            : '<span class="log-badge open">Neîncasată</span>';
+          ? `<span class="log-badge warn">Depășită cu ${Math.abs(d)} zile</span>`
+          : alert==='today'
+            ? '<span class="log-badge today">Scadentă azi</span>'
+            : alert==='due'
+              ? `<span class="log-badge due">Scadentă în ${d} zile</span>`
+              : '<span class="log-badge open">Neîncasată</span>';
       return `<tr>
         <td><input type="text" value="${escHtml(r.invoiceNo||'')}" onchange="updateInvoice(${i},'invoiceNo',this.value)"></td>
         <td><input type="date" value="${r.invoiceDate||''}" onchange="updateInvoice(${i},'invoiceDate',this.value)"></td>
