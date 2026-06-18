@@ -864,6 +864,7 @@ function validatePurchaseContractPayload(raw) {
   c.productLabel = PURCHASE_PRODUCTS[c.product]?.label || c.product;
   c.contractNo = String(c.contractNo || '').trim();
   c.contractDate = String(c.contractDate || '').trim();
+  c.agent = String(c.agent || '').trim();
   c.cropYear = String(c.cropYear || '2026').trim();
   c.quantity = Number(c.quantity);
   c.priceRon = Number(c.priceRon);
@@ -883,6 +884,7 @@ function validatePurchaseContractPayload(raw) {
   if (!PURCHASE_PRODUCTS[c.product]) throw new Error('Produs invalid.');
   if (!c.contractNo) throw new Error('Numarul contractului lipseste.');
   if (!c.contractDate) throw new Error('Data contractului lipseste.');
+  if (!c.agent) throw new Error('Agentul lipseste. Completeaza agentul pentru realizat la zi pe agenti.');
   if (!c.quantity || c.quantity <= 0) throw new Error('Cantitatea este invalida.');
   if (!c.priceRon || c.priceRon <= 0) throw new Error('Pretul este invalid.');
   if (!['FCA', 'DAP'].includes(c.parity)) throw new Error('Paritatea trebuie sa fie FCA sau DAP.');
@@ -1292,6 +1294,7 @@ app.post('/api/purchase-contracts/generate', requireAuth, (req, res) => {
       parity: contract.parity,
       loc: contract.deliveryPlace,
       cpty: contract.sellerName || (contract.sellerFullTextFinal.split(',')[0] || '').trim(),
+      agent: contract.agent,
       note: `Generat automat din contract achizitie nr. ${contract.contractNo}${contract.notes ? ' | ' + contract.notes : ''}`,
       ptype: 'fix',
       price: contract.priceRon,
@@ -1316,7 +1319,7 @@ app.post('/api/purchase-contracts/generate', requireAuth, (req, res) => {
       return { contractId: contractInfo.lastInsertRowid, tradeId: trade.id, fileName };
     });
     const out = tx();
-    audit(req, 'generate', 'purchase_contract', out.contractId, { contractNo: contract.contractNo, tradeId: out.tradeId, product: contract.product, quantity: contract.quantity });
+    audit(req, 'generate', 'purchase_contract', out.contractId, { contractNo: contract.contractNo, tradeId: out.tradeId, product: contract.product, quantity: contract.quantity, agent: contract.agent });
     res.json({ ok: true, contractId: out.contractId, tradeId: out.tradeId, downloadUrl: `/api/purchase-contracts/${out.contractId}/download`, trade });
   } catch (err) {
     console.error('Purchase contract generate error:', err);
