@@ -911,6 +911,14 @@ function replacePercentLike(text, pattern, value) {
   return text.replace(pattern, value);
 }
 
+function applyCropYearToText(text, contract) {
+  const cropYear = String(contract?.cropYear || '').trim();
+  if (!cropYear) return text;
+  return String(text || '')
+    .replace(/((?:productia|producția|producţia)\s+anului\s+)\d{4}/giu, `$1${cropYear}`)
+    .replace(/((?:productiei|producției|producţiei)\s+anului\s+)\d{4}/giu, `$1${cropYear}`);
+}
+
 function applyQualityToParagraph(text, contract, normalized) {
   const q = contract.qualityParams || {};
   let out = text;
@@ -961,7 +969,9 @@ function replaceContractParagraphs(documentXml, contract) {
   const sellerText = contract.sellerFullTextFinal;
 
   return documentXml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, (p) => {
-    const text = paragraphText(p);
+    const originalText = paragraphText(p);
+    const text = applyCropYearToText(originalText, contract);
+    const cropYearChanged = text !== originalText;
     const n = normalizeForMatch(text);
 
     const qualityOut = applyQualityToParagraph(text, contract, n);
@@ -1020,6 +1030,8 @@ function replaceContractParagraphs(documentXml, contract) {
       }
       return makeParagraphLike(p, out);
     }
+
+    if (cropYearChanged) return makeParagraphLike(p, text);
 
     return p;
   });
