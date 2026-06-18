@@ -1428,6 +1428,9 @@
               <option value="corn">Porumb</option>
               <option value="rapeseed">Rapita</option>
               <option value="sunflower">Floarea-soarelui</option>
+              <option value="triticale">Triticale</option>
+              <option value="soybean">Soia</option>
+              <option value="barley">Orz</option>
             </select>
           </div>
           <div>
@@ -1518,7 +1521,7 @@
         <div id="pcQualityBox" class="purchase-quality-box">
           <div>
             <div class="purchase-quality-title">Parametri calitate modificabili</div>
-            <div class="purchase-quality-note">Disponibil pentru grau si porumb. Daca lasi valorile standard, contractul ramane cu parametrii standard.</div>
+            <div class="purchase-quality-note">Disponibil pentru grau, porumb, triticale, soia si orz. Daca lasi valorile standard, contractul ramane cu parametrii standard.</div>
           </div>
           <div id="pcQualityFields"></div>
         </div>
@@ -1860,6 +1863,9 @@
       <option value="corn">Porumb</option>
       <option value="rapeseed">Rapiță</option>
       <option value="sunflower">Floarea-soarelui</option>
+      <option value="triticale">Triticale</option>
+      <option value="soybean">Soia</option>
+      <option value="barley">Orz</option>
     </select>
     <select id="trainFilterStatus" class="email-select" onchange="renderTrainTab()">
       <option value="">Toate statusurile</option>
@@ -1917,6 +1923,9 @@
           <option value="corn">🌽 Porumb</option>
           <option value="rapeseed">🌿 Rapiță</option>
           <option value="sunflower">🌻 Floarea-soarelui</option>
+          <option value="triticale">🌾 Triticale</option>
+          <option value="soybean">🫘 Soia</option>
+          <option value="barley">📦 Orz</option>
         </select>
       </div>
       <div class="fg">
@@ -2559,6 +2568,21 @@ const PARITY_RULES={
 };
 
 let products = {};
+const CORE_PRODUCTS = {
+  wheat:{name:'Grâu',emoji:'🌾',color:'#e2a857',symbol:'WHT'},
+  corn:{name:'Porumb',emoji:'🌽',color:'#f0c040',symbol:'CRN'},
+  rapeseed:{name:'Rapiță',emoji:'🌿',color:'#8bc34a',symbol:'RAP'},
+  sunflower:{name:'Floarea-soarelui',emoji:'🌻',color:'#ffb300',symbol:'SFW'},
+  barley:{name:'Orz',emoji:'📦',color:'#d6a34a',symbol:'ORZ'},
+  soybean:{name:'Soia',emoji:'🫘',color:'#b8894a',symbol:'SOY'},
+  triticale:{name:'Triticale',emoji:'🌾',color:'#c9a35f',symbol:'TRI'}
+};
+function ensureCoreProducts(){
+  let changed=false;
+  products=products&&typeof products==='object'?products:{};
+  Object.entries(CORE_PRODUCTS).forEach(([k,v])=>{ if(!products[k]){ products[k]=v; changed=true; } });
+  if(changed) apiSaveProducts().catch(()=>{});
+}
 let trades = [];
 let crop = '2025';
 let selColor = SWATCHES[0];
@@ -2891,6 +2915,7 @@ async function loadAll(){
   const tData = await tRes.json();
   trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
+  ensureCoreProducts();
   setSyncStatus('saved','● synced');
   populateProd();
   populateFilterProd();
@@ -8134,6 +8159,7 @@ async function syncTrades(){
     if(tradesChanged || productsChanged || logisticsChanged){
       trades=Array.isArray(newTrades)?newTrades:trades;
       products=newProducts || products;
+      ensureCoreProducts();
       logisticsContracts=Array.isArray(newLogistics)?newLogistics:logisticsContracts;
       migrateLogisticsData();
       if(productsChanged){ populateProd(); populateFilterProd(); }
@@ -8153,13 +8179,19 @@ const PURCHASE_PRODUCT_LABELS = {
   wheat: 'Grau',
   corn: 'Porumb',
   rapeseed: 'Rapita',
-  sunflower: 'Floarea-soarelui'
+  sunflower: 'Floarea-soarelui',
+  triticale: 'Triticale',
+  soybean: 'Soia',
+  barley: 'Orz'
 };
 const PURCHASE_PRODUCT_QUALITY = {
   wheat: ['Masa hectolitrica 76 kg/hl', 'Umiditate 14%', 'Corpuri straine 2%', 'Proteina min. 11%', 'DON max. 1250 ppb', 'Indice de cadere min. 220 sec.'],
   corn: ['Umiditate baza 14%', 'Impuritati baza 2%, max. 4%', 'Sparturi max. 3.5%', 'Aflatoxina max. 5 ppb', 'Marfa sanatoasa, libera de insecte si miros strain'],
   rapeseed: ['Umiditate max. 9%', 'Corpuri straine baza 2%, max. 4%', 'Acid erucic max. 2%', 'Continut de ulei min. 42%'],
-  sunflower: ['Umiditate baza 9%, max. 11%', 'Corpuri straine baza 2%, max. 4%', 'Infestare max. 10 exemplare vii/kg', 'Seminte defecte max. 6%', 'Motive refuz: miros strain, culoare modificata, Rhyzopertha, GH sub 38 kg/hl']
+  sunflower: ['Umiditate baza 9%, max. 11%', 'Corpuri straine baza 2%, max. 4%', 'Infestare max. 10 exemplare vii/kg', 'Seminte defecte max. 6%', 'Motive refuz: miros strain, culoare modificata, Rhyzopertha, GH sub 38 kg/hl'],
+  triticale: ['Umiditate 14%', 'Corpuri straine 2%', 'Receptie cantitativa si calitativa la descarcare'],
+  soybean: ['Umiditate max. 13%', 'Corpuri straine max. 2%', 'Proteina min. 33%', 'Continut de ulei min. 18%', 'GMO NON GMO', 'Sustenabilitate ISCC-EU'],
+  barley: ['Umiditate 14%, max. 15%', 'Corpuri straine 2%, max. 3%', 'Greutate hectolitrica min. 60 kg/hl', 'Infestare max. 10 exemplare vii/kg']
 };
 function htmlEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); }
 function purchaseNum(v){ return Number(v||0).toLocaleString('ro-RO', { maximumFractionDigits: 3 }); }
@@ -8179,7 +8211,10 @@ function purchaseToggleFzAdmin(){
 }
 const PURCHASE_QUALITY_DEFAULTS = {
   wheat: { hl:'76 kg/hl', humidity:'14%', foreignBodies:'2%', protein:'11%', don:'1250 ppb', fallingNumber:'220 sec.' },
-  corn: { humidityBase:'14.0%', dryingTax:'20 RON/tona/%', impuritiesBase:'2%', impuritiesMax:'4%', conditioningCost:'15 RON/to', broken:'3.5%', aflatoxin:'5 ppb' }
+  corn: { humidityBase:'14.0%', dryingTax:'20 RON/tona/%', impuritiesBase:'2%', impuritiesMax:'4%', conditioningCost:'15 RON/to', broken:'3.5%', aflatoxin:'5 ppb' },
+  triticale: { humidity:'14%', foreignBodies:'2%' },
+  soybean: { humidity:'13%', foreignBodies:'2%', protein:'33%', oil:'18%', gmo:'NON GMO' },
+  barley: { humidity:'14%', foreignBodies:'2%', hl:'60 kg/hl' }
 };
 function purchaseOnProductChange(){
   purchaseRenderQualityFields(true);
@@ -8190,13 +8225,24 @@ function purchaseRenderQualityFields(reset=false){
   const box=document.getElementById('pcQualityBox');
   const fields=document.getElementById('pcQualityFields');
   if(!box || !fields) return;
-  if(!['wheat','corn'].includes(product)){ box.classList.remove('open'); fields.innerHTML=''; return; }
+  if(!['wheat','corn','triticale','soybean','barley'].includes(product)){ box.classList.remove('open'); fields.innerHTML=''; return; }
   box.classList.add('open');
   const d=PURCHASE_QUALITY_DEFAULTS[product]||{};
-  const rows = product==='wheat' ? [
+  let rows=[];
+  if(product==='wheat') rows=[
     ['pcQHl','Masa hectolitrica',d.hl],['pcQHumidity','Umiditate',d.humidity],['pcQForeign','Corpuri straine',d.foreignBodies],['pcQProtein','Proteina minima',d.protein],['pcQDon','DON toxin max.',d.don],['pcQFall','Indice de cadere min.',d.fallingNumber]
-  ] : [
+  ];
+  else if(product==='corn') rows=[
     ['pcQCornHumidity','Umiditate baza',d.humidityBase],['pcQDryingTax','Taxa uscare',d.dryingTax],['pcQImpBase','Impuritati baza',d.impuritiesBase],['pcQImpMax','Impuritati max.',d.impuritiesMax],['pcQCondCost','Cost conditionare',d.conditioningCost],['pcQBroken','Sparturi max.',d.broken],['pcQAflatoxin','Aflatoxina max.',d.aflatoxin]
+  ];
+  else if(product==='triticale') rows=[
+    ['pcQTriticaleHumidity','Umiditate',d.humidity],['pcQTriticaleForeign','Corpuri straine',d.foreignBodies]
+  ];
+  else if(product==='soybean') rows=[
+    ['pcQSoyHumidity','Umiditate max.',d.humidity],['pcQSoyForeign','Corpuri straine max.',d.foreignBodies],['pcQSoyProtein','Proteina min.',d.protein],['pcQSoyOil','Continut ulei min.',d.oil],['pcQSoyGmo','GMO',d.gmo]
+  ];
+  else if(product==='barley') rows=[
+    ['pcQBarleyHumidity','Umiditate',d.humidity],['pcQBarleyForeign','Corpuri straine',d.foreignBodies],['pcQBarleyHl','Greutate hectolitrica min.',d.hl]
   ];
   fields.innerHTML=`<div class="purchase-row2">${rows.map(r=>`<div><div class="purchase-label">${htmlEsc(r[1])}</div><input id="${r[0]}" class="purchase-input" value="${htmlEsc(r[2])}" oninput="purchaseRefreshPreview()"></div>`).join('')}</div>`;
 }
@@ -8208,11 +8254,17 @@ function purchaseReadQualityParams(product){
   if(product==='corn') return {
     humidityBase:val('pcQCornHumidity','14.0%'), dryingTax:val('pcQDryingTax','20 RON/tona/%'), impuritiesBase:val('pcQImpBase','2%'), impuritiesMax:val('pcQImpMax','4%'), conditioningCost:val('pcQCondCost','15 RON/to'), broken:val('pcQBroken','3.5%'), aflatoxin:val('pcQAflatoxin','5 ppb')
   };
+  if(product==='triticale') return { humidity:val('pcQTriticaleHumidity','14%'), foreignBodies:val('pcQTriticaleForeign','2%') };
+  if(product==='soybean') return { humidity:val('pcQSoyHumidity','13%'), foreignBodies:val('pcQSoyForeign','2%'), protein:val('pcQSoyProtein','33%'), oil:val('pcQSoyOil','18%'), gmo:val('pcQSoyGmo','NON GMO') };
+  if(product==='barley') return { humidity:val('pcQBarleyHumidity','14%'), foreignBodies:val('pcQBarleyForeign','2%'), hl:val('pcQBarleyHl','60 kg/hl') };
   return {};
 }
 function purchaseQualityList(product, q){
   if(product==='wheat') return [`Masa hectolitrica ${q.hl}`,`Umiditate ${q.humidity}`,`Corpuri straine ${q.foreignBodies}`,`Proteina min. ${q.protein}`,`DON max. ${q.don}`,`Indice de cadere min. ${q.fallingNumber}`];
   if(product==='corn') return [`Umiditate baza ${q.humidityBase}`,`Taxa uscare ${q.dryingTax}`,`Impuritati baza ${q.impuritiesBase}, max. ${q.impuritiesMax}`,`Cost conditionare ${q.conditioningCost}`,`Sparturi max. ${q.broken}`,`Aflatoxina max. ${q.aflatoxin}`];
+  if(product==='triticale') return [`Umiditate ${q.humidity}`, `Corpuri straine ${q.foreignBodies}`];
+  if(product==='soybean') return [`Umiditate max. ${q.humidity}`, `Corpuri straine max. ${q.foreignBodies}`, `Proteina min. ${q.protein}`, `Continut ulei min. ${q.oil}`, `GMO ${q.gmo}`];
+  if(product==='barley') return [`Umiditate ${q.humidity}`, `Corpuri straine ${q.foreignBodies}`, `Greutate hectolitrica min. ${q.hl}`];
   return PURCHASE_PRODUCT_QUALITY[product]||[];
 }
 async function loadPartners(){
