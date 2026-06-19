@@ -2317,6 +2317,7 @@
       <div class="fg"><label class="fl">Recoltă</label><select id="agentBulkCrop" onchange="renderAgentBulkTable()"><option value="">Toate</option><option value="2025">2025</option><option value="2026">2026</option></select></div>
       <div class="fg"><label class="fl">Produs</label><select id="agentBulkProduct" onchange="renderAgentBulkTable()"><option value="">Toate</option></select></div>
       <div class="fg"><label class="fl">Status agent</label><select id="agentBulkStatusFilter" onchange="renderAgentBulkTable()"><option value="missing">Fără agent</option><option value="all">Toate</option><option value="assigned">Cu agent</option><option value="changed">Modificate</option></select></div>
+      <div class="fg"><label class="fl">Status semnare</label><select id="agentBulkSignedFilter" onchange="renderAgentBulkTable()"><option value="all">Toate</option><option value="unsigned">Nesemnate</option><option value="signed">Semnate</option><option value="changed">Semnare modificată</option><option value="linked">Cu contract generat</option></select></div>
       <div class="fg"><label class="fl">Agent rapid</label><input id="agentBulkQuickAgent" type="text" list="agentList" placeholder="nume agent"></div>
     </div>
 
@@ -2324,6 +2325,8 @@
       <button class="btn-save" onclick="agentBulkApplyToVisible(true)">Aplică la vizibile fără agent</button>
       <button class="btn-cancel" onclick="agentBulkApplyToVisible(false)">Aplică la toate vizibile</button>
       <button class="btn-cancel" onclick="agentBulkClearVisible()">Golește agent la vizibile</button>
+      <button class="btn-cancel" onclick="agentBulkMarkSignedVisible(true)">Marchează semnate vizibile</button>
+      <button class="btn-cancel" onclick="agentBulkMarkSignedVisible(false)">Marchează nesemnate vizibile</button>
       <label class="contract-check-row" style="margin-left:auto;"><input id="agentBulkIncludeNoContract" type="checkbox" onchange="renderAgentBulkTable()"> Arată și poziții fără nr. contract</label>
     </div>
 
@@ -2710,6 +2713,7 @@ let logisticsTabActive = false;
 let logisticsContracts = [];
 let selectedLogisticsId = null;
 let agentBulkDraft = {};
+let agentBulkSignedDraft = {};
 let logisticsMonthFilter = null;
 let logisticsOverviewProductFilter = '';
 let logisticsOverviewFlowFilter = '';
@@ -3388,18 +3392,53 @@ function renderAgentDatalist(){
 function agentBulkContractNo(t){
   return String(t?.note || t?.contractNo || t?.contract || '').trim();
 }
+function agentBulkPurchaseForTrade(t){
+  if(!t) return null;
+  const tradeId=String(t.id||'').trim();
+  const cn=String(agentBulkContractNo(t)||'').trim().toLowerCase();
+  const partner=String(t.cpty||'').trim().toLowerCase();
+  return (purchaseContracts||[]).find(c=>{
+    const cTrade=String(c.tradeId||c.positionId||'').trim();
+    if(tradeId && cTrade && cTrade===tradeId) return true;
+    const cNo=String(c.contractNo||c.nr||c.numarContract||'').trim().toLowerCase();
+    if(cn && cNo && cNo===cn){
+      const seller=String(c.sellerName||c.partnerName||c.supplierName||'').trim().toLowerCase();
+      return !partner || !seller || seller.includes(partner) || partner.includes(seller) || seller.split(/\s+/)[0]===partner.split(/\s+/)[0];
+    }
+    return false;
+  }) || null;
+}
+function agentBulkPurchaseIdForTrade(t){
+  const c=agentBulkPurchaseForTrade(t);
+  return c ? String(c.id || c.contractId || c._rowId || '').trim() : '';
+}
+function agentBulkOriginalSigned(t){
+  const c=agentBulkPurchaseForTrade(t);
+  return !!(c && c.signedReturned);
+}
+function agentBulkCurrentSigned(t){
+  const id=Number(t?.id);
+  if(Object.prototype.hasOwnProperty.call(agentBulkSignedDraft, id)) return !!agentBulkSignedDraft[id];
+  return agentBulkOriginalSigned(t);
+}
+function agentBulkSignedIsChanged(t){
+  const pcId=agentBulkPurchaseIdForTrade(t);
+  if(!pcId) return false;
+  return agentBulkCurrentSigned(t) !== agentBulkOriginalSigned(t);
+}
 function agentBulkCurrentAgent(t){
   if(Object.prototype.hasOwnProperty.call(agentBulkDraft, t.id)) return String(agentBulkDraft[t.id]||'').trim();
   return String(t.agent||'').trim();
 }
 function agentBulkIsChanged(t){
-  return String(agentBulkCurrentAgent(t)) !== String(t.agent||'').trim();
+  return String(agentBulkCurrentAgent(t)) !== String(t.agent||'').trim() || agentBulkSignedIsChanged(t);
 }
 function agentBulkRows(){
   const q=(document.getElementById('agentBulkSearch')?.value||'').toLowerCase().trim();
   const cropF=document.getElementById('agentBulkCrop')?.value||'';
   const prodF=document.getElementById('agentBulkProduct')?.value||'';
   const statF=document.getElementById('agentBulkStatusFilter')?.value||'missing';
+  const signF=document.getElementById('agentBulkSignedFilter')?.value||'all';
   const includeNoContract=!!document.getElementById('agentBulkIncludeNoContract')?.checked;
   let rows=(trades||[]).filter(t=>t && t.dir==='long');
   if(!includeNoContract) rows=rows.filter(t=>agentBulkContractNo(t));
@@ -3415,16 +3454,22 @@ function agentBulkRows(){
   if(statF==='missing') rows=rows.filter(t=>!agentBulkCurrentAgent(t));
   if(statF==='assigned') rows=rows.filter(t=>!!agentBulkCurrentAgent(t));
   if(statF==='changed') rows=rows.filter(t=>agentBulkIsChanged(t));
+  if(signF==='signed') rows=rows.filter(t=>agentBulkCurrentSigned(t));
+  if(signF==='unsigned') rows=rows.filter(t=>agentBulkPurchaseIdForTrade(t) && !agentBulkCurrentSigned(t));
+  if(signF==='changed') rows=rows.filter(t=>agentBulkSignedIsChanged(t));
+  if(signF==='linked') rows=rows.filter(t=>agentBulkPurchaseIdForTrade(t));
   return rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || Number(b.id||0)-Number(a.id||0));
 }
 function openAgentBulkModal(){
   agentBulkDraft={};
+  agentBulkSignedDraft={};
   const prod=document.getElementById('agentBulkProduct');
   if(prod){
     prod.innerHTML='<option value="">Toate</option>'+Object.entries(products||{}).map(([k,p])=>`<option value="${escAttr(k)}">${escHtml((p.emoji||'')+' '+(p.name||k))}</option>`).join('');
   }
   const cropSel=document.getElementById('agentBulkCrop'); if(cropSel) cropSel.value=crop || '';
   const stat=document.getElementById('agentBulkStatusFilter'); if(stat) stat.value='missing';
+  const sign=document.getElementById('agentBulkSignedFilter'); if(sign) sign.value='all';
   const search=document.getElementById('agentBulkSearch'); if(search) search.value='';
   const quick=document.getElementById('agentBulkQuickAgent'); if(quick) quick.value='';
   const inc=document.getElementById('agentBulkIncludeNoContract'); if(inc) inc.checked=false;
@@ -3441,7 +3486,9 @@ function renderAgentBulkTable(){
   const totalLong=(trades||[]).filter(t=>t && t.dir==='long').length;
   const missing=(trades||[]).filter(t=>t && t.dir==='long' && !String(t.agent||'').trim() && agentBulkContractNo(t)).length;
   const changed=(trades||[]).filter(t=>t && t.dir==='long' && agentBulkIsChanged(t)).length;
-  if(status) status.textContent=`Contracte achiziție în poziție: ${totalLong}. Fără agent: ${missing}. Modificate nesalvate: ${changed}.`;
+  const linked=(trades||[]).filter(t=>t && t.dir==='long' && agentBulkPurchaseIdForTrade(t)).length;
+  const unsigned=(trades||[]).filter(t=>t && t.dir==='long' && agentBulkPurchaseIdForTrade(t) && !agentBulkOriginalSigned(t)).length;
+  if(status) status.textContent=`Contracte achiziție în poziție: ${totalLong}. Legate de Contracte: ${linked}. Fără agent: ${missing}. Nesemnate: ${unsigned}. Modificate nesalvate: ${changed}.`;
   if(meta) meta.textContent=`Rânduri afișate: ${rows.length} · modificări nesalvate: ${changed}`;
   const btn=document.getElementById('agentBulkSaveBtn'); if(btn) btn.textContent=changed?`Salvează ${changed} modificări`:'Salvează modificările';
   if(!rows.length){
@@ -3449,13 +3496,16 @@ function renderAgentBulkTable(){
     return;
   }
   wrap.innerHTML=`<table class="agentbulk-table"><thead><tr>
-    <th>Data</th><th>Contract</th><th>Produs</th><th>Recoltă</th><th>Furnizor</th><th>Cantitate</th><th>Preț</th><th>Paritate</th><th>Loc</th><th>Agent</th><th>Status</th>
+    <th>Data</th><th>Contract</th><th>Produs</th><th>Recoltă</th><th>Furnizor</th><th>Cantitate</th><th>Preț</th><th>Paritate</th><th>Loc</th><th>Agent</th><th>Semnat</th><th>Status</th>
   </tr></thead><tbody>${rows.map(t=>{
     const p=products[t.product]||{name:t.product||'Produs',emoji:''};
     const agent=agentBulkCurrentAgent(t);
     const changedRow=agentBulkIsChanged(t);
     const price=Number(t.price)||0;
     const cur=(t.currency==='eur'?'EUR':'RON');
+    const pcId=agentBulkPurchaseIdForTrade(t);
+    const signed=agentBulkCurrentSigned(t);
+    const signChanged=agentBulkSignedIsChanged(t);
     return `<tr>
       <td>${escHtml(t.date||'—')}</td>
       <td><b>${escHtml(agentBulkContractNo(t)||'—')}</b></td>
@@ -3467,6 +3517,7 @@ function renderAgentBulkTable(){
       <td>${escHtml(t.parity||'—')}</td>
       <td>${escHtml(t.loc||'—')}</td>
       <td><input class="agentbulk-agent-input" list="agentList" value="${escAttr(agent)}" onchange="agentBulkSet(${Number(t.id)}, this.value)" oninput="agentBulkSet(${Number(t.id)}, this.value, true)"></td>
+      <td title="${pcId?'Bifa din modulul Contracte':'Nu există contract generat legat'}"><label class="contract-check-row" style="gap:5px;margin:0;"><input type="checkbox" ${signed?'checked':''} ${pcId?'':'disabled'} onchange="agentBulkSetSigned(${Number(t.id)}, this.checked)"> ${pcId?(signed?'DA':'NU'):'—'}${signChanged?' *':''}</label></td>
       <td class="${changedRow?'agentbulk-changed':''}">${changedRow?'modificat':(agent?'ok':'fără agent')}</td>
     </tr>`;
   }).join('')}</tbody></table>`;
@@ -3484,6 +3535,27 @@ function agentBulkSet(id, value, silent=false){
     const btn=document.getElementById('agentBulkSaveBtn'); if(btn) btn.textContent=changed?`Salvează ${changed} modificări`:'Salvează modificările';
   }
 }
+function agentBulkSetSigned(id, checked){
+  const t=(trades||[]).find(x=>Number(x.id)===Number(id));
+  if(!t) return;
+  if(!agentBulkPurchaseIdForTrade(t)){
+    alert('Nu există contract generat legat de această poziție.');
+    renderAgentBulkTable();
+    return;
+  }
+  if(!!checked === agentBulkOriginalSigned(t)) delete agentBulkSignedDraft[id];
+  else agentBulkSignedDraft[id]=!!checked;
+  renderAgentBulkTable();
+}
+function agentBulkMarkSignedVisible(value){
+  const rows=agentBulkRows().filter(t=>agentBulkPurchaseIdForTrade(t));
+  if(!rows.length){ alert('Nu există contracte legate în lista vizibilă.'); return; }
+  rows.forEach(t=>{
+    if(!!value === agentBulkOriginalSigned(t)) delete agentBulkSignedDraft[t.id];
+    else agentBulkSignedDraft[t.id]=!!value;
+  });
+  renderAgentBulkTable();
+}
 function agentBulkApplyToVisible(onlyEmpty){
   const agent=(document.getElementById('agentBulkQuickAgent')?.value||'').trim();
   if(!agent){ alert('Completează întâi Agent rapid.'); return; }
@@ -3500,24 +3572,39 @@ function agentBulkClearVisible(){
 }
 async function saveAgentBulkChanges(){
   const changes=(trades||[]).filter(t=>t && t.dir==='long' && agentBulkIsChanged(t));
+  const agentChanges=changes.filter(t=>String(agentBulkCurrentAgent(t)) !== String(t.agent||'').trim());
+  const signedChanges=changes.filter(t=>agentBulkSignedIsChanged(t));
   if(!changes.length){ alert('Nu există modificări de salvat.'); return; }
-  if(!confirm(`Salvezi agentul pentru ${changes.length} contracte?`)) return;
+  if(!confirm(`Salvezi modificările pentru ${changes.length} contracte?\nAgent modificat: ${agentChanges.length}\nSemnare modificată: ${signedChanges.length}`)) return;
   const status=document.getElementById('agentBulkStatus');
   const btn=document.getElementById('agentBulkSaveBtn');
   if(btn) btn.disabled=true;
   try{
     setSyncStatus('saving','● saving...');
-    for(let i=0;i<changes.length;i++){
-      const t=changes[i];
+    for(let i=0;i<agentChanges.length;i++){
+      const t=agentChanges[i];
       const agent=agentBulkCurrentAgent(t);
       const payload={...t, agent};
       delete payload.id;
       const res=await fetch(`/api/trades/${encodeURIComponent(t.id)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(!res.ok) throw new Error(`Nu s-a putut salva contractul ${agentBulkContractNo(t)||'#'+t.id}.`);
+      if(!res.ok) throw new Error(`Nu s-a putut salva agentul pentru contractul ${agentBulkContractNo(t)||'#'+t.id}.`);
       t.agent=agent;
-      if(status) status.textContent=`Salvare ${i+1}/${changes.length}...`;
+      if(status) status.textContent=`Salvare agent ${i+1}/${agentChanges.length}...`;
+    }
+    for(let i=0;i<signedChanges.length;i++){
+      const t=signedChanges[i];
+      const pcId=agentBulkPurchaseIdForTrade(t);
+      if(!pcId) continue;
+      const signed=agentBulkCurrentSigned(t);
+      const res=await fetch(`/api/purchase-contracts/${encodeURIComponent(pcId)}/signed`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({signedReturned:!!signed})});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error || `Nu s-a putut salva semnarea pentru contractul ${agentBulkContractNo(t)||'#'+t.id}.`);
+      const idx=(purchaseContracts||[]).findIndex(c=>String(c.id || c.contractId || c._rowId)===String(pcId));
+      if(idx>=0) purchaseContracts[idx]={...purchaseContracts[idx], ...(data.contract||{}), signedReturned:!!signed};
+      if(status) status.textContent=`Salvare semnare ${i+1}/${signedChanges.length}...`;
     }
     agentBulkDraft={};
+    agentBulkSignedDraft={};
     renderAgentDatalist();
     render();
     renderAgentBulkTable();
@@ -8695,6 +8782,31 @@ function reportTradePrice(t){
   return Number(t.priceRon || t.price || 0) || 0;
 }
 function reportTradeDate(t){ return String(t.date || t.data || t.createdAt || '').slice(0,10); }
+function reportPurchaseContractForTrade(t){
+  if(!t) return null;
+  const tradeId=String(t.id||'').trim();
+  const cn=String(getTradeContractNumber(t)||'').trim().toLowerCase();
+  const partner=String(t.cpty||'').trim().toLowerCase();
+  return (purchaseContracts||[]).find(c=>{
+    const cTrade=String(c.tradeId||c.positionId||'').trim();
+    if(tradeId && cTrade && cTrade===tradeId) return true;
+    const cNo=String(c.contractNo||c.nr||c.numarContract||'').trim().toLowerCase();
+    if(cn && cNo && cNo===cn){
+      const seller=String(c.sellerName||c.partnerName||c.supplierName||'').trim().toLowerCase();
+      return !partner || !seller || seller.includes(partner) || partner.includes(seller) || seller.split(/\s+/)[0]===partner.split(/\s+/)[0];
+    }
+    return false;
+  }) || null;
+}
+function reportTradeSigned(t){
+  const c=reportPurchaseContractForTrade(t);
+  return c ? !!c.signedReturned : false;
+}
+function reportTradeSignedLabel(t){
+  const c=reportPurchaseContractForTrade(t);
+  if(!c) return '—';
+  return c.signedReturned ? 'DA' : 'NU';
+}
 function reportTradeRows(from,to,dir){
   return (trades||[]).filter(t=>t && t.dir===dir && reportInRange(reportTradeDate(t),from,to)).map(t=>{
     const qty=Number(t.qty)||0;
@@ -8715,6 +8827,8 @@ function reportTradeRows(from,to,dir){
       loc:t.loc||'',
       contractNo:getTradeContractNumber(t),
       agent:t.agent||'',
+      signed:reportTradeSigned(t),
+      signedLabel:reportTradeSignedLabel(t),
       note:t.note||'',
       incomplete:!!t.incomplete
     };
@@ -8747,14 +8861,19 @@ function reportAgentTotalRows(buys){
   const m={};
   (buys||[]).forEach(r=>{
     const agent=reportAgentNameFromRow(r);
-    if(!m[agent]) m[agent]={Agent:agent,Cantitate:0,ValoareRON:0,ValoareEUR:0,Contracte:new Set(),Produse:{}};
+    if(!m[agent]) m[agent]={Agent:agent,Cantitate:0,ValoareRON:0,ValoareEUR:0,Contracte:new Set(),Semnate:new Set(),Nesemnate:new Set(),Produse:{}};
     const qty=Number(r.qty)||0;
     const val=Number(r.value)||0;
     m[agent].Cantitate+=qty;
     if(String(r.valuta||'RON').toUpperCase()==='EUR') m[agent].ValoareEUR+=val;
     else m[agent].ValoareRON+=val;
     const cn=String(r.contractNo||'').trim();
-    if(cn) m[agent].Contracte.add(cn); else if(r.id!=null) m[agent].Contracte.add('poz-'+r.id);
+    const contractKey=cn || (r.id!=null ? 'poz-'+r.id : '');
+    if(contractKey){
+      m[agent].Contracte.add(contractKey);
+      if(r.signedLabel==='DA') m[agent].Semnate.add(contractKey);
+      else if(r.signedLabel==='NU') m[agent].Nesemnate.add(contractKey);
+    }
     const prod=[r.productLabel||r.product||'Produs', r.crop||''].filter(Boolean).join(' ');
     m[agent].Produse[prod]=(m[agent].Produse[prod]||0)+qty;
   });
@@ -8764,6 +8883,8 @@ function reportAgentTotalRows(buys){
     ValoareRON:x.ValoareRON,
     ValoareEUR:x.ValoareEUR,
     Contracte:x.Contracte.size,
+    Semnate:x.Semnate.size,
+    Nesemnate:x.Nesemnate.size,
     Produse:Object.entries(x.Produse).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${fmtN(v)} t`).join(' | ')
   })).sort((a,b)=>b.Cantitate-a.Cantitate || String(a.Agent).localeCompare(String(b.Agent),'ro'));
 }
@@ -8772,17 +8893,22 @@ function reportAgentProductRows(buys){
   (buys||[]).forEach(r=>{
     const agent=reportAgentNameFromRow(r);
     const k=[agent,r.productLabel||r.product||'Produs',r.crop||'',r.valuta||'RON'].join('|');
-    if(!m[k]) m[k]={Agent:agent,Produs:r.productLabel||r.product||'Produs',Recolta:r.crop||'',Valuta:r.valuta||'RON',Cantitate:0,Valoare:0,PretMediu:0,Contracte:new Set()};
+    if(!m[k]) m[k]={Agent:agent,Produs:r.productLabel||r.product||'Produs',Recolta:r.crop||'',Valuta:r.valuta||'RON',Cantitate:0,Valoare:0,PretMediu:0,Contracte:new Set(),Semnate:new Set(),Nesemnate:new Set()};
     const qty=Number(r.qty)||0;
     const val=Number(r.value)||0;
     m[k].Cantitate+=qty;
     m[k].Valoare+=val;
     const cn=String(r.contractNo||'').trim();
-    if(cn) m[k].Contracte.add(cn); else if(r.id!=null) m[k].Contracte.add('poz-'+r.id);
+    const contractKey=cn || (r.id!=null ? 'poz-'+r.id : '');
+    if(contractKey){
+      m[k].Contracte.add(contractKey);
+      if(r.signedLabel==='DA') m[k].Semnate.add(contractKey);
+      else if(r.signedLabel==='NU') m[k].Nesemnate.add(contractKey);
+    }
   });
   return Object.values(m).map(x=>({
     Agent:x.Agent,Produs:x.Produs,Recolta:x.Recolta,Valuta:x.Valuta,
-    Cantitate:x.Cantitate,Valoare:x.Valoare,PretMediu:x.Cantitate?x.Valoare/x.Cantitate:0,Contracte:x.Contracte.size
+    Cantitate:x.Cantitate,Valoare:x.Valoare,PretMediu:x.Cantitate?x.Valoare/x.Cantitate:0,Contracte:x.Contracte.size,Semnate:x.Semnate.size,Nesemnate:x.Nesemnate.size
   })).sort((a,b)=>String(a.Agent).localeCompare(String(b.Agent),'ro') || String(a.Produs).localeCompare(String(b.Produs),'ro') || String(a.Recolta).localeCompare(String(b.Recolta)) || String(a.Valuta).localeCompare(String(b.Valuta)));
 }
 function reportAgentDetailRows(buys){
@@ -8798,7 +8924,8 @@ function reportAgentDetailRows(buys){
     Valoare:r.value,
     Paritate:r.parity,
     Loc:r.loc,
-    Contract:r.contractNo
+    Contract:r.contractNo,
+    Semnat:r.signedLabel
   })).sort((a,b)=>String(a.Agent).localeCompare(String(b.Agent),'ro') || String(a.Data).localeCompare(String(b.Data)) || String(a.Produs).localeCompare(String(b.Produs),'ro'));
 }
 
@@ -9043,16 +9170,16 @@ function renderActivityReport(data){
   const sec=(title,note,html)=>`<div class="report-section"><div class="report-section-head"><div class="report-section-title">${escHtml(title)}</div><div class="report-section-note">${escHtml(note||'')}</div></div>${html}</div>`;
   let html=`<div class="report-kpis">${kpis.map(k=>`<div class="report-kpi"><div class="report-kpi-l">${escHtml(k[0])}</div><div class="report-kpi-v">${escHtml(k[1])}</div></div>`).join('')}</div>`;
   if(data.include.trades){
-    html+=sec('Achizitii',`${fmtN(data.buyQty)} t`,reportTable(['Data','Agent','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.buys,(r,h)=>({Data:r.date,Agent:reportAgentNameFromRow(r),Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:fmtN(r.qty),Pret:r.price?fmtN(r.price):'—',Valuta:r.valuta,Valoare:fmtN(r.value),Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h])));
+    html+=sec('Achizitii',`${fmtN(data.buyQty)} t`,reportTable(['Data','Agent','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract','Semnat'],data.buys,(r,h)=>({Data:r.date,Agent:reportAgentNameFromRow(r),Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:fmtN(r.qty),Pret:r.price?fmtN(r.price):'—',Valuta:r.valuta,Valoare:fmtN(r.value),Paritate:r.parity,Loc:r.loc,Contract:r.contractNo,Semnat:r.signedLabel}[h])));
     html+=sec('Total achizitii','grupat pe produs, recolta si valuta',reportTable(['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],data.buySummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—','Valoare':fmtN(r.Valoare)}[h])));
     html+=sec('Vanzari',`${fmtN(data.sellQty)} t`,reportTable(['Data','Produs','Recolta','Client','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.sells,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Client:r.partner,Cantitate:fmtN(r.qty),Pret:r.price?fmtN(r.price):'—',Valuta:r.valuta,Valoare:fmtN(r.value),Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h])));
     html+=sec('Total vanzari','grupat pe produs, recolta si valuta',reportTable(['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],data.sellSummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—','Valoare':fmtN(r.Valoare)}[h])));
     html+=sec('Pozitie totala la zi','separat pe produs si recolta',reportTable(['Produs','Recolta','Long','Short','Net'],data.totalPosRows,(r,h)=>({Produs:r.Produs,Recolta:r.Recolta,Long:fmtN(r.Long),Short:fmtN(r.Short),Net:fmtNet(r.Net)}[h])));
   }
   if(data.include.agents){
-    html+=sec('Achizitii per agent la zi','total pe agent pana la data Pana la',reportTable(['Agent','Cantitate','Valoare RON','Valoare EUR','Contracte','Produse'],data.agentTotals,(r,h)=>({Agent:r.Agent,Cantitate:fmtN(r.Cantitate),'Valoare RON':r.ValoareRON?fmtN(r.ValoareRON):'—','Valoare EUR':r.ValoareEUR?fmtN(r.ValoareEUR):'—',Contracte:r.Contracte,Produse:r.Produse}[h])));
-    html+=sec('Achizitii per agent si produs la zi','grupat pe agent, produs, recolta si valuta, pana la data Pana la',reportTable(['Agent','Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare','Contracte'],data.agentByProduct,(r,h)=>({Agent:r.Agent,Produs:r.Produs,Recolta:r.Recolta,Valuta:r.Valuta,Cantitate:fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—',Valoare:fmtN(r.Valoare),Contracte:r.Contracte}[h])));
-    html+=sec('Detaliu achizitii pe agent la zi','tranzactii LONG pana la data Pana la',reportTable(['Agent','Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],data.agentDetails,(r,h)=>({Agent:r.Agent,Data:r.Data,Produs:r.Produs,Recolta:r.Recolta,Furnizor:r.Furnizor,Cantitate:fmtN(r.Cantitate),Pret:r.Pret?fmtN(r.Pret):'—',Valuta:r.Valuta,Valoare:fmtN(r.Valoare),Paritate:r.Paritate,Loc:r.Loc,Contract:r.Contract}[h])));
+    html+=sec('Achizitii per agent la zi','total pe agent pana la data Pana la',reportTable(['Agent','Cantitate','Valoare RON','Valoare EUR','Contracte','Semnate','Nesemnate','Produse'],data.agentTotals,(r,h)=>({Agent:r.Agent,Cantitate:fmtN(r.Cantitate),'Valoare RON':r.ValoareRON?fmtN(r.ValoareRON):'—','Valoare EUR':r.ValoareEUR?fmtN(r.ValoareEUR):'—',Contracte:r.Contracte,Semnate:r.Semnate,Nesemnate:r.Nesemnate,Produse:r.Produse}[h])));
+    html+=sec('Achizitii per agent si produs la zi','grupat pe agent, produs, recolta si valuta, pana la data Pana la',reportTable(['Agent','Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare','Contracte','Semnate','Nesemnate'],data.agentByProduct,(r,h)=>({Agent:r.Agent,Produs:r.Produs,Recolta:r.Recolta,Valuta:r.Valuta,Cantitate:fmtN(r.Cantitate),'Pret mediu':r.PretMediu?fmtN(r.PretMediu):'—',Valoare:fmtN(r.Valoare),Contracte:r.Contracte,Semnate:r.Semnate,Nesemnate:r.Nesemnate}[h])));
+    html+=sec('Detaliu achizitii pe agent la zi','tranzactii LONG pana la data Pana la',reportTable(['Agent','Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract','Semnat'],data.agentDetails,(r,h)=>({Agent:r.Agent,Data:r.Data,Produs:r.Produs,Recolta:r.Recolta,Furnizor:r.Furnizor,Cantitate:fmtN(r.Cantitate),Pret:r.Pret?fmtN(r.Pret):'—',Valuta:r.Valuta,Valoare:fmtN(r.Valoare),Paritate:r.Paritate,Loc:r.Loc,Contract:r.Contract,Semnat:r.Semnat}[h])));
   }
   if(data.include.contracts) html+=sec('Contracte achizitie generate','interval selectat',reportTable(['Data','Nr','Produs','Furnizor','Cantitate','Pret','Paritate','Loc','Semnat'],data.contracts,(r,h)=>({Data:r.Data,Nr:r.Nr,Produs:r.Produs,Furnizor:r.Furnizor,Cantitate:fmtN(r.Cantitate),Pret:r.Pret?fmtN(r.Pret)+' lei/t':'—',Paritate:r.Paritate,Loc:r.Loc,Semnat:r.SEMNAT}[h])));
   if(data.include.logistics) html+=sec('Logistica / livrari','miscari si activitati logistice',reportTable(['Data','Tip','Contract','Partener','Produs','Cantitate','Ruta','Status','Observatii'],data.logistics,(r,h)=>({Data:r.Data,Tip:r.Tip,Contract:r.Contract,Partener:r.Partener,Produs:r.Produs,Cantitate:fmtN(r.Cantitate),Ruta:r.Ruta,Status:r.Status,Observatii:r.Observatii}[h])));
@@ -9218,16 +9345,16 @@ function exportActivityReportExcel(){
   ],(r,h)=>r[h]??'');
 
   if(d.include.trades){
-    addSection('ACHIZITII',['Data','Agent','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.buys,(r,h)=>({Data:r.date,Agent:reportAgentNameFromRow(r),Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
+    addSection('ACHIZITII',['Data','Agent','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract','Semnat'],d.buys,(r,h)=>({Data:r.date,Agent:reportAgentNameFromRow(r),Produs:r.productLabel,Recolta:r.crop,Furnizor:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo,Semnat:r.signedLabel}[h]));
     addSection('TOTAL ACHIZITII',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.buySummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
     addSection('VANZARI',['Data','Produs','Recolta','Client','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.sells,(r,h)=>({Data:r.date,Produs:r.productLabel,Recolta:r.crop,Client:r.partner,Cantitate:r.qty,Pret:r.price,Valuta:r.valuta,Valoare:r.value,Paritate:r.parity,Loc:r.loc,Contract:r.contractNo}[h]));
     addSection('TOTAL VANZARI',['Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare'],d.sellSummary,(r,h)=>({'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare}[h]));
     addSection('POZITIE TOTALA LA ZI',['Produs','Recolta','Long','Short','Net'],d.totalPosRows,(r,h)=>({Produs:r.Produs,Recolta:r.Recolta,Long:r.Long,Short:r.Short,Net:r.Net}[h]));
   }
   if(d.include.agents){
-    addSection('ACHIZITII PER AGENT LA ZI',['Agent','Cantitate','Valoare RON','Valoare EUR','Contracte','Produse'],d.agentTotals,(r,h)=>({'Agent':r.Agent,'Cantitate':r.Cantitate,'Valoare RON':r.ValoareRON,'Valoare EUR':r.ValoareEUR,'Contracte':r.Contracte,'Produse':r.Produse}[h]));
-    addSection('ACHIZITII PER AGENT SI PRODUS LA ZI',['Agent','Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare','Contracte'],d.agentByProduct,(r,h)=>({'Agent':r.Agent,'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare,'Contracte':r.Contracte}[h]));
-    addSection('DETALIU ACHIZITII PE AGENT LA ZI',['Agent','Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract'],d.agentDetails,(r,h)=>r[h]??'');
+    addSection('ACHIZITII PER AGENT LA ZI',['Agent','Cantitate','Valoare RON','Valoare EUR','Contracte','Semnate','Nesemnate','Produse'],d.agentTotals,(r,h)=>({'Agent':r.Agent,'Cantitate':r.Cantitate,'Valoare RON':r.ValoareRON,'Valoare EUR':r.ValoareEUR,'Contracte':r.Contracte,'Semnate':r.Semnate,'Nesemnate':r.Nesemnate,'Produse':r.Produse}[h]));
+    addSection('ACHIZITII PER AGENT SI PRODUS LA ZI',['Agent','Produs','Recolta','Valuta','Cantitate','Pret mediu','Valoare','Contracte','Semnate','Nesemnate'],d.agentByProduct,(r,h)=>({'Agent':r.Agent,'Produs':r.Produs,'Recolta':r.Recolta,'Valuta':r.Valuta,'Cantitate':r.Cantitate,'Pret mediu':r.PretMediu,'Valoare':r.Valoare,'Contracte':r.Contracte,'Semnate':r.Semnate,'Nesemnate':r.Nesemnate}[h]));
+    addSection('DETALIU ACHIZITII PE AGENT LA ZI',['Agent','Data','Produs','Recolta','Furnizor','Cantitate','Pret','Valuta','Valoare','Paritate','Loc','Contract','Semnat'],d.agentDetails,(r,h)=>r[h]??'');
   }
   if(d.include.contracts) addSection('CONTRACTE ACHIZITIE',['Data','Nr','Produs','Furnizor','Cantitate','Pret','Paritate','Loc','Semnat'],d.contracts,(r,h)=>({Data:r.Data,Nr:r.Nr,Produs:r.Produs,Furnizor:r.Furnizor,Cantitate:r.Cantitate,Pret:r.Pret,Paritate:r.Paritate,Loc:r.Loc,Semnat:r.SEMNAT}[h]));
   if(d.include.logistics) addSection('LOGISTICA / LIVRARI',['Data','Tip','Contract','Partener','Produs','Cantitate','Ruta','Status','Observatii'],d.logistics,(r,h)=>r[h]??'');
@@ -9250,7 +9377,7 @@ function exportActivityReportExcel(){
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!merges']=merges;
   ws['!cols']=[
-    {wch:18},{wch:22},{wch:14},{wch:28},{wch:14},{wch:14},{wch:12},{wch:16},{wch:14},{wch:22},{wch:18},{wch:30}
+    {wch:18},{wch:22},{wch:14},{wch:28},{wch:14},{wch:14},{wch:12},{wch:16},{wch:14},{wch:22},{wch:18},{wch:30},{wch:10}
   ];
   ws['!freeze']={xSplit:0,ySplit:3};
 
