@@ -3001,6 +3001,50 @@ function updateFxWidget(){
   updEl.innerHTML=`<span title="Sursa: ${escHtml(fxSource)}" style="cursor:help;color:${isNonBNR?'var(--short)':'var(--dim)'}">${isNonBNR?'⚠ ':''}${escHtml(fxSource)}</span>`;
 }
 
+
+function positionFxRate(){
+  return Number(fxRates.eurRon) || 5;
+}
+function tradeContractFxRate(t){
+  const r=Number(t?.cursEur);
+  return Number.isFinite(r) && r>0 ? r : null;
+}
+function tradePriceEurValue(t){
+  const direct=Number(t?.priceEur);
+  if(Number.isFinite(direct) && direct>0) return direct;
+  const storedRon=Number(t?.price || t?.priceRon);
+  const oldRate=tradeContractFxRate(t);
+  if(Number.isFinite(storedRon) && storedRon>0 && oldRate) return storedRon/oldRate;
+  return 0;
+}
+function tradePriceRonForPosition(t){
+  if(!t) return 0;
+  const ptype=String(t.ptype||'fix').toLowerCase();
+  const currency=String(t.currency||'ron').toLowerCase();
+  if(ptype==='fix' && currency==='eur') return tradePriceEurValue(t) * positionFxRate();
+  if(ptype==='fix') return Number(t.priceRon || t.price) || 0;
+  return Number(t.priceRon || t.price) || 0;
+}
+function tradeTransportRonForPosition(t){
+  if(!t) return 0;
+  const transportEur=Number(t.transportEur);
+  if(Number.isFinite(transportEur) && transportEur>0) return transportEur * positionFxRate();
+  const currency=String(t.currency||'ron').toLowerCase();
+  const oldRate=tradeContractFxRate(t);
+  const stored=Number(t.transport)||0;
+  if(currency==='eur' && oldRate && stored>0) return (stored/oldRate) * positionFxRate();
+  return stored;
+}
+function tradePositionFxInfo(t){
+  const currency=String(t?.currency||'ron').toLowerCase();
+  if(currency!=='eur') return {contractRate:'', reportRate:'', priceRon:tradePriceRonForPosition(t)};
+  return {
+    contractRate: tradeContractFxRate(t) || '',
+    reportRate: positionFxRate(),
+    priceRon: tradePriceRonForPosition(t)
+  };
+}
+
 async function loadAll(){
   setSyncStatus('saving','● syncing...');
   const [tRes,pRes] = await Promise.all([fetch('/api/trades'), fetch('/api/products')]);
@@ -3197,7 +3241,7 @@ function getPos(cropFilter){
     }
 
     const qty=Number(t.qty)||0;
-    const price=Number(t.price)||0;
+    const price=tradePriceRonForPosition(t);
     const bonif=Number(t.bonif)||0;
     const mult=1+(bonif/100);
 
@@ -3222,7 +3266,7 @@ function getPos(cropFilter){
         pos[t.product].sellV+=qty*price;
 
         const isDap=t.parity==='DAP-V'||t.parity==='DAP';
-        const trsp=Number(t.transport)||0;
+        const trsp=tradeTransportRonForPosition(t);
         const priceFca=isDap&&trsp>0?price-trsp:price;
         pos[t.product].sellVfca+=qty*priceFca;
         pos[t.product].sellQfca+=qty;
@@ -3342,17 +3386,21 @@ function renderTable(){
     const isEurTrade=t.currency==='eur'&&t.ptype==='fix';
     let priceDisplay;
     if(t.ptype==='fix'){
-      if(isEurTrade&&t.priceEur){
-        priceDisplay=`<span style="color:var(--eur)">${fmtN(t.priceEur)} EUR/t</span><span class="tdim" style="margin-left:3px">≈${fmtN(t.price)} RON</span>`;
+      if(isEurTrade&&tradePriceEurValue(t)){
+        const reportRate=positionFxRate();
+        const priceRonReport=tradePriceRonForPosition(t);
+        priceDisplay=`<span style="color:var(--eur)">${fmtN(tradePriceEurValue(t))} EUR/t</span><span class="tdim" style="margin-left:3px" title="Calculat cu ultimul curs EUR/RON disponibil: ${reportRate.toFixed(4)}">≈${fmtN(priceRonReport)} RON/t</span>`;
       } else {
-        priceDisplay=t.price?`<span style="color:var(--acc)">${fmtN(t.price)} RON/t</span>`:`<span style="color:var(--short)">—</span>`;
+        const priceRonReport=tradePriceRonForPosition(t);
+        priceDisplay=priceRonReport?`<span style="color:var(--acc)">${fmtN(priceRonReport)} RON/t</span>`:`<span style="color:var(--short)">—</span>`;
       }
     } else {
       priceDisplay=`<span class="tbasis">${t.matif||'MATIF'} <span style="color:${(t.basis||0)>=0?'var(--long)':'var(--short)'}">${(t.basis||0)>=0?'+':''}${t.basis||'—'} €/t</span></span>`;
     }
     const curBadge=isEurTrade?`<span class="teur">EUR</span>`:(t.ptype==='basis'?`<span class="tbasis" style="font-size:9px">EUR</span>`:`<span class="tdim">RON</span>`);
     const trspVal=t.transportEur!=null?t.transportEur:(t.cursEur&&t.transport?t.transport/t.cursEur:null);
-    const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR`:(t.transport&&t.transport>0?`${fmtN(t.transport)} RON`:null);
+    const trspRonReport=tradeTransportRonForPosition(t);
+    const trspDisplay=(t.currency==='eur'&&t.ptype==='fix'&&trspVal>0)?`${fmtN(trspVal)} EUR (≈${fmtN(trspRonReport)} RON)`:(trspRonReport>0?`${fmtN(trspRonReport)} RON`:null);
     const trsp=trspDisplay?`<span class="ttrp">${trspDisplay}</span>`:`<span class="tdim">—</span>`;
     const incBadge=t.incomplete?`<span class="incomplete-badge">⚠ incomplet</span>`:'';
     const trainBadge=t.isTrain?`<span class="train-badge">🚂 tren</span>`:'';
@@ -3958,7 +4006,7 @@ async function saveProd(){
 function checkCfoAlert(t){
   let priceRon=0;
   if(t.ptype==='fix'){
-    priceRon = t.currency==='eur' ? (t.priceEur || 0) * (t.cursEur || fxRates.eurRon || 5) : (t.price || 0);
+    priceRon = tradePriceRonForPosition(t);
   } else {
     const matifPrices={wheat:207,corn:208,rapeseed:498};
     const mp=matifPrices[t.product] || 250;
@@ -6863,14 +6911,15 @@ async function confirmImport(){
 }
 function exportDB(){
   if(!Array.isArray(trades)||trades.length===0){alert('Nu există tranzacții de exportat.');return;}
-  const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur','contract_matif','cost_transport','locatie','contraparte','agent','data','numar_contract','semnat','bonif','incomplet']];
+  const rows=[['id','produs','recolta','directie','cantitate','tip_pret','moneda','paritate','pret_basis','curs_eur_contract','curs_eur_raport','pret_ron_raport','contract_matif','cost_transport','cost_transport_ron_raport','locatie','contraparte','agent','data','numar_contract','semnat','bonif','incomplet']];
   trades.forEach(t=>{
     const pretExport=t.ptype==='fix' ? (t.currency==='eur' ? (t.priceEur||'') : (t.price||'')) : (t.basis!==undefined ? t.basis : '');
-    rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,t.cursEur||'',t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),t.loc||'',t.cpty||'',t.agent||'',t.date||'',getTradeContractNumber(t)||'',tradeSignedLabel(t),t.bonif||0,t.incomplete?'DA':'']);
+    const fxInfo=tradePositionFxInfo(t);
+    rows.push([t.id,t.product,t.crop,t.dir,t.qty,t.ptype,t.currency||'ron',t.parity,pretExport,fxInfo.contractRate,fxInfo.reportRate,fxInfo.priceRon,t.matif||'',t.transportEur!=null?t.transportEur:(t.transport||0),tradeTransportRonForPosition(t),t.loc||'',t.cpty||'',t.agent||'',t.date||'',getTradeContractNumber(t)||'',tradeSignedLabel(t),t.bonif||0,t.incomplete?'DA':'']);
   });
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[6,14,10,12,12,10,8,10,14,12,14,14,20,22,18,12,16,10,8,10].map(w=>({wch:w}));
+  ws['!cols']=[6,14,10,12,12,10,8,10,14,14,14,16,14,14,18,20,22,18,12,16,10,8,10].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws,'Tranzactii');
   const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   const blob=new Blob([wbout],{type:'application/octet-stream'});
