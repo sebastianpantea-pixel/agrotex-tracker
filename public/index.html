@@ -560,6 +560,14 @@
   .cmets{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
   .cml{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
   .cmv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text);}
+  .liq-box{margin-top:7px;border:1px solid rgba(224,183,94,.28);background:rgba(224,183,94,.06);border-radius:3px;padding:6px 7px;display:flex;flex-direction:column;gap:5px;}
+  .liq-top{display:grid;grid-template-columns:1fr 84px;gap:6px;align-items:center;}
+  .liq-label{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;font-weight:700;}
+  .liq-input{height:22px;background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:2px 5px;text-align:right;outline:none;}
+  .liq-input:focus{border-color:var(--acc);box-shadow:0 0 0 1px rgba(224,183,94,.15);}
+  .liq-result{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;border-top:1px solid rgba(224,183,94,.18);padding-top:5px;}
+  .liq-result .liq-main{font-size:12px;font-weight:900;}
+  .liq-note{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;}
 
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
   .ph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--border);background:var(--surface2);}
@@ -2786,6 +2794,30 @@ function fmtDec(n,d=1){
   const x=Number(n);
   return Number.isFinite(x)?x.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 }
+
+function parseLocalNumber(v){
+  const s=String(v ?? '').trim().replace(/\s/g,'').replace(',', '.');
+  const n=Number(s);
+  return Number.isFinite(n)?n:null;
+}
+function liquidationKey(productKey,cropYear){
+  return `agrotex_liquidation_price_${productKey}_${cropYear}`;
+}
+function getLiquidationPrice(productKey,cropYear){
+  try{
+    const n=parseLocalNumber(localStorage.getItem(liquidationKey(productKey,cropYear)));
+    return n && n>0?n:0;
+  }catch(e){ return 0; }
+}
+function setLiquidationPriceFromInput(input,productKey,cropYear){
+  const n=parseLocalNumber(input && input.value);
+  try{
+    const key=liquidationKey(productKey,cropYear);
+    if(n && n>0) localStorage.setItem(key,String(n));
+    else localStorage.removeItem(key);
+  }catch(e){}
+  render();
+}
 function ymFromDate(date){
   if(!date) return '';
   return String(date).slice(0,7);
@@ -3760,6 +3792,22 @@ function render(){
     const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
     const marginSign=margin===null?'':margin>=0?'+':'';
     const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
+    const liqPrice=getLiquidationPrice(k,crop);
+    const liqMargin=(p.long>0 && avgBuy>0 && liqPrice>0)?(liqPrice-avgBuy):null;
+    const liqColor=liqMargin===null?'var(--dim)':liqMargin>=0?'var(--long)':'var(--short)';
+    const liqSign=liqMargin===null?'':liqMargin>=0?'+':'';
+    const liqTotal=liqMargin!==null?liqMargin*p.long:null;
+    const liqRow=p.long>0?`<div class="liq-box">
+      <div class="liq-top">
+        <div class="liq-label">Preț lichidare LONG, RON/t</div>
+        <input class="liq-input" type="text" inputmode="decimal" value="${liqPrice>0?escAttr(liqPrice):''}" placeholder="ex. 930" onchange="setLiquidationPriceFromInput(this,'${escAttr(k)}','${escAttr(crop)}')" onkeydown="if(event.key==='Enter') this.blur();">
+      </div>
+      ${liqMargin!==null?`<div class="liq-result">
+        <span class="liq-label">Marjă lichidare</span>
+        <span class="liq-main" style="color:${liqColor}">${liqSign}${fmtN(liqMargin)} RON/t</span>
+      </div>
+      <div class="liq-note">Impact pe ${fmtN(p.long)} t LONG: <span style="color:${liqColor};font-weight:800">${liqSign}${fmtN(liqTotal)} RON</span></div>`:`<div class="liq-note">Introdu prețul la care ai lichida poziția LONG pentru a vedea marja medie pe tonă.</div>`}
+    </div>`:'';
     return `<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
       <div class="ctop"><div class="cname">${prod.emoji} ${prod.name}</div><div class="dbadge ${nc}">${dt}</div></div>
@@ -3772,6 +3820,7 @@ function render(){
         <div><div class="cml">Med. vânz.</div><div class="cmv">${fmtP(avgSell)}</div></div>
       </div>
       ${marginRow}
+      ${liqRow}
     </div>`;
   }).join('');
 
