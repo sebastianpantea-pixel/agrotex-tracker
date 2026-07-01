@@ -3262,7 +3262,7 @@ function getPos(cropFilter){
     pos[k]={
       long:0, shortFix:0, shortBasis:0, net:0,
       buyQ:0, sellQ:0, buyV:0, sellV:0, sellVfca:0, sellQfca:0,
-      buyVbonif:0, buyQbonif:0, sellVbonif:0, sellQbonif:0
+      buyVbonif:0, buyQbonif:0, sellVbonif:0, sellQbonif:0, buyVadj:0, buyQadj:0, sellVadj:0, sellQadj:0
     };
   });
 
@@ -3271,7 +3271,7 @@ function getPos(cropFilter){
       pos[t.product]={
         long:0, shortFix:0, shortBasis:0, net:0,
         buyQ:0, sellQ:0, buyV:0, sellV:0, sellVfca:0, sellQfca:0,
-        buyVbonif:0, buyQbonif:0, sellVbonif:0, sellQbonif:0
+        buyVbonif:0, buyQbonif:0, sellVbonif:0, sellQbonif:0, buyVadj:0, buyQadj:0, sellVadj:0, sellQadj:0
       };
     }
 
@@ -3286,9 +3286,12 @@ function getPos(cropFilter){
 
       if(t.ptype==='fix'){
         pos[t.product].buyV+=qty*price;
+        const priceBuyAdj=price*mult;
+        pos[t.product].buyVadj+=qty*priceBuyAdj;
+        pos[t.product].buyQadj+=qty;
 
         if(bonif>0){
-          pos[t.product].buyVbonif+=qty*(price*mult);
+          pos[t.product].buyVbonif+=qty*priceBuyAdj;
           pos[t.product].buyQbonif+=qty;
         }
       }
@@ -3306,9 +3309,12 @@ function getPos(cropFilter){
         pos[t.product].sellVfca+=qty*priceFca;
         pos[t.product].sellQfca+=qty;
 
+        const priceFcaAdj=isDap&&trsp>0?(price*mult)-trsp:price*mult;
+        pos[t.product].sellVadj+=qty*priceFcaAdj;
+        pos[t.product].sellQadj+=qty;
+
         if(bonif>0){
-          const priceFcaBonif=isDap&&trsp>0?(price*mult)-trsp:price*mult;
-          pos[t.product].sellVbonif+=qty*priceFcaBonif;
+          pos[t.product].sellVbonif+=qty*priceFcaAdj;
           pos[t.product].sellQbonif+=qty;
         }
       }
@@ -3323,6 +3329,8 @@ function getPos(cropFilter){
     pos[k].avgSellFca=pos[k].sellQfca>0?pos[k].sellVfca/pos[k].sellQfca:0;
     pos[k].avgBuyBonif=pos[k].buyQbonif>0?pos[k].buyVbonif/pos[k].buyQbonif:0;
     pos[k].avgSellBonif=pos[k].sellQbonif>0?pos[k].sellVbonif/pos[k].sellQbonif:0;
+    pos[k].avgBuyAdj=pos[k].buyQadj>0?pos[k].buyVadj/pos[k].buyQadj:0;
+    pos[k].avgSellAdj=pos[k].sellQadj>0?pos[k].sellVadj/pos[k].sellQadj:0;
   });
 
   return pos;
@@ -3789,29 +3797,28 @@ function render(){
     const dt=p.net>0?'LONG':p.net<0?'SHORT':'FLAT';
     const mb=Math.max(p.long,p.shortFix||p.short,1);
     const basisRow=p.shortBasis>0?`<div class="cbasis"><span class="basis-badge">NEFIX.</span><span class="basis-qty">${fmtN(p.shortBasis)} t</span><span class="basis-note">basis/MATIF — preț deschis</span></div>`:'';
-    const avgBuy=p.avgBuyBonif>0?p.avgBuyBonif:(p.avgBuy||0);
-    const avgSell=p.avgSellBonif>0?p.avgSellBonif:(p.avgSellFca>0?p.avgSellFca:(p.avgSell||0));
+    const avgBuy=p.avgBuyAdj>0?p.avgBuyAdj:(p.avgBuyBonif>0?p.avgBuyBonif:(p.avgBuy||0));
+    const avgSell=p.avgSellAdj>0?p.avgSellAdj:(p.avgSellBonif>0?p.avgSellBonif:(p.avgSellFca>0?p.avgSellFca:(p.avgSell||0)));
     const margin=(avgBuy>0&&avgSell>0)?avgSell-avgBuy:null;
     const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
     const marginSign=margin===null?'':margin>=0?'+':'';
     const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ REALIZATĂ</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
-    const liqPrice=getLiquidationPrice(k,crop);
-    const longQty=Number(p.long||0)||0;
+    const closePrice=getLiquidationPrice(k,crop);
+    const longQty=Number(p.long)||0;
     const shortQty=Number(p.shortFix||p.short||0)||0;
-    const closedQty=Math.min(longQty, shortQty);
-    const remainingLong=Math.max(longQty-shortQty, 0);
-    const remainingShort=Math.max(shortQty-longQty, 0);
-    const openQty=Math.max(remainingLong, remainingShort);
-    const openSide=remainingLong>0?'LONG':(remainingShort>0?'SHORT':'FLAT');
-    const realizedMarginPerT=(margin!==null && closedQty>0)?margin:null;
-    const realizedTotal=(realizedMarginPerT!==null)?realizedMarginPerT*closedQty:0;
-    const openImpactPerT=(openSide==='LONG' && avgBuy>0 && liqPrice>0)
-      ? (liqPrice-avgBuy)
-      : (openSide==='SHORT' && avgSell>0 && liqPrice>0)
-        ? (avgSell-liqPrice)
+    const matchedQty=Math.min(longQty, shortQty);
+    const remainingQty=Math.abs(longQty-shortQty);
+    const isLongOpen=longQty>shortQty;
+    const isShortOpen=shortQty>longQty;
+    const realizedMarginPerT=(margin!==null)?margin:null;
+    const realizedTotal=(realizedMarginPerT!==null)?realizedMarginPerT*matchedQty:0;
+    const openImpactPerT=(isLongOpen && remainingQty>0 && avgBuy>0 && closePrice>0)
+      ? (closePrice-avgBuy)
+      : (isShortOpen && remainingQty>0 && avgSell>0 && closePrice>0)
+        ? (avgSell-closePrice)
         : null;
-    const openImpactTotal=openImpactPerT!==null?openImpactPerT*openQty:0;
-    const simulatedQty=closedQty+openQty;
+    const openImpactTotal=openImpactPerT!==null?openImpactPerT*remainingQty:0;
+    const simulatedQty=matchedQty+remainingQty;
     const simulatedTotal=(realizedMarginPerT!==null?realizedTotal:0)+(openImpactPerT!==null?openImpactTotal:0);
     const simulatedMarginPerT=(simulatedQty>0 && openImpactPerT!==null)?simulatedTotal/simulatedQty:null;
     const simColor=simulatedMarginPerT===null?'var(--dim)':simulatedMarginPerT>=0?'var(--long)':'var(--short)';
@@ -3819,15 +3826,13 @@ function render(){
     const openColor=openImpactPerT===null?'var(--dim)':openImpactPerT>=0?'var(--long)':'var(--short)';
     const openSign=openImpactPerT===null?'':openImpactPerT>=0?'+':'';
     const totalSign=simulatedTotal>=0?'+':'';
-    const liqLabel=openSide==='SHORT'?'Preț acoperire SHORT, RON/t':'Preț lichidare LONG, RON/t';
-    const openImpactLabel=openSide==='SHORT'?'Impact SHORT rămas':'Impact LONG rămas';
-    const emptyHelp=openSide==='SHORT'
-      ? 'Introdu prețul la care ai acoperi SHORT-ul rămas. Marja realizată de sus rămâne neschimbată.'
-      : 'Introdu prețul la care ai lichida doar LONG-ul rămas. Marja realizată de sus rămâne neschimbată.';
-    const liqRow=openQty>0?`<div class="liq-box">
+    const liqTitle=isLongOpen?'Preț lichidare LONG, RON/t':(isShortOpen?'Preț acoperire SHORT, RON/t':'');
+    const liqVerb=isLongOpen?'lichida LONG-ul rămas':'acoperi SHORT-ul rămas';
+    const impactLabel=isLongOpen?'Impact LONG rămas':'Impact SHORT rămas';
+    const liqRow=(isLongOpen||isShortOpen)?`<div class="liq-box">
       <div class="liq-top">
-        <div class="liq-label">${liqLabel}</div>
-        <input class="liq-input" type="text" inputmode="decimal" value="${liqPrice>0?escAttr(liqPrice):''}" placeholder="ex. 930" onchange="setLiquidationPriceFromInput(this,'${escAttr(k)}','${escAttr(crop)}')" onkeydown="if(event.key==='Enter') this.blur();">
+        <div class="liq-label">${liqTitle}</div>
+        <input class="liq-input" type="text" inputmode="decimal" value="${closePrice>0?escAttr(closePrice):''}" placeholder="ex. 930" onchange="setLiquidationPriceFromInput(this,'${escAttr(k)}','${escAttr(crop)}')" onkeydown="if(event.key==='Enter') this.blur();">
       </div>
       ${simulatedMarginPerT!==null?`<div class="liq-result">
         <span class="liq-label">Marjă totală după închidere</span>
@@ -3835,9 +3840,9 @@ function render(){
       </div>
       <div class="liq-note">
         Marja realizată rămâne cea de sus.<br>
-        ${openImpactLabel}: <span style="color:${openColor};font-weight:800">${openSign}${fmtN(openImpactPerT)} RON/t</span> pe ${fmtN(openQty)} t.<br>
+        ${impactLabel}: <span style="color:${openColor};font-weight:800">${openSign}${fmtN(openImpactPerT)} RON/t</span> pe ${fmtN(remainingQty)} t.<br>
         Rezultat total estimat: <span style="color:${simColor};font-weight:800">${totalSign}${fmtN(simulatedTotal)} RON</span> / ${fmtN(simulatedQty)} t cumulate.
-      </div>`:`<div class="liq-note">${emptyHelp}</div>`}
+      </div>`:`<div class="liq-note">Introdu prețul la care ai ${liqVerb}. Marja realizată de sus rămâne neschimbată.</div>`}
     </div>`:'';
     return `<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
