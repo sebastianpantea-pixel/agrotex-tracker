@@ -3794,36 +3794,50 @@ function render(){
     const margin=(avgBuy>0&&avgSell>0)?avgSell-avgBuy:null;
     const marginColor=margin===null?'':margin>=0?'var(--long)':'var(--short)';
     const marginSign=margin===null?'':margin>=0?'+':'';
-    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ MEDIE</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
+    const marginRow=margin!==null?`<div class="cmargin" style="border-color:${marginColor}20;background:${marginColor}08"><span class="cml" style="color:${marginColor};opacity:.8">MARJĂ REALIZATĂ</span><span class="cmarg-val" style="color:${marginColor}">${marginSign}${fmtN(margin)} <span style="font-size:9px;opacity:.7">RON/t</span></span></div>`:'';
     const liqPrice=getLiquidationPrice(k,crop);
-    const soldQty=Math.min(Number(p.shortFix||p.short||0)||0, Number(p.long||0)||0);
-    const remainingLong=Math.max((Number(p.long)||0)-soldQty, 0);
-    const realizedMarginPerT=(margin!==null)?margin:null;
-    const realizedTotal=(realizedMarginPerT!==null)?realizedMarginPerT*soldQty:0;
-    const liqImpactPerT=(remainingLong>0 && avgBuy>0 && liqPrice>0)?(liqPrice-avgBuy):null;
-    const liqImpactTotal=liqImpactPerT!==null?liqImpactPerT*remainingLong:0;
-    const simulatedQty=soldQty+remainingLong;
-    const simulatedTotal=(realizedMarginPerT!==null?realizedTotal:0)+(liqImpactPerT!==null?liqImpactTotal:0);
-    const simulatedMarginPerT=(simulatedQty>0 && liqImpactPerT!==null)?simulatedTotal/simulatedQty:null;
+    const longQty=Number(p.long||0)||0;
+    const shortQty=Number(p.shortFix||p.short||0)||0;
+    const closedQty=Math.min(longQty, shortQty);
+    const remainingLong=Math.max(longQty-shortQty, 0);
+    const remainingShort=Math.max(shortQty-longQty, 0);
+    const openQty=Math.max(remainingLong, remainingShort);
+    const openSide=remainingLong>0?'LONG':(remainingShort>0?'SHORT':'FLAT');
+    const realizedMarginPerT=(margin!==null && closedQty>0)?margin:null;
+    const realizedTotal=(realizedMarginPerT!==null)?realizedMarginPerT*closedQty:0;
+    const openImpactPerT=(openSide==='LONG' && avgBuy>0 && liqPrice>0)
+      ? (liqPrice-avgBuy)
+      : (openSide==='SHORT' && avgSell>0 && liqPrice>0)
+        ? (avgSell-liqPrice)
+        : null;
+    const openImpactTotal=openImpactPerT!==null?openImpactPerT*openQty:0;
+    const simulatedQty=closedQty+openQty;
+    const simulatedTotal=(realizedMarginPerT!==null?realizedTotal:0)+(openImpactPerT!==null?openImpactTotal:0);
+    const simulatedMarginPerT=(simulatedQty>0 && openImpactPerT!==null)?simulatedTotal/simulatedQty:null;
     const simColor=simulatedMarginPerT===null?'var(--dim)':simulatedMarginPerT>=0?'var(--long)':'var(--short)';
     const simSign=simulatedMarginPerT===null?'':simulatedMarginPerT>=0?'+':'';
-    const liqColor=liqImpactPerT===null?'var(--dim)':liqImpactPerT>=0?'var(--long)':'var(--short)';
-    const liqSign=liqImpactPerT===null?'':liqImpactPerT>=0?'+':'';
+    const openColor=openImpactPerT===null?'var(--dim)':openImpactPerT>=0?'var(--long)':'var(--short)';
+    const openSign=openImpactPerT===null?'':openImpactPerT>=0?'+':'';
     const totalSign=simulatedTotal>=0?'+':'';
-    const liqRow=remainingLong>0?`<div class="liq-box">
+    const liqLabel=openSide==='SHORT'?'Preț acoperire SHORT, RON/t':'Preț lichidare LONG, RON/t';
+    const openImpactLabel=openSide==='SHORT'?'Impact SHORT rămas':'Impact LONG rămas';
+    const emptyHelp=openSide==='SHORT'
+      ? 'Introdu prețul la care ai acoperi SHORT-ul rămas. Marja realizată de sus rămâne neschimbată.'
+      : 'Introdu prețul la care ai lichida doar LONG-ul rămas. Marja realizată de sus rămâne neschimbată.';
+    const liqRow=openQty>0?`<div class="liq-box">
       <div class="liq-top">
-        <div class="liq-label">Preț lichidare LONG, RON/t</div>
+        <div class="liq-label">${liqLabel}</div>
         <input class="liq-input" type="text" inputmode="decimal" value="${liqPrice>0?escAttr(liqPrice):''}" placeholder="ex. 930" onchange="setLiquidationPriceFromInput(this,'${escAttr(k)}','${escAttr(crop)}')" onkeydown="if(event.key==='Enter') this.blur();">
       </div>
       ${simulatedMarginPerT!==null?`<div class="liq-result">
-        <span class="liq-label">Marjă medie simulată totală</span>
+        <span class="liq-label">Marjă totală după închidere</span>
         <span class="liq-main" style="color:${simColor}">${simSign}${fmtN(simulatedMarginPerT)} RON/t</span>
       </div>
       <div class="liq-note">
-        Marja medie realizată rămâne cea de sus.<br>
-        Impact LONG rămas: <span style="color:${liqColor};font-weight:800">${liqSign}${fmtN(liqImpactPerT)} RON/t</span> pe ${fmtN(remainingLong)} t.<br>
+        Marja realizată rămâne cea de sus.<br>
+        ${openImpactLabel}: <span style="color:${openColor};font-weight:800">${openSign}${fmtN(openImpactPerT)} RON/t</span> pe ${fmtN(openQty)} t.<br>
         Rezultat total estimat: <span style="color:${simColor};font-weight:800">${totalSign}${fmtN(simulatedTotal)} RON</span> / ${fmtN(simulatedQty)} t cumulate.
-      </div>`:`<div class="liq-note">Introdu prețul la care ai lichida doar LONG-ul rămas. Marja medie realizată de sus rămâne neschimbată.</div>`}
+      </div>`:`<div class="liq-note">${emptyHelp}</div>`}
     </div>`:'';
     return `<div class="card">
       <div class="cstripe" style="background:${prod.color}"></div>
