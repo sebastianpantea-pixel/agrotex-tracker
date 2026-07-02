@@ -2675,11 +2675,53 @@ const CORE_PRODUCTS = {
   soybean:{name:'Soia',emoji:'🫘',color:'#b8894a',symbol:'SOY'},
   triticale:{name:'Triticale',emoji:'🌾',color:'#c9a35f',symbol:'TRI'}
 };
-function ensureCoreProducts(){
-  let changed=false;
+function productSlug(v){
+  return String(v||'')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'');
+}
+function normalizeProductKey(raw){
+  const original=String(raw||'').trim();
+  if(!original) return 'wheat';
+  const s=productSlug(original);
+  const alias={
+    grau:'wheat', graul:'wheat', wheat:'wheat', wht:'wheat',
+    porumb:'corn', corn:'corn', crn:'corn',
+    rapita:'rapeseed', rapita2025:'rapeseed', rapeseed:'rapeseed', rap:'rapeseed',
+    floareasoarelui:'sunflower', floareasoare:'sunflower', sunflower:'sunflower', sfw:'sunflower',
+    orz:'barley', barley:'barley', orzf:'barley', orzfurajer:'barley',
+    soia:'soybean', soy:'soybean', soybean:'soybean', soybeans:'soybean',
+    triticale:'triticale', tri:'triticale'
+  };
+  if(alias[s]) return alias[s];
+  if(CORE_PRODUCTS[original]) return original;
+  if(products && products[original]) return original;
+  return original;
+}
+function normalizeTradeProduct(t){
+  if(t && typeof t==='object') t.product=normalizeProductKey(t.product);
+  return t;
+}
+function normalizeAllTradeProducts(){
+  if(Array.isArray(trades)) trades.forEach(normalizeTradeProduct);
+}
+function canonicalizeProductsObject(){
   products=products&&typeof products==='object'?products:{};
-  Object.entries(CORE_PRODUCTS).forEach(([k,v])=>{ if(!products[k]){ products[k]=v; changed=true; } });
-  if(changed) apiSaveProducts().catch(()=>{});
+  Object.entries(CORE_PRODUCTS).forEach(([k,v])=>{
+    if(!products[k]) products[k]={...v};
+    else products[k]={...v, ...products[k], name:v.name, emoji:v.emoji, symbol:v.symbol};
+  });
+  Object.keys(products).forEach(k=>{
+    const canon=normalizeProductKey(k);
+    if(canon!==k && CORE_PRODUCTS[canon]) delete products[k];
+  });
+}
+function ensureCoreProducts(){
+  const before=JSON.stringify(products||{});
+  canonicalizeProductsObject();
+  if(JSON.stringify(products||{})!==before) apiSaveProducts().catch(()=>{});
 }
 let trades = [];
 let crop = '2025';
@@ -3087,6 +3129,7 @@ async function loadAll(){
   trades = Array.isArray(tData) ? tData : [];
   products = await pRes.json();
   ensureCoreProducts();
+  normalizeAllTradeProducts();
   setSyncStatus('saved','● synced');
   populateProd();
   populateFilterProd();
@@ -3100,6 +3143,7 @@ async function loadAll(){
 }
 
 async function apiAddTrade(t){
+  normalizeTradeProduct(t);
   setSyncStatus('saving','● saving...');
   const res=await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
   const data=await res.json();
@@ -3107,6 +3151,7 @@ async function apiAddTrade(t){
   return data.id;
 }
 async function apiDeleteTrade(id){
+  normalizeTradeProduct(t);
   setSyncStatus('saving','● saving...');
   await fetch(`/api/trades/${id}`,{method:'DELETE'});
   setSyncStatus('saved','● saved');
@@ -3115,6 +3160,7 @@ async function apiSaveProducts(){
   await fetch('/api/products',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(products)});
 }
 async function apiBulkImport(tradeList){
+  tradeList=(tradeList||[]).map(t=>normalizeTradeProduct(t));
   setSyncStatus('saving','● importing...');
   await fetch('/api/trades/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trades:tradeList})});
   setSyncStatus('saved','● saved');
@@ -3182,7 +3228,7 @@ function setCurrency(cur){
   onFormChange();
 }
 async function addTrade(){
-  const product=document.getElementById('fProd').value;
+  const product=normalizeProductKey(document.getElementById('fProd').value);
   const cr=document.getElementById('fCrop').value;
   const dir=document.getElementById('fDir').value;
   const qty=parseFloat(document.getElementById('fQty').value);
@@ -3706,7 +3752,7 @@ Semnare modificată: ${signedChanges.length}`)) return;
       const t=tradeChanges[i];
       const agent=agentBulkCurrentAgent(t);
       const signed=agentBulkCurrentSigned(t);
-      const payload={...t, agent, signedReturned:!!signed};
+      const payload=normalizeTradeProduct({...t, agent, signedReturned:!!signed});
       delete payload.id;
       const res=await fetch(`/api/trades/${encodeURIComponent(t.id)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(!res.ok) throw new Error(`Nu s-a putut salva poziția pentru contractul ${agentBulkContractNo(t)||'#'+t.id}.`);
@@ -3991,7 +4037,7 @@ async function saveEdit(){
   const id=editingId;
   const oldTrade=(trades||[]).find(x=>Number(x.id)===Number(id));
   const oldSigned=tradeSignedValue(oldTrade);
-  const product=document.getElementById('eProd').value;
+  const product=normalizeProductKey(document.getElementById('eProd').value);
   const cr=document.getElementById('eCrop').value;
   const dir=document.getElementById('eDir').value;
   const qty=parseFloat(document.getElementById('eQty').value);
@@ -4042,6 +4088,7 @@ async function saveEdit(){
     if(isNaN(basis)||!date) t.incomplete=true;
   }
 
+  normalizeTradeProduct(t);
   setSyncStatus('saving','● saving...');
   await fetch(`/api/trades/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
   setSyncStatus('saved','● saved');
@@ -6892,12 +6939,7 @@ function parseFile(file){
         if(!qty||qty<=0){skipped++;return;}
 
         const productRaw=get(['produs','product']);
-        const product=productRaw.toLowerCase()
-          .replace(/\s+/g,'_')
-          .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ț/g,'t').replace(/ș/g,'s')
-          .replace(/grau/,'wheat').replace(/porumb/,'corn').replace(/rapita/,'rapeseed')
-          .replace(/floarea.soarelui/,'sunflower').replace(/soia/,'soy')
-          .replace(/orz/,'barley').replace(/triticale/,'triticale') || 'wheat';
+        const product=normalizeProductKey(productRaw || 'wheat');
 
         const cr=get(['recolta','crop','an','harvest'])||'2025';
         const dirRaw=get(['directie','dir','direction']).toLowerCase();
@@ -8730,6 +8772,7 @@ async function syncTrades(){
       trades=Array.isArray(newTrades)?newTrades:trades;
       products=newProducts || products;
       ensureCoreProducts();
+      normalizeAllTradeProducts();
       logisticsContracts=Array.isArray(newLogistics)?newLogistics:logisticsContracts;
       migrateLogisticsData();
       if(productsChanged){ populateProd(); populateFilterProd(); }
@@ -9003,8 +9046,8 @@ function reportTradeRows(from,to,dir){
     return {
       id:t.id,
       date:reportTradeDate(t),
-      product:t.product,
-      productLabel:reportProductLabel(t.product),
+      product:normalizeProductKey(t.product),
+      productLabel:reportProductLabel(normalizeProductKey(t.product)),
       crop:t.crop||'',
       partner:t.cpty||'',
       qty,
@@ -9675,7 +9718,7 @@ function purchaseClearPartner(){
   purchaseRefreshPreview();
 }
 function purchaseReadForm(){
-  const product=document.getElementById('pcProduct').value;
+  const product=normalizeProductKey(document.getElementById('pcProduct').value);
   const manualName=(document.getElementById('pcManualSellerName').value||'').trim();
   const manualFull=(document.getElementById('pcManualSeller').value||'').trim();
   const sellerExisting=purchaseSelectedPartner;
