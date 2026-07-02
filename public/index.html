@@ -2606,6 +2606,27 @@
   </div>
 </div>
 
+<div class="overlay" id="modLogLinkPosition">
+  <div class="modal" style="width:min(980px,98vw);max-height:92vh;overflow:hidden;">
+    <div class="mtitle">Leagă contract logistic de poziție</div>
+    <input type="hidden" id="logLinkContractId">
+    <div class="log-muted" id="logLinkCurrent" style="line-height:1.5"></div>
+    <div class="fr fr3">
+      <div class="fg"><label class="fl">Caută contract / contraparte / produs / loc</label><input id="logLinkSearch" type="text" oninput="renderLogLinkCandidates()" placeholder="ex: CTR 852, MolinO, grâu, Mantova"></div>
+      <div class="fg"><label class="fl">Direcție</label><select id="logLinkDir" onchange="renderLogLinkCandidates()"><option value="auto">Potrivit fluxului logistic</option><option value="all">Toate</option><option value="long">Cumpărări / LONG</option><option value="short">Vânzări / SHORT</option></select></div>
+      <div class="fg"><label class="fl">Recoltă</label><select id="logLinkCrop" onchange="renderLogLinkCandidates()"><option value="all">Toate</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
+    </div>
+    <div class="log-muted" style="line-height:1.5">
+      <b>Leagă</b> păstrează datele logistice introduse manual și salvează doar legătura cu poziția.
+      <b>Leagă + actualizează</b> aduce în logistică produsul, recolta, cantitatea, contrapartea, paritatea, locul și numărul de contract din poziție.
+    </div>
+    <div id="logLinkResults" style="margin-top:8px;max-height:56vh;overflow:auto;border:1px solid var(--border);border-radius:4px;"></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeModal('modLogLinkPosition')">Închide</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="modImport">
   <div class="modal import-modal">
     <div class="mtitle">Import Excel / CSV</div>
@@ -5926,6 +5947,156 @@ async function removeLinkedDeliveryMovement(pickupContract, pickupMovement){
   if(deliveryContract.movements.length!==before) await saveLogistics(deliveryContract);
 }
 
+
+function getTradeContractNo(t){
+  return String(t?.note || t?.contractNo || t?.nrContract || t?.contract || '').trim();
+}
+function tradeProductLabel(t){
+  const pk=normalizeProductKey(t?.product || '');
+  return (products[pk] && products[pk].name) ? products[pk].name : (t?.product || '—');
+}
+function tradeDirLabel(t){
+  return t?.dir==='long' ? 'Cumpărare / LONG' : 'Vânzare / SHORT';
+}
+function logisticLinkScore(c,t){
+  const snap=getLogTrade(c) || snapshotToTrade(c) || {};
+  let score=0;
+  const cProd=normalizeProductKey(snap.product || snap.productKey || '');
+  const tProd=normalizeProductKey(t.product || '');
+  if(cProd && tProd && cProd===tProd) score+=35;
+  if(String(snap.crop||'') && String(snap.crop||'')===String(t.crop||'')) score+=20;
+  const flow=logFlow(c);
+  if((flow==='pickup' && t.dir==='long') || (flow==='delivery' && t.dir==='short')) score+=25;
+  const cNo=String(logContractNo(c)||'').toLowerCase().trim();
+  const tNo=String(getTradeContractNo(t)||'').toLowerCase().trim();
+  if(cNo && tNo && (cNo===tNo || cNo.includes(tNo) || tNo.includes(cNo))) score+=45;
+  const cpty=String(snap.cpty || snap.counterparty || '').toLowerCase().trim();
+  const tcpty=String(t.cpty || '').toLowerCase().trim();
+  if(cpty && tcpty && (cpty===tcpty || cpty.includes(tcpty) || tcpty.includes(cpty))) score+=20;
+  const cq=Number(snap.qty || 0), tq=Number(t.qty || 0);
+  if(cq>0 && tq>0){
+    const diff=Math.abs(cq-tq)/Math.max(cq,tq);
+    if(diff<0.01) score+=20;
+    else if(diff<0.05) score+=12;
+    else if(diff<0.15) score+=6;
+  }
+  const cloc=String(snap.loc || '').toLowerCase().trim();
+  const tloc=String(t.loc || '').toLowerCase().trim();
+  if(cloc && tloc && (cloc===tloc || cloc.includes(tloc) || tloc.includes(cloc))) score+=8;
+  return score;
+}
+function openLogLinkPositionModal(id=null){
+  const c=getLogContract(id || selectedLogisticsId);
+  if(!c){alert('Selectează întâi un contract logistic.');return;}
+  selectedLogisticsId=c.id;
+  const idEl=document.getElementById('logLinkContractId');
+  if(idEl) idEl.value=c.id;
+  const current=document.getElementById('logLinkCurrent');
+  const t=getLogTrade(c);
+  const linked=getLogRealTrade(c);
+  if(current){
+    current.innerHTML=`Contract logistic: <b>${escHtml(logContractName(c))}</b><br>`+
+      `Date curente: ${t?escHtml(tradeDirLabel(t)):'—'} · ${t?escHtml(tradeProductLabel(t)):'—'} ${t?escHtml(t.crop||''):''} · ${t?fmtN(t.qty||0):'0'} t · ${t?escHtml(t.cpty||'—'):'—'} · CTR ${escHtml(logContractNo(c)||'—')}<br>`+
+      (linked ? `Legat acum de poziția #${escHtml(linked.id)} · ${escHtml(getTradeContractNo(linked)||'fără nr. contract')}` : `<span style="color:var(--acc)">Nu este legat de o poziție reală.</span>`);
+  }
+  const crop=document.getElementById('logLinkCrop');
+  if(crop && t?.crop && [...crop.options].some(o=>o.value===String(t.crop))) crop.value=String(t.crop); else if(crop) crop.value='all';
+  const dir=document.getElementById('logLinkDir'); if(dir) dir.value='auto';
+  const search=document.getElementById('logLinkSearch'); if(search) search.value=logContractNo(c)||'';
+  renderLogLinkCandidates();
+  document.getElementById('modLogLinkPosition')?.classList.add('open');
+}
+function renderLogLinkCandidates(){
+  const c=getLogContract(document.getElementById('logLinkContractId')?.value || selectedLogisticsId);
+  const box=document.getElementById('logLinkResults');
+  if(!box || !c){return;}
+  const q=String(document.getElementById('logLinkSearch')?.value || '').toLowerCase().trim();
+  const dirFilter=document.getElementById('logLinkDir')?.value || 'auto';
+  const cropFilter=document.getElementById('logLinkCrop')?.value || 'all';
+  const flow=logFlow(c);
+  const desiredDir=flow==='pickup'?'long':'short';
+  let list=(trades||[]).filter(t=>{
+    if(dirFilter==='auto' && t.dir!==desiredDir) return false;
+    if(dirFilter==='long' && t.dir!=='long') return false;
+    if(dirFilter==='short' && t.dir!=='short') return false;
+    if(cropFilter!=='all' && String(t.crop||'')!==cropFilter) return false;
+    if(q){
+      const hay=[t.id, getTradeContractNo(t), tradeProductLabel(t), t.crop, t.dir, t.qty, t.cpty, t.parity, t.loc, t.date]
+        .map(v=>String(v||'').toLowerCase()).join(' | ');
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  }).map(t=>({t,score:logisticLinkScore(c,t)}))
+    .sort((a,b)=>b.score-a.score || String(b.t.date||'').localeCompare(String(a.t.date||'')))
+    .slice(0,80);
+  if(!list.length){
+    box.innerHTML='<div class="log-empty">Nu am găsit poziții potrivite. Încearcă filtrul „Toate” sau caută după contraparte / contract.</div>';
+    return;
+  }
+  box.innerHTML=`<table class="log-table"><thead><tr>
+    <th>Potrivire</th><th>ID</th><th>Contract</th><th>Produs</th><th>Recoltă</th><th>Direcție</th><th>Cantitate</th><th>Contraparte</th><th>Paritate</th><th>Loc</th><th>Data</th><th>Acțiune</th>
+  </tr></thead><tbody>${list.map(({t,score})=>`
+    <tr>
+      <td><span class="log-badge ${score>=70?'done':score>=35?'due':'info'}">${score}</span></td>
+      <td>#${escHtml(t.id)}</td>
+      <td>${escHtml(getTradeContractNo(t)||'—')}</td>
+      <td>${escHtml(tradeProductLabel(t))}</td>
+      <td>${escHtml(t.crop||'—')}</td>
+      <td>${escHtml(tradeDirLabel(t))}</td>
+      <td>${fmtN(t.qty||0)} t</td>
+      <td>${escHtml(t.cpty||'—')}</td>
+      <td>${escHtml(t.parity||'—')}</td>
+      <td>${escHtml(t.loc||'—')}</td>
+      <td>${escHtml(t.date||'—')}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn-log" onclick="linkLogisticsToTrade('${escHtml(String(t.id))}',false)">Leagă</button>
+        <button class="btn-log btn-log-green" onclick="linkLogisticsToTrade('${escHtml(String(t.id))}',true)">Leagă + actualizează</button>
+      </td>
+    </tr>`).join('')}</tbody></table>`;
+}
+async function linkLogisticsToTrade(tradeId, updateSnapshot=false){
+  const c=getLogContract(document.getElementById('logLinkContractId')?.value || selectedLogisticsId);
+  const t=(trades||[]).find(x=>String(x.id)===String(tradeId));
+  if(!c || !t){alert('Nu am găsit contractul logistic sau poziția selectată.');return;}
+  c.tradeId=t.id;
+  c.source_trade_id=t.id;
+  c.sourceTradeId=t.id;
+  c.trade_id=t.id;
+  c.linkedAt=new Date().toISOString();
+  c.linkedMode=updateSnapshot?'with_snapshot_update':'link_only';
+  if(updateSnapshot){
+    const snap={
+      productKey:normalizeProductKey(t.product),
+      product:normalizeProductKey(t.product),
+      crop:t.crop || '',
+      qty:Number(t.qty)||0,
+      counterparty:t.cpty || '',
+      cpty:t.cpty || '',
+      dir:t.dir || (logFlow(c)==='pickup'?'long':'short'),
+      parity:t.parity || '',
+      loc:t.loc || '',
+      date:t.date || today(),
+      note:getTradeContractNo(t),
+      contractNo:getTradeContractNo(t),
+      price:t.price,
+      priceEur:t.priceEur,
+      currency:t.currency,
+      transport:t.transport,
+      transportEur:t.transportEur,
+      ptype:t.ptype
+    };
+    c.tradeSnapshot={...(c.tradeSnapshot||{}),...snap};
+    c.contractNo=getTradeContractNo(t) || c.contractNo || '';
+    c.flow=t.dir==='long'?'pickup':'delivery';
+    if(c.transportMode===undefined || c.transportMode===null || c.transportMode==='') c.transportMode='truck';
+  }
+  c.updatedAt=new Date().toISOString();
+  await saveLogistics(c);
+  closeModal('modLogLinkPosition');
+  renderLogistics();
+  render();
+}
+
 function renderLogisticsDetail(){
   const detail=document.getElementById('logisticsDetail');
   const c=getLogContract(selectedLogisticsId);
@@ -5961,6 +6132,7 @@ function renderLogisticsDetail(){
       <div class="log-actions">
         <span class="log-badge ${st.cls}">${st.label}</span>
         <button class="btn-log" onclick="openLogisticsEditModal('${c.id}')">✎ Editează</button>
+        <button class="btn-log" onclick="openLogLinkPositionModal('${c.id}')">🔗 ${c.tradeId || c.source_trade_id || c.sourceTradeId ? 'Schimbă poziția' : 'Leagă poziție'}</button>
         <button class="btn-log" onclick="exportSelectedLogisticsContract()">⬇ Export contract</button>
         <button class="btn-log ${c.manualClosed?'btn-log-green':'btn-log'}" onclick="toggleLogManualClosed()">${c.manualClosed?'Redeschide ctr':'Finalizează ctr'}</button>
         <button class="btn-log ${c.problem?'btn-log-green':'btn-log-red'}" onclick="toggleLogProblem()">${c.problem?'Scoate problema':'Marchează problemă'}</button>
