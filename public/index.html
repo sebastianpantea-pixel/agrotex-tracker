@@ -962,6 +962,11 @@
   .train-event-card.loaded{border-left-color:var(--long-dim);opacity:.82;}
   .train-event-card.problem{border-left-color:var(--short);background:rgba(240,138,142,.09);}
   .train-event-card.cancelled{border-left-color:var(--dim);opacity:.52;text-decoration:line-through;}
+  .train-event-card.train-colored{border-left-color:var(--train-color)!important;border-color:rgba(255,255,255,.10);}
+  .train-event-card.train-selected{border-color:var(--train-color)!important;box-shadow:0 0 0 1px var(--train-color),0 0 14px rgba(224,183,94,.22);}
+  .train-event-card.train-dimmed{opacity:.42;}
+  .train-side-item.train-selected{border-color:var(--train-color)!important;box-shadow:0 0 0 1px var(--train-color),0 0 14px rgba(224,183,94,.18);}
+  .train-side-item.train-dimmed{opacity:.55;}
   .train-event-title{font-weight:900;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .train-event-meta{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .train-more{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);padding-left:3px;}
@@ -4712,18 +4717,56 @@ function renderTrainCalendar(){
   }
   grid.innerHTML = html;
 }
+
+function trainEventKey(ev){
+  if(!ev) return '';
+  return `${ev.contractId||''}__${ev.shipmentId||''}`;
+}
+function isSelectedTrainEvent(ev){
+  return !!(ev && selectedTrainEvent && String(selectedTrainEvent.contractId)===String(ev.contractId) && String(selectedTrainEvent.shipmentId)===String(ev.shipmentId));
+}
+function hasSelectedTrainEvent(){
+  return !!(selectedTrainEvent && selectedTrainEvent.contractId && selectedTrainEvent.shipmentId);
+}
+function trainHashColor(str){
+  const palette = ['#E0B75E','#7ACB8A','#8AB4F8','#F28B82','#C58AF9','#7FD4E5','#F6A15A','#A7D76F','#F78FB3','#B8A1FF','#63D2B3','#F0D264'];
+  let h = 0;
+  const raw = String(str||'tren');
+  for(let i=0;i<raw.length;i++) h = ((h<<5)-h) + raw.charCodeAt(i), h |= 0;
+  return palette[Math.abs(h) % palette.length];
+}
+function hexToRgba(hex, alpha){
+  const m = String(hex||'').replace('#','');
+  if(m.length !== 6) return `rgba(224,183,94,${alpha})`;
+  const r = parseInt(m.slice(0,2),16), g = parseInt(m.slice(2,4),16), b = parseInt(m.slice(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function trainEventColor(ev){
+  const c = ev && ev.contract ? ev.contract : {};
+  const sh = ev && ev.shipment ? ev.shipment : {};
+  const key = `${ev?.contractId||''}|${ev?.shipmentId||''}|${trainContractLabel(c)||''}|${c.product||''}|${trainClient(c)||''}|${sh.trainNo||''}`;
+  return trainHashColor(key);
+}
+
 function renderTrainEventCard(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
   const contract = escHtml(trainContractLabel(c));
   const prod = escHtml(trainProductName(c.product).replace(/^\S+\s/,''));
   const station = escHtml(trainStation(sh,c) || 'fără bază');
   const qty = fmtN(trainQty(sh,c));
-  return `<div class="train-event-card ${st.cls}" onclick="event.stopPropagation();selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
+  const color = trainEventColor(ev);
+  const selected = isSelectedTrainEvent(ev);
+  const dimmed = hasSelectedTrainEvent() && !selected;
+  const bg = selected
+    ? `linear-gradient(90deg, ${hexToRgba(color,.26)} 0%, ${hexToRgba(color,.09)} 100%)`
+    : `linear-gradient(90deg, ${hexToRgba(color,.13)} 0%, rgba(255,255,255,.028) 72%)`;
+  return `<div class="train-event-card train-colored ${st.cls}${selected?' train-selected':''}${dimmed?' train-dimmed':''}" style="--train-color:${color};background:${bg};" onclick="event.stopPropagation();selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
     <div class="train-event-title">${contract}</div>
     <div class="train-event-meta">${prod} · ${qty} t</div>
     <div class="train-event-meta">${station} · ${st.label}</div>
   </div>`;
 }
+
 function renderTrainSide(){
   const el = document.getElementById('trainSidePanel');
   if(!el) return;
@@ -4741,11 +4784,18 @@ function renderTrainSide(){
 }
 function renderTrainSideItem(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
-  return `<div class="train-side-item" onclick="selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
+  const color = trainEventColor(ev);
+  const selected = isSelectedTrainEvent(ev);
+  const dimmed = hasSelectedTrainEvent() && !selected;
+  const bg = selected
+    ? `linear-gradient(90deg, ${hexToRgba(color,.20)} 0%, rgba(255,255,255,.02) 100%)`
+    : `linear-gradient(90deg, ${hexToRgba(color,.08)} 0%, rgba(255,255,255,.018) 70%)`;
+  return `<div class="train-side-item${selected?' train-selected':''}${dimmed?' train-dimmed':''}" style="--train-color:${color};border-left:4px solid ${color};background:${bg};" onclick="selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><strong style="color:var(--bright);font-size:12px;">${escHtml(trainContractLabel(c))}</strong><span class="train-status-pill ${st.cls}">${st.label}</span></div>
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:5px;line-height:1.45;">${escHtml(trainProductName(c.product))} · ${fmtN(trainQty(sh,c))} t<br>${escHtml(trainStation(sh,c)||'fără bază')} ${sh.destination?'→ '+escHtml(sh.destination):''}</div>
   </div>`;
 }
+
 function renderTrainEventDetail(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
   const detail = [
