@@ -3177,10 +3177,15 @@ async function apiAddTrade(t){
   return data.id;
 }
 async function apiDeleteTrade(id){
-  normalizeTradeProduct(t);
   setSyncStatus('saving','● saving...');
-  await fetch(`/api/trades/${id}`,{method:'DELETE'});
+  const res = await fetch(`/api/trades/${encodeURIComponent(id)}`,{method:'DELETE'});
+  if(!res.ok){
+    setSyncStatus('error','● sync error');
+    alert('Nu am putut șterge tranzacția din server. Verifică refresh/sesiunea și încearcă din nou.');
+    return false;
+  }
   setSyncStatus('saved','● saved');
+  return true;
 }
 async function apiSaveProducts(){
   await fetch('/api/products',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(products)});
@@ -3323,8 +3328,9 @@ async function deleteTrade(id){
     alert('Această tranzacție are contract logistic legat. Șterge întâi contractul logistic dacă vrei să o elimini.');
     return;
   }
-  await apiDeleteTrade(id);
-  trades=trades.filter(t=>t.id!==id);
+  const ok = await apiDeleteTrade(id);
+  if(!ok) return;
+  trades=trades.filter(t=>String(t.id)!==String(id));
   render();
 }
 
