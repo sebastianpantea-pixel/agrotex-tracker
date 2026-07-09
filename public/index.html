@@ -908,6 +908,9 @@
   .stock-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;}
   .stock-card-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;}
   .stock-card-v{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:900;color:var(--bright);margin-top:4px;}
+  .stock-card-sub{margin-top:7px;padding-top:7px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);}
+  .stock-card-sub b{font-size:12px;color:var(--long);}
+  .stock-card-sub.neutral b{color:var(--neutral);}
   .stock-grid{display:grid;grid-template-columns:390px 1fr;gap:14px;align-items:start;}
   @media(max-width:1100px){.stock-grid{grid-template-columns:1fr;}}
   .stock-panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
@@ -8134,22 +8137,17 @@ function renderStockDashboard(rows){
   const occupancy=capInfo.cap?Math.round(total/capInfo.cap*100):0;
   const byProd={}; rows.forEach(r=>{byProd[r.product]=(byProd[r.product]||0)+(Number(r.qty)||0);});
   const logStock=computeLogisticsStockSummary();
-  const diff=total-logStock.net;
-  const diffCls=Math.abs(diff)<0.001?'stock-positive':'stock-negative';
   const cards=[
-    ['Stoc manual filtrat',`${fmtN(total)} t`,'stock-positive'],
-    ['Intrări pickup executate',`${fmtN(logStock.incoming)} t`,'stock-positive'],
-    ['Ieșiri delivery executate',`${fmtN(logStock.outgoing)} t`,'stock-neutral'],
-    ['Stoc logistic executat',`${fmtN(logStock.net)} t`,logStock.net>=0?'stock-positive':'stock-negative'],
-    ['Diferență manual - logistic',`${diff>=0?'+':''}${fmtN(diff)} t`,diffCls],
-    ['Capacitate selecție',`${fmtN(capInfo.cap)} t`,''],
-    ['Spațiu liber estimat',`${fmtN(capInfo.free)} t`,'stock-neutral'],
-    ['Grad ocupare',`${occupancy}%`,''],
-    ['Locații în selecție',`${fmtN(capInfo.count)}`,''],
-    ['Rânduri manuale afișate',`${fmtN(rows.length)}`,''],
+    {label:'Stoc manual filtrat',value:`${fmtN(total)} t`,cls:'stock-positive',subLabel:'Pickup executat',subValue:`${fmtN(logStock.incoming)} t`,subCls:''},
+    {label:'Ieșiri delivery executate',value:`${fmtN(logStock.outgoing)} t`,cls:'stock-neutral'},
+    {label:'Capacitate selecție',value:`${fmtN(capInfo.cap)} t`,cls:''},
+    {label:'Spațiu liber estimat',value:`${fmtN(capInfo.free)} t`,cls:'stock-neutral'},
+    {label:'Grad ocupare',value:`${occupancy}%`,cls:''},
+    {label:'Locații în selecție',value:`${fmtN(capInfo.count)}`,cls:''},
+    {label:'Rânduri manuale afișate',value:`${fmtN(rows.length)}`,cls:''},
   ];
-  Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,4).forEach(([k,v])=>cards.push([productNameFromKey(k),`${fmtN(v)} t`,'stock-positive']));
-  document.getElementById('stockDashboard').innerHTML=cards.map(([l,v,cls])=>`<div class="stock-card"><div class="stock-card-l">${escHtml(l)}</div><div class="stock-card-v ${cls||''}">${escHtml(v)}</div></div>`).join('');
+  Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,4).forEach(([k,v])=>cards.push({label:productNameFromKey(k),value:`${fmtN(v)} t`,cls:'stock-positive'}));
+  document.getElementById('stockDashboard').innerHTML=cards.map(c=>`<div class="stock-card"><div class="stock-card-l">${escHtml(c.label)}</div><div class="stock-card-v ${c.cls||''}">${escHtml(c.value)}</div>${c.subLabel?`<div class="stock-card-sub ${c.subCls||''}"><span>${escHtml(c.subLabel)}</span><b>${escHtml(c.subValue)}</b></div>`:''}</div>`).join('');
 }
 function renderStockSitesList(){
   const box=document.getElementById('stockSitesManager'); if(!box) return;
