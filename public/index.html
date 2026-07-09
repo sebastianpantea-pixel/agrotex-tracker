@@ -1281,6 +1281,34 @@
   .assistant-send{border:1px solid var(--acc);background:var(--acc);color:#0F0D0A;border-radius:6px;padding:0 13px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:1px;}
   .assistant-send:disabled{opacity:.55;cursor:not-allowed;}
 
+
+
+  /* Logistics compact workspace v1 */
+  .log-dashboard.compact{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:9px;}
+  .log-dashboard.compact .log-month-card{min-height:0;padding:10px 11px;gap:6px;}
+  .log-dashboard.compact .log-month-title{font-size:9px;letter-spacing:1.2px;}
+  .log-dashboard.compact .log-month-row{grid-template-columns:74px 1fr;gap:7px;padding-top:5px;font-size:9px;}
+  .log-dashboard.compact .log-month-planbox{gap:4px;}
+  .log-dashboard.compact .log-month-planitem{padding:4px 5px;}
+  .log-dashboard.compact .log-month-planlabel{font-size:7px;}
+  .log-dashboard.compact .log-month-planval{font-size:9px;}
+  .log-dashboard.compact .log-month-products{display:none;}
+  .log-dashboard.compact .log-month-card.active{box-shadow:0 0 0 1px rgba(224,183,94,.35), inset 0 0 0 1px rgba(224,183,94,.18);}
+  .log-card-create.log-create-collapsible{padding:0;overflow:hidden;}
+  .log-create-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;}
+  .log-create-head:hover{background:rgba(224,183,94,.06);}
+  .log-create-head-left{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .log-create-head .log-title{margin:0;}
+  .log-create-toggle{padding:4px 9px;border-radius:3px;border:1px solid rgba(224,183,94,.35);background:rgba(224,183,94,.08);color:var(--acc);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;}
+  .log-create-body{padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+  .log-card-create.collapsed .log-create-body{display:none;}
+  .log-card-create.collapsed .log-create-head{border-bottom:none;}
+  .log-create-wide .log-create-results.compact-results{max-height:190px;display:flex;flex-direction:column;gap:5px;overflow:auto;padding-right:2px;}
+  .log-create-wide .log-source-item{padding:6px 8px;}
+  .log-create-wide .log-source-title{font-size:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .log-create-wide .log-source-meta{font-size:8px;margin-top:3px;}
+  .log-source-more{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);padding:6px 8px;border:1px dashed var(--border2);border-radius:4px;background:rgba(255,255,255,.015);}
+
 </style>
 </head>
 <body>
@@ -2202,43 +2230,49 @@
     <input type="file" id="logisticsImportFile" accept=".xlsx,.xls" style="display:none" onchange="importLogistics(event)">
   </div>
 
-  <div class="log-dashboard" id="logisticsDashboard"></div>
+  <div class="log-dashboard compact" id="logisticsDashboard"></div>
   <div class="log-filter-strip hidden" id="logisticsMonthFilterStrip"></div>
 
-  <div class="log-card log-card-create log-create-wide">
-    <div class="log-title">Creează contract logistic</div>
-    <div class="log-muted">Caută tranzacția sursă. Sistemul detectează automat dacă este marfă de ridicat sau de livrat.</div>
-
-    <div class="fg">
-      <label class="fl">Caută contract / tranzacție</label>
-      <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
+  <div class="log-card log-card-create log-create-wide log-create-collapsible collapsed" id="logCreateCard">
+    <div class="log-create-head" onclick="toggleLogisticsCreatePanel()">
+      <div class="log-create-head-left">
+        <div class="log-title">Creează contract logistic</div>
+        <div class="log-muted">Închis implicit. Deschide doar când ai nevoie să cauți o poziție sau să creezi manual.</div>
+      </div>
+      <button type="button" class="log-create-toggle" id="logCreateToggleBtn">Deschide</button>
     </div>
-
-    <div class="log-search-results log-create-results" id="logSourceResults"></div>
-    <input type="hidden" id="logSelectedTradeId">
-
-    <div class="log-create-controls">
-      <div class="fg" id="logTransportModeWrap" style="display:none;">
-        <label class="fl">Transport pentru vânzare</label>
-        <select id="logTransportMode">
-          <option value="truck">Camion</option>
-          <option value="train">Tren</option>
-        </select>
-      </div>
-      <div class="fg" id="logDetectedFlowWrap" style="display:none;">
-        <label class="fl">Flux detectat</label>
-        <input id="logDetectedFlow" type="text" readonly>
-      </div>
+    <div class="log-create-body">
       <div class="fg">
-        <label class="fl">Perioadă de la</label>
-        <select id="logCreateStartMonth"></select>
+        <label class="fl">Caută contract / tranzacție</label>
+        <input id="logSourceSearch" type="text" placeholder="grau, grâu, contraparte, nr contract, ID, locație..." oninput="populateLogisticsSourceTrades()">
       </div>
-      <div class="fg">
-        <label class="fl">Perioadă până la</label>
-        <select id="logCreateEndMonth"></select>
+
+      <div class="log-search-results log-create-results compact-results" id="logSourceResults"></div>
+      <input type="hidden" id="logSelectedTradeId">
+
+      <div class="log-create-controls">
+        <div class="fg" id="logTransportModeWrap" style="display:none;">
+          <label class="fl">Transport pentru vânzare</label>
+          <select id="logTransportMode">
+            <option value="truck">Camion</option>
+            <option value="train">Tren</option>
+          </select>
+        </div>
+        <div class="fg" id="logDetectedFlowWrap" style="display:none;">
+          <label class="fl">Flux detectat</label>
+          <input id="logDetectedFlow" type="text" readonly>
+        </div>
+        <div class="fg">
+          <label class="fl">Perioadă de la</label>
+          <select id="logCreateStartMonth"></select>
+        </div>
+        <div class="fg">
+          <label class="fl">Perioadă până la</label>
+          <select id="logCreateEndMonth"></select>
+        </div>
+        <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
+        <button class="btn-log" onclick="openLogisticsEditModal(null)" title="Pentru contracte fără poziție sursă, de exemplu achiziții DAP unde nu organizăm transportul">+ Contract logistic manual</button>
       </div>
-      <button class="btn-add" onclick="createLogisticsFromTrade()">+ Creează contract logistic</button>
-      <button class="btn-log" onclick="openLogisticsEditModal(null)" title="Pentru contracte fără poziție sursă, de exemplu achiziții DAP unde nu organizăm transportul">+ Contract logistic manual</button>
     </div>
   </div>
 
@@ -2936,6 +2970,7 @@ let logisticsOverviewProductFilter = '';
 let logisticsOverviewFlowFilter = '';
 let logisticsOverviewStatusFilter = '';
 let logisticsListSearch = '';
+let logisticsCreatePanelOpen = false;
 
 const TARGET_MONTHS = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
 const TARGET_ROWS = [
@@ -5313,18 +5348,33 @@ function selectLogSourceTrade(id){
     document.getElementById('logTransportMode').disabled=false;
   }
 }
+
+function toggleLogisticsCreatePanel(forceOpen){
+  logisticsCreatePanelOpen = typeof forceOpen === 'boolean' ? forceOpen : !logisticsCreatePanelOpen;
+  const card=document.getElementById('logCreateCard');
+  const btn=document.getElementById('logCreateToggleBtn');
+  if(card) card.classList.toggle('collapsed', !logisticsCreatePanelOpen);
+  if(btn) btn.textContent = logisticsCreatePanelOpen ? 'Închide' : 'Deschide';
+  if(logisticsCreatePanelOpen){
+    setTimeout(()=>document.getElementById('logSourceSearch')?.focus(), 30);
+    populateLogisticsSourceTrades();
+  }
+}
+
 function populateLogisticsSourceTrades(){
   const box=document.getElementById('logSourceResults');
   if(!box) return;
   const q=document.getElementById('logSourceSearch')?.value || '';
   const selected=document.getElementById('logSelectedTradeId')?.value || '';
-  const filtered=trades.filter(t=>{
+  const hasQuery=searchTokens(q).length>0;
+  const allMatches=trades.filter(t=>{
     if(hasLogisticsForTrade(t.id)) return false;
     const p=products[t.product] || {name:t.product,emoji:'📦'};
     const flow=t.dir==='long'?'de ridicat achizitie cumparare':'de livrat vanzare';
     const hay=[t.id,t.product,p.name,p.emoji,t.crop,t.dir,flow,t.qty,t.cpty,t.loc,t.parity,t.date,t.note,t.matif,t.basis,t.price,t.priceEur].join(' ');
-    return matchesSearch(hay,q);
-  }).slice(0,80);
+    return hasQuery ? matchesSearch(hay,q) : true;
+  });
+  const filtered=allMatches.slice(0, hasQuery ? 20 : 8);
 
   if(!filtered.length){
     box.innerHTML='<div class="log-empty">// nicio tranzacție disponibilă pentru criteriul căutat</div>';
@@ -5341,7 +5391,7 @@ function populateLogisticsSourceTrades(){
       <div class="log-source-title">${badge} ${p.emoji} ${escHtml(p.name)} ${t.crop} · ${fmtN(t.qty)} t</div>
       <div class="log-source-meta">#${t.id} · ${t.dir==='long'?'Cumpărare':'Vânzare'} · ${escHtml(t.cpty||'—')} · ${t.note ? 'Ctr ' + escHtml(t.note) + ' · ' : ''}${escHtml(t.loc||'—')} · ${t.date||'—'}</div>
     </div>`;
-  }).join('');
+  }).join('') + (allMatches.length>filtered.length ? `<div class="log-source-more">Se afișează ${filtered.length} din ${allMatches.length}. Scrie mai specific ca să restrângi lista.</div>` : '');
 }
 async function createLogisticsFromTrade(){
   const tradeId=document.getElementById('logSelectedTradeId').value;
@@ -5803,6 +5853,18 @@ function renderLogisticsDashboard(){
       </div>`).join('')}</div>`;
   };
 
+
+  const productCountLine=(a)=>{
+    const rows=Object.entries(a.products||{})
+      .map(([key,p])=>({key,...p,total:(p.pickup||0)+(p.delivery||0)+(p.pickupExec||0)+(p.deliveryExec||0)}))
+      .filter(p=>p.total>0)
+      .sort((x,y)=>y.total-x.total);
+    if(!rows.length) return '';
+    const top=rows.slice(0,3).map(p=>escHtml(String(p.label||p.key))).join(' · ');
+    const extra=rows.length>3 ? ` +${rows.length-3}` : '';
+    return `<div class="log-month-row"><span class="log-month-label">Produse</span><span class="log-month-value" style="font-size:9px;color:var(--dim);">${top}${extra}</span></div>`;
+  };
+
   box.innerHTML=activeMonths.map(m=>{
     const a=agg[m.key];
     const rest=Math.max(0,a.receivable-a.paid);
@@ -5810,7 +5872,7 @@ function renderLogisticsDashboard(){
       <div class="log-month-title">${m.label}${m.key===nowYm?'<span class="log-badge open">curentă</span>':''}</div>
       ${(a.pickup>0 || a.pickupExec>0) ? planExecLine('De ridicat', a.pickup, a.pickupExec, 'pickup') : ''}
       ${(a.delivery>0 || a.deliveryExec>0) ? planExecLine('De livrat', a.delivery, a.deliveryExec, 'deliver') : ''}
-      ${productRows(a)}
+      ${productCountLine(a)}
       ${a.receivable>0 ? `<div class="log-month-row"><span class="log-month-label">De încasat</span><span class="log-month-value money">${fmtN(a.receivable)} RON</span></div>` : ''}
       ${a.paid>0 ? `<div class="log-month-row"><span class="log-month-label">Încasat</span><span class="log-month-value paid">${fmtN(a.paid)} RON</span></div>` : ''}
       ${rest>0 ? `<div class="log-month-row"><span class="log-month-label">Rest</span><span class="log-month-value rest">${fmtN(rest)} RON</span></div>` : ''}
