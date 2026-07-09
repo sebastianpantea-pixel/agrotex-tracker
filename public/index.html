@@ -10302,11 +10302,35 @@ function purchaseHistoryTextAddendum(r){
   const seller=r?.sellerName || purchaseContractSellerName(purchaseHistoryFindBaseContractForAddendum(r));
   return ['act aditional', 'act ad.', r?.addendumNo, r?.contractNo, product, seller, r?.quantity, r?.priceRon, r?.parity, r?.deliveryPlace, r?.agent, r?.addendumDate, r?.createdAt, r?.tradeId].join(' ').toLowerCase();
 }
+function purchaseHistorySearchNormalize(v){
+  return String(v||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+}
 function purchaseHistoryMatchesSearch(type, item){
-  const q=purchaseHistoryQueryText();
+  const qRaw=purchaseHistoryQueryText();
+  if(!qRaw) return true;
+  const hayRaw = type==='addendum' ? purchaseHistoryTextAddendum(item) : purchaseHistoryTextContract(item);
+  const q=purchaseHistorySearchNormalize(qRaw);
+  const hay=purchaseHistorySearchNormalize(hayRaw);
   if(!q) return true;
-  const hay = type==='addendum' ? purchaseHistoryTextAddendum(item) : purchaseHistoryTextContract(item);
-  return q.split(/\s+/).filter(Boolean).every(part=>hay.includes(part));
+
+  const qCompact=q.replace(/\s+/g,'');
+  const hayCompact=hay.replace(/\s+/g,'');
+
+  // Pentru cautari de tip "ati agro" trebuie sa prinda "ATIAGRO",
+  // dar sa nu intoarca rezultate doar pentru ca "ati" apare in "cooperativa".
+  if(qCompact && qCompact.length>=4 && hayCompact.includes(qCompact)) return true;
+
+  const tokens=hay.split(/\s+/).filter(Boolean);
+  return q.split(/\s+/).filter(Boolean).every(part=>{
+    if(part.length<=3){
+      return tokens.some(tok=>tok===part || tok.startsWith(part));
+    }
+    return tokens.some(tok=>tok===part || tok.startsWith(part) || tok.includes(part));
+  });
 }
 
 function purchaseRenderAddendumItem(r, idx){
