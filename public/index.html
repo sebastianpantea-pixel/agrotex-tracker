@@ -1628,6 +1628,15 @@
       </div>
       <div class="purchase-body">
         <div id="pcHistory" class="purchase-history"></div>
+        <div style="height:10px"></div>
+        <div class="purchase-head" style="padding:8px 0;border-bottom:1px solid var(--border);background:transparent;">
+          <div>
+            <div class="purchase-title">Istoric acte adiționale</div>
+            <div class="purchase-sub">Acte generate local din modulul Contracte.</div>
+          </div>
+          <button class="btn-purchase secondary" onclick="renderPurchaseAddendumHistory()">Refresh</button>
+        </div>
+        <div id="pcAddendumHistory" class="purchase-history"></div>
       </div>
     </div>
   </div>
@@ -10025,7 +10034,8 @@ async function loadPurchaseContracts(){
     if(!Array.isArray(purchaseContracts)) purchaseContracts=[];
     const b=document.getElementById('bPurchase'); if(b) b.textContent=purchaseContracts.length;
     renderPurchaseHistory();
-  }catch(err){ console.error('loadPurchaseContracts', err); purchaseContracts=[]; renderPurchaseHistory(); }
+    renderPurchaseAddendumHistory();
+  }catch(err){ console.error('loadPurchaseContracts', err); purchaseContracts=[]; renderPurchaseHistory(); renderPurchaseAddendumHistory(); }
 }
 function setPurchaseTab(){
   closeAllSideTabs();
@@ -10274,6 +10284,7 @@ function renderPurchaseHistory(){
       </div>
     </div>`;
   }).join('');
+  renderPurchaseAddendumHistory();
 }
 
 
@@ -10364,7 +10375,7 @@ function purchaseAddendumPeriod(a){
   return '';
 }
 function purchaseBuildAddendumDocHtml(a){
-  const sellerName=purchaseContractSellerName(a.baseContract);
+  const sellerName=String(a.sellerName || purchaseContractSellerName(a.baseContract) || 'VANZATOR').trim();
   const period=purchaseAddendumPeriod(a);
   const extra=a.notes ? `<p><b>Observații:</b> ${htmlEsc(a.notes)}</p>` : '';
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Act adițional</title>
@@ -10423,8 +10434,16 @@ async function purchaseGenerateAddendum(){
     const localKey='purchaseAddendums';
     let list=[];
     try{ list=JSON.parse(localStorage.getItem(localKey)||'[]'); }catch(_){ list=[]; }
-    list.unshift({contractId:a.contractId, contractNo:a.contractNo, addendumNo:a.addendumNo, addendumDate:a.addendumDate, product:a.product, quantity:a.quantity, priceRon:a.priceRon, parity:a.parity, deliveryPlace:a.deliveryPlace, tradeId, agent:a.agent, createdAt:new Date().toISOString()});
+    const createdAt=new Date().toISOString();
+    const addendumId=`${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+    const addendumRecord={
+      id:addendumId, contractId:a.contractId, contractNo:a.contractNo, contractDate:a.contractDate, addendumNo:a.addendumNo, addendumDate:a.addendumDate,
+      product:a.product, productLabel:a.productLabel, cropYear:a.cropYear, quantity:a.quantity, priceRon:a.priceRon, parity:a.parity, deliveryPlace:a.deliveryPlace,
+      deliveryStart:a.deliveryStart, deliveryEnd:a.deliveryEnd, sellerFullText:a.sellerFullText, sellerName:a.sellerName, notes:a.notes, tradeId, agent:a.agent, createdAt
+    };
+    list.unshift(addendumRecord);
     localStorage.setItem(localKey, JSON.stringify(list.slice(0,500)));
+    renderPurchaseAddendumHistory();
     if(status) status.innerHTML=`<div class="purchase-ok">Act adițional generat${a.createTrade?' și introdus în Poziție':''}.</div>`;
     setTimeout(()=>{ closePurchaseAddendumModal(); },700);
   }catch(err){
@@ -10433,6 +10452,113 @@ async function purchaseGenerateAddendum(){
     if(btn){ btn.disabled=false; btn.textContent='Generează act adițional'; }
   }
 }
+
+
+function purchaseGetAddendums(){
+  try{
+    const raw=JSON.parse(localStorage.getItem('purchaseAddendums')||'[]');
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){ return []; }
+}
+function purchaseSaveAddendums(list){
+  localStorage.setItem('purchaseAddendums', JSON.stringify((Array.isArray(list)?list:[]).slice(0,500)));
+}
+function purchaseAddendumRecordDocData(r){
+  const c=purchaseFindContractById(r.contractId) || null;
+  const product=normalizeProductKey(r.product || c?.product || 'wheat');
+  return {
+    baseContract:c,
+    contractId:r.contractId || c?.id || c?.contractId || '',
+    addendumNo:r.addendumNo || '1',
+    addendumDate:r.addendumDate || r.createdAt || today(),
+    contractNo:r.contractNo || c?.contractNo || '',
+    contractDate:r.contractDate || c?.contractDate || '',
+    product,
+    productLabel:r.productLabel || PURCHASE_PRODUCT_LABELS[product] || product,
+    cropYear:r.cropYear || c?.cropYear || c?.crop || '2026',
+    quantity:Number(r.quantity)||0,
+    priceRon:Number(r.priceRon)||0,
+    parity:r.parity || c?.parity || 'FCA',
+    deliveryPlace:r.deliveryPlace || c?.deliveryPlace || '',
+    deliveryStart:r.deliveryStart || '',
+    deliveryEnd:r.deliveryEnd || '',
+    agent:r.agent || c?.agent || '',
+    sellerFullText:r.sellerFullText || purchaseContractSellerText(c),
+    sellerName:r.sellerName || purchaseContractSellerName(c),
+    notes:r.notes || '',
+    createTrade:false
+  };
+}
+function renderPurchaseAddendumHistory(){
+  const box=document.getElementById('pcAddendumHistory');
+  if(!box) return;
+  const list=purchaseGetAddendums();
+  if(!list.length){
+    box.innerHTML='<div class="purchase-small" style="padding-top:8px;">Nu exista inca acte aditionale generate.</div>';
+    return;
+  }
+  box.innerHTML=list.slice(0,80).map((r,idx)=>{
+    const id=String(r.id || `${r.contractId||'ctr'}_${r.addendumNo||idx}_${r.createdAt||idx}`);
+    const product=PURCHASE_PRODUCT_LABELS[normalizeProductKey(r.product)] || r.productLabel || r.product || '—';
+    const qty=r.quantity ? purchaseNum(r.quantity) : '—';
+    const price=r.priceRon ? purchaseMoney(r.priceRon) : '—';
+    const date=r.addendumDate ? purchaseDateRo(r.addendumDate) : (r.createdAt ? new Date(r.createdAt).toLocaleDateString('ro-RO') : '—');
+    const seller=r.sellerName || purchaseContractSellerName(purchaseFindContractById(r.contractId));
+    const tradeLine=r.tradeId ? `<div class="purchase-signed-line on">Pozitie #${htmlEsc(r.tradeId)}</div>` : '';
+    return `<div class="purchase-history-item" data-pc-addendum-id="${htmlEsc(id)}">
+      <div class="purchase-history-top">
+        <div class="purchase-history-name" title="Act ad. ${htmlEsc(r.addendumNo||'—')} la ctr ${htmlEsc(r.contractNo||'—')}">Act ad. ${htmlEsc(r.addendumNo||'—')} · ctr ${htmlEsc(r.contractNo||'—')}</div>
+        <span class="purchase-badge">ADD</span>
+      </div>
+      <div class="purchase-history-meta">${htmlEsc(seller)}<br>${htmlEsc(product)} · ${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(r.parity||'')} ${htmlEsc(r.deliveryPlace||'')}<br>${htmlEsc(date)}${r.agent?' · '+htmlEsc(r.agent):''}</div>
+      ${tradeLine}
+      <div class="purchase-history-actions">
+        <button type="button" class="btn-purchase secondary" data-pc-addendum-action="download" data-pc-addendum-id="${htmlEsc(id)}">DOC</button>
+        <button type="button" class="btn-purchase secondary" data-pc-addendum-action="delete" data-pc-addendum-id="${htmlEsc(id)}" style="border-color:rgba(240,138,142,.45);color:var(--short);">Sterge</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function purchaseFindAddendumRecord(id){
+  const list=purchaseGetAddendums();
+  return list.find((r,idx)=>String(r.id || `${r.contractId||'ctr'}_${r.addendumNo||idx}_${r.createdAt||idx}`)===String(id)) || null;
+}
+async function purchaseDeleteAddendumRecord(id){
+  const list=purchaseGetAddendums();
+  const r=purchaseFindAddendumRecord(id);
+  if(!r){ alert('Nu gasesc actul aditional in istoric.'); return; }
+  if(!confirm(`Stergi actul aditional ${r.addendumNo||''} la contractul ${r.contractNo||''} din istoric?`)) return;
+  if(r.tradeId && confirm('Acest act aditional a introdus si o pozitie. Stergi si pozitia creata?')){
+    const ok=await apiDeleteTrade(r.tradeId);
+    if(ok){
+      trades=trades.filter(t=>String(t.id)!==String(r.tradeId));
+      render();
+    }
+  }
+  const next=list.filter((x,idx)=>String(x.id || `${x.contractId||'ctr'}_${x.addendumNo||idx}_${x.createdAt||idx}`)!==String(id));
+  purchaseSaveAddendums(next);
+  renderPurchaseAddendumHistory();
+}
+function purchaseDownloadAddendumFromHistory(id){
+  const r=purchaseFindAddendumRecord(id);
+  if(!r){ alert('Nu gasesc actul aditional in istoric.'); return; }
+  const a=purchaseAddendumRecordDocData(r);
+  const w=purchaseValidateAddendum({...a, baseContract:a.baseContract || {}}).filter(x=>!String(x).includes('contractul inițial'));
+  if(w.length){
+    alert('Nu pot regenera DOC complet. Lipsesc date:\n' + w.join('\n'));
+    return;
+  }
+  purchaseDownloadAddendumDoc(a);
+}
+function purchaseHandleAddendumHistoryClick(ev){
+  const btn=ev.target.closest('[data-pc-addendum-action]');
+  if(!btn || !document.getElementById('pcAddendumHistory')?.contains(btn)) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const id=btn.dataset.pcAddendumId || '';
+  if(btn.dataset.pcAddendumAction==='delete') purchaseDeleteAddendumRecord(id);
+  if(btn.dataset.pcAddendumAction==='download') purchaseDownloadAddendumFromHistory(id);
+}
+document.addEventListener('click', purchaseHandleAddendumHistoryClick, true);
 
 function purchaseHandleHistoryClick(ev){
   const btn=ev.target.closest('[data-pc-action]');
