@@ -940,12 +940,12 @@
   .train-filter-input{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 8px;outline:none;min-width:260px;}
   .train-filter-input.short{min-width:150px;}
   .train-filter-input:focus{border-color:var(--transport);}
-  .train-calendar-layout{display:grid;grid-template-columns:minmax(680px,1fr) 370px;gap:12px;align-items:start;}
+  .train-calendar-layout{display:grid;grid-template-columns:minmax(780px,1fr) 370px;gap:12px;align-items:start;}
   @media(max-width:1180px){.train-calendar-layout{grid-template-columns:1fr}.train-side-panel{position:static!important}.train-filter-input{min-width:180px}}
   .train-calendar-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px;}
   .train-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}
   .train-calendar-dow{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:5px 0;}
-  .train-cal-day{min-height:122px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px;display:flex;flex-direction:column;gap:5px;cursor:pointer;overflow:hidden;}
+  .train-cal-day{min-height:158px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px;display:flex;flex-direction:column;gap:6px;cursor:pointer;overflow:hidden;}
   .train-cal-day:hover{border-color:var(--transport);background:rgba(232,160,106,.05);}
   .train-cal-day.out{opacity:.42;}
   .train-cal-day.today{border-color:var(--acc);box-shadow:inset 0 0 0 1px rgba(224,183,94,.35);}
@@ -953,7 +953,7 @@
   .train-day-head{display:flex;align-items:center;justify-content:space-between;gap:6px;}
   .train-day-num{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);}
   .train-day-total{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);}
-  .train-event-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.028);border-left:3px solid var(--dim);border-radius:4px;padding:5px 6px;font-family:'IBM Plex Mono',monospace;font-size:8px;line-height:1.28;color:var(--text);cursor:pointer;}
+  .train-event-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.028);border-left:4px solid var(--dim);border-radius:5px;padding:7px 7px;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.32;color:var(--text);cursor:pointer;min-height:54px;}
   .train-event-card:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16);}
   .train-event-card.planned{border-left-color:var(--neutral);}
   .train-event-card.requested{border-left-color:var(--acc);background:rgba(224,183,94,.07);}
@@ -967,9 +967,18 @@
   .train-event-card.train-dimmed{opacity:.42;}
   .train-side-item.train-selected{border-color:var(--train-color)!important;box-shadow:0 0 0 1px var(--train-color),0 0 14px rgba(224,183,94,.18);}
   .train-side-item.train-dimmed{opacity:.55;}
-  .train-event-title{font-weight:900;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .train-event-title{font-weight:900;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;}
   .train-event-meta{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .train-more{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);padding-left:3px;}
+  .train-event-product{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+  .train-event-bottom{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:3px;}
+  .train-station-badge{display:inline-flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;border-radius:10px;padding:2px 7px;white-space:nowrap;border:1px solid var(--border2);}
+  .train-station-badge.carei{color:#8AB4F8;border-color:rgba(138,180,248,.45);background:rgba(138,180,248,.12);}
+  .train-station-badge.valea{color:#E0B75E;border-color:rgba(224,183,94,.50);background:rgba(224,183,94,.14);}
+  .train-station-badge.other{color:var(--dim);border-color:var(--border2);background:rgba(255,255,255,.035);}
+  .train-cal-day.station-carei{background:linear-gradient(180deg,rgba(138,180,248,.055),var(--surface2) 38%);}
+  .train-cal-day.station-valea{background:linear-gradient(180deg,rgba(224,183,94,.06),var(--surface2) 38%);}
+
   .train-side-panel{position:sticky;top:72px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;min-height:360px;}
   .train-side-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
   .train-side-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;margin-bottom:10px;}
@@ -4715,7 +4724,7 @@ function renderTrainCalendar(){
     const dayQty = events.reduce((s,ev)=>s+trainQty(ev.shipment, ev.contract),0);
     const out = d.getMonth() !== m;
     const selected = key === selectedTrainDate;
-    html += `<div class="train-cal-day${out?' out':''}${key===todayKey?' today':''}${selected?' selected':''}" onclick="selectTrainDay('${key}')">
+    html += `<div class="train-cal-day${out?' out':''}${key===todayKey?' today':''}${selected?' selected':''}${trainDayStationClass(events)}" onclick="selectTrainDay('${key}')">
       <div class="train-day-head"><span class="train-day-num">${d.getDate()}</span>${events.length?`<span class="train-day-total">${events.length} / ${fmtN(dayQty)} t</span>`:''}</div>
       ${events.slice(0,4).map(ev=>renderTrainEventCard(ev)).join('')}
       ${events.length>4?`<div class="train-more">+ ${events.length-4} încă</div>`:''}
@@ -4754,23 +4763,43 @@ function trainEventColor(ev){
   return trainHashColor(key);
 }
 
+
+function trainStationClass(station){
+  const x = normalizeText(station || '');
+  if(x.includes('carei')) return 'carei';
+  if(x.includes('valea') || x.includes('valea lui mihai')) return 'valea';
+  return 'other';
+}
+function trainStationShort(station){
+  const cls = trainStationClass(station);
+  if(cls === 'carei') return 'Carei';
+  if(cls === 'valea') return 'Valea';
+  return station || 'fără bază';
+}
+function trainDayStationClass(events){
+  const classes = [...new Set((events||[]).map(ev=>trainStationClass(trainStation(ev.shipment, ev.contract))).filter(c=>c && c !== 'other'))];
+  return classes.length === 1 ? ` station-${classes[0]}` : '';
+}
+
 function renderTrainEventCard(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
-  const client = escHtml(trainClient(c) || 'Fără client');
+  const client = escHtml(trainClient(c) || trainContractLabel(c));
   const contract = escHtml(trainContractLabel(c));
   const prod = escHtml(trainProductName(c.product).replace(/^\S+\s/,''));
-  const station = escHtml(trainStation(sh,c) || 'fără bază');
+  const stationRaw = trainStation(sh,c) || 'fără bază';
+  const stationCls = trainStationClass(stationRaw);
+  const station = escHtml(trainStationShort(stationRaw));
   const qty = fmtN(trainQty(sh,c));
   const color = trainEventColor(ev);
   const selected = isSelectedTrainEvent(ev);
   const dimmed = hasSelectedTrainEvent() && !selected;
   const bg = selected
-    ? `linear-gradient(90deg, ${hexToRgba(color,.26)} 0%, ${hexToRgba(color,.09)} 100%)`
-    : `linear-gradient(90deg, ${hexToRgba(color,.13)} 0%, rgba(255,255,255,.028) 72%)`;
+    ? `linear-gradient(90deg, ${hexToRgba(color,.28)} 0%, ${hexToRgba(color,.10)} 100%)`
+    : `linear-gradient(90deg, ${hexToRgba(color,.14)} 0%, rgba(255,255,255,.028) 72%)`;
   return `<div class="train-event-card train-colored ${st.cls}${selected?' train-selected':''}${dimmed?' train-dimmed':''}" style="--train-color:${color};background:${bg};" onclick="event.stopPropagation();selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
     <div class="train-event-title">${client}</div>
-    <div class="train-event-meta">${contract} · ${prod} · ${qty} t</div>
-    <div class="train-event-meta">${station} · ${st.label}</div>
+    <div class="train-event-product">${prod}</div>
+    <div class="train-event-bottom"><span class="train-station-badge ${stationCls}">${station}</span><span class="train-event-meta">${contract} · ${qty} t</span></div>
   </div>`;
 }
 
@@ -4798,8 +4827,8 @@ function renderTrainSideItem(ev){
     ? `linear-gradient(90deg, ${hexToRgba(color,.20)} 0%, rgba(255,255,255,.02) 100%)`
     : `linear-gradient(90deg, ${hexToRgba(color,.08)} 0%, rgba(255,255,255,.018) 70%)`;
   return `<div class="train-side-item${selected?' train-selected':''}${dimmed?' train-dimmed':''}" style="--train-color:${color};border-left:4px solid ${color};background:${bg};" onclick="selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
-    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><strong style="color:var(--bright);font-size:12px;">${escHtml(trainClient(c)||'Fără client')}</strong><span class="train-status-pill ${st.cls}">${st.label}</span></div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:5px;line-height:1.45;">${escHtml(trainContractLabel(c))} · ${escHtml(trainProductName(c.product))} · ${fmtN(trainQty(sh,c))} t<br>${escHtml(trainStation(sh,c)||'fără bază')} ${sh.destination?'→ '+escHtml(sh.destination):''}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><strong style="color:var(--bright);font-size:12px;">${escHtml(trainClient(c)||trainContractLabel(c))}</strong><span class="train-status-pill ${st.cls}">${st.label}</span></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:5px;line-height:1.45;">${escHtml(trainProductName(c.product))} · ${escHtml(trainContractLabel(c))} · ${fmtN(trainQty(sh,c))} t<br>${escHtml(trainStation(sh,c)||'fără bază')} ${sh.destination?'→ '+escHtml(sh.destination):''}</div>
   </div>`;
 }
 
