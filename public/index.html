@@ -9184,7 +9184,7 @@ const PURCHASE_PRODUCT_LABELS = {
   barley: 'Orz'
 };
 const PURCHASE_PRODUCT_QUALITY = {
-  wheat: ['Masa hectolitrica 76 kg/hl', 'Umiditate 14%', 'Corpuri straine 2%', 'Proteina min. 11%', 'DON max. 1250 ppb', 'Indice de cadere min. 220 sec.'],
+  wheat: ['Masa hectolitrica 77 kg/hl', 'Umiditate 14%', 'Corpuri straine 2%', 'Proteina min. 12%', 'DON max. 1250 ppb', 'Indice de cadere min. 220 sec.'],
   corn: ['Umiditate baza 14%', 'Impuritati baza 2%, max. 4%', 'Sparturi max. 3.5%', 'Aflatoxina max. 5 ppb', 'Marfa sanatoasa, libera de insecte si miros strain'],
   rapeseed: ['Umiditate max. 9%', 'Corpuri straine baza 2%, max. 4%', 'Acid erucic max. 2%', 'Continut de ulei min. 42%'],
   sunflower: ['Umiditate baza 9%, max. 11%', 'Corpuri straine baza 2%, max. 4%', 'Infestare max. 10 exemplare vii/kg', 'Seminte defecte max. 6%', 'Motive refuz: miros strain, culoare modificata, Rhyzopertha, GH sub 38 kg/hl'],
@@ -9209,7 +9209,7 @@ function purchaseToggleFzAdmin(){
   if(box) box.classList.toggle('open');
 }
 const PURCHASE_QUALITY_DEFAULTS = {
-  wheat: { hl:'76 kg/hl', humidity:'14%', foreignBodies:'2%', protein:'11%', don:'1250 ppb', fallingNumber:'220 sec.' },
+  wheat: { hl:'77 kg/hl', humidity:'14%', foreignBodies:'2%', protein:'12%', don:'1250 ppb', fallingNumber:'220 sec.' },
   corn: { humidityBase:'14.0%', dryingTax:'20 RON/tona/%', impuritiesBase:'2%', impuritiesMax:'4%', conditioningCost:'15 RON/to', broken:'3.5%', aflatoxin:'5 ppb' },
   triticale: { humidity:'14%', foreignBodies:'2%' },
   soybean: { humidity:'13%', foreignBodies:'2%', protein:'33%', oil:'18%', gmo:'NON GMO' },
@@ -9248,7 +9248,7 @@ function purchaseRenderQualityFields(reset=false){
 function purchaseReadQualityParams(product){
   const val=(id,fb='')=>(document.getElementById(id)?.value||fb).trim();
   if(product==='wheat') return {
-    hl:val('pcQHl','76 kg/hl'), humidity:val('pcQHumidity','14%'), foreignBodies:val('pcQForeign','2%'), protein:val('pcQProtein','11%'), don:val('pcQDon','1250 ppb'), fallingNumber:val('pcQFall','220 sec.')
+    hl:val('pcQHl','77 kg/hl'), humidity:val('pcQHumidity','14%'), foreignBodies:val('pcQForeign','2%'), protein:val('pcQProtein','12%'), don:val('pcQDon','1250 ppb'), fallingNumber:val('pcQFall','220 sec.')
   };
   if(product==='corn') return {
     humidityBase:val('pcQCornHumidity','14.0%'), dryingTax:val('pcQDryingTax','20 RON/tona/%'), impuritiesBase:val('pcQImpBase','2%'), impuritiesMax:val('pcQImpMax','4%'), conditioningCost:val('pcQCondCost','15 RON/to'), broken:val('pcQBroken','3.5%'), aflatoxin:val('pcQAflatoxin','5 ppb')
