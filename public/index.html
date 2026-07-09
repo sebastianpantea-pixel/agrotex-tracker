@@ -8027,48 +8027,50 @@ function isStockLogMovementRealized(m){
 }
 function logisticsStockMovementRows(){
   const rows=[];
-  const validBaseKeys=new Set();
-  (stockSites||[]).forEach(s=>{
-    if(s && s.type!=='tert' && s.name){
-      const k=stockCanonicalBaseKey(s.name);
-      if(k) validBaseKeys.add(k);
+  function firstLogBase(c, flow){
+    const moves=Array.isArray(c.movements) ? c.movements : (Array.isArray(c.deliveries) ? c.deliveries : []);
+    for(const m of moves){
+      if(String(m.status||'delivered').toLowerCase()==='problem') continue;
+      const raw = flow==='pickup'
+        ? String(m.deliveryLocation || m.destinationBase || m.destBase || m.toBase || m.base || '').trim()
+        : String(m.departureBase || m.base || m.bazaPlecare || m.fromBase || '').trim();
+      if(stockCanonicalBaseKey(raw)) return raw;
     }
-  });
-  (stockEntries||[]).forEach(r=>{
-    const site=getStockEntrySite(r);
-    if(site && site.type==='tert') return;
-    const k=stockCanonicalBaseKey(r.base);
-    if(k) validBaseKeys.add(k);
-  });
+    const t=getLogTrade(c) || {};
+    const fallback = flow==='pickup'
+      ? String(c.deliveryLocation || c.destinationBase || c.stockBase || c.base || t.stockBase || '').trim()
+      : String(c.departureBase || c.bazaPlecare || c.base || t.base || '').trim();
+    return fallback;
+  }
+
   (logisticsContracts||[]).forEach(c=>{
+    if(!c) return;
+    if(c.problem || String(c.status||'').toLowerCase()==='problem') return;
     const t=getLogTrade(c) || {};
     const flow=logFlow(c);
     const product=normalizeProductKey(t.product || t.productKey || c.product || c.tradeProduct || '');
     const crop=String(t.crop || c.crop || c.tradeCrop || '').trim();
     if(!product) return;
-    (c.movements||c.deliveries||[]).forEach(m=>{
-      if(!isStockLogMovementRealized(m)) return;
-      if(flow==='pickup' && (m.directDeliveryContractId || m.linkedDeliveryMovementId)) return;
-      if(flow==='delivery' && (m.autoFromPickup || m.linkedPickupContractId || m.linkedPickupMovementId)) return;
-      const qty=Number(m.qty)||0;
-      const rawBase = flow==='pickup'
-        ? String(m.deliveryLocation || m.destinationBase || m.destBase || m.departureBase || t.loc || '').trim()
-        : String(m.departureBase || m.base || m.bazaPlecare || '').trim();
-      const baseKey=stockCanonicalBaseKey(rawBase);
-      if(!baseKey) return;
-      if(validBaseKeys.size && !validBaseKeys.has(baseKey)) return;
-      rows.push({
-        product,
-        crop,
-        base:rawBase,
-        baseKey,
-        flow,
-        qty,
-        signedQty: flow==='pickup' ? qty : -qty,
-        contractId:c.id,
-        tradeId:c.tradeId || c.source_trade_id || c.sourceTradeId || '',
-        date:m.date || ''
-      });
+
+    // Pentru stoc logistic folosim exact cantitatea executată afișată în Logistică:
+    // suma mișcărilor efective din contract, pe flow pickup/delivery.
+    // Nu recalculăm separat pe fiecare rând, ca să nu dublăm mișcările legate pickup -> delivery.
+    const qty=movementQty(c);
+    if(!qty || qty<=0) return;
+
+    const rawBase=firstLogBase(c, flow);
+    const baseKey=stockCanonicalBaseKey(rawBase);
+    rows.push({
+      product,
+      crop,
+      base:rawBase || '',
+      baseKey,
+      flow,
+      qty,
+      signedQty: flow==='pickup' ? qty : -qty,
+      contractId:c.id,
+      tradeId:c.tradeId || c.source_trade_id || c.sourceTradeId || '',
+      date:c.updatedAt || c.createdAt || ''
     });
   });
   return rows;
@@ -8136,9 +8138,9 @@ function renderStockDashboard(rows){
   const diffCls=Math.abs(diff)<0.001?'stock-positive':'stock-negative';
   const cards=[
     ['Stoc manual filtrat',`${fmtN(total)} t`,'stock-positive'],
-    ['Intrări logistică la zi',`${fmtN(logStock.incoming)} t`,'stock-positive'],
-    ['Ieșiri logistică la zi',`${fmtN(logStock.outgoing)} t`,'stock-neutral'],
-    ['Stoc logistic calculat la zi',`${fmtN(logStock.net)} t`,logStock.net>=0?'stock-positive':'stock-negative'],
+    ['Intrări pickup executate',`${fmtN(logStock.incoming)} t`,'stock-positive'],
+    ['Ieșiri delivery executate',`${fmtN(logStock.outgoing)} t`,'stock-neutral'],
+    ['Stoc logistic executat',`${fmtN(logStock.net)} t`,logStock.net>=0?'stock-positive':'stock-negative'],
     ['Diferență manual - logistic',`${diff>=0?'+':''}${fmtN(diff)} t`,diffCls],
     ['Capacitate selecție',`${fmtN(capInfo.cap)} t`,''],
     ['Spațiu liber estimat',`${fmtN(capInfo.free)} t`,'stock-neutral'],
