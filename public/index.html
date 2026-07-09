@@ -4756,6 +4756,7 @@ function trainEventColor(ev){
 
 function renderTrainEventCard(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
+  const client = escHtml(trainClient(c) || 'Fără client');
   const contract = escHtml(trainContractLabel(c));
   const prod = escHtml(trainProductName(c.product).replace(/^\S+\s/,''));
   const station = escHtml(trainStation(sh,c) || 'fără bază');
@@ -4767,8 +4768,8 @@ function renderTrainEventCard(ev){
     ? `linear-gradient(90deg, ${hexToRgba(color,.26)} 0%, ${hexToRgba(color,.09)} 100%)`
     : `linear-gradient(90deg, ${hexToRgba(color,.13)} 0%, rgba(255,255,255,.028) 72%)`;
   return `<div class="train-event-card train-colored ${st.cls}${selected?' train-selected':''}${dimmed?' train-dimmed':''}" style="--train-color:${color};background:${bg};" onclick="event.stopPropagation();selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
-    <div class="train-event-title">${contract}</div>
-    <div class="train-event-meta">${prod} · ${qty} t</div>
+    <div class="train-event-title">${client}</div>
+    <div class="train-event-meta">${contract} · ${prod} · ${qty} t</div>
     <div class="train-event-meta">${station} · ${st.label}</div>
   </div>`;
 }
@@ -4797,8 +4798,8 @@ function renderTrainSideItem(ev){
     ? `linear-gradient(90deg, ${hexToRgba(color,.20)} 0%, rgba(255,255,255,.02) 100%)`
     : `linear-gradient(90deg, ${hexToRgba(color,.08)} 0%, rgba(255,255,255,.018) 70%)`;
   return `<div class="train-side-item${selected?' train-selected':''}${dimmed?' train-dimmed':''}" style="--train-color:${color};border-left:4px solid ${color};background:${bg};" onclick="selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
-    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><strong style="color:var(--bright);font-size:12px;">${escHtml(trainContractLabel(c))}</strong><span class="train-status-pill ${st.cls}">${st.label}</span></div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:5px;line-height:1.45;">${escHtml(trainProductName(c.product))} · ${fmtN(trainQty(sh,c))} t<br>${escHtml(trainStation(sh,c)||'fără bază')} ${sh.destination?'→ '+escHtml(sh.destination):''}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><strong style="color:var(--bright);font-size:12px;">${escHtml(trainClient(c)||'Fără client')}</strong><span class="train-status-pill ${st.cls}">${st.label}</span></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:5px;line-height:1.45;">${escHtml(trainContractLabel(c))} · ${escHtml(trainProductName(c.product))} · ${fmtN(trainQty(sh,c))} t<br>${escHtml(trainStation(sh,c)||'fără bază')} ${sh.destination?'→ '+escHtml(sh.destination):''}</div>
   </div>`;
 }
 
