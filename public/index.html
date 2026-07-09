@@ -909,6 +909,8 @@
   .stock-card-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;}
   .stock-card-v{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:900;color:var(--bright);margin-top:4px;}
   .stock-card-sub{margin-top:7px;padding-top:7px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);}
+  .stock-card-sub span{display:flex;flex-direction:column;gap:2px;}
+  .stock-card-sub small{font-size:8px;color:var(--dim);font-weight:700;}
   .stock-card-sub b{font-size:12px;color:var(--long);}
   .stock-card-sub.neutral b{color:var(--neutral);}
   .stock-grid{display:grid;grid-template-columns:390px 1fr;gap:14px;align-items:start;}
@@ -8146,8 +8148,25 @@ function renderStockDashboard(rows){
     {label:'Locații în selecție',value:`${fmtN(capInfo.count)}`,cls:''},
     {label:'Rânduri manuale afișate',value:`${fmtN(rows.length)}`,cls:''},
   ];
-  Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,4).forEach(([k,v])=>cards.push({label:productNameFromKey(k),value:`${fmtN(v)} t`,cls:'stock-positive'}));
-  document.getElementById('stockDashboard').innerHTML=cards.map(c=>`<div class="stock-card"><div class="stock-card-l">${escHtml(c.label)}</div><div class="stock-card-v ${c.cls||''}">${escHtml(c.value)}</div>${c.subLabel?`<div class="stock-card-sub ${c.subCls||''}"><span>${escHtml(c.subLabel)}</span><b>${escHtml(c.subValue)}</b></div>`:''}</div>`).join('');
+  const productKeys=[...new Set([...Object.keys(byProd),...Object.keys(logStock.byProd||{})])]
+    .sort((a,b)=>(Number(byProd[b]||0)-Number(byProd[a]||0)) || productNameFromKey(a).localeCompare(productNameFromKey(b),'ro'));
+  productKeys.forEach(k=>{
+    const manualQty=Number(byProd[k]||0);
+    const log=logStock.byProd?.[k] || {incoming:0,outgoing:0,net:0};
+    const logNet=Number(log.net||0);
+    const logCls=logNet<0?'stock-negative':(logNet>0?'':'neutral');
+    const subText=`P ${fmtN(log.incoming||0)} / D ${fmtN(log.outgoing||0)}`;
+    cards.push({
+      label:productNameFromKey(k),
+      value:`${fmtN(manualQty)} t`,
+      cls:manualQty>0?'stock-positive':'stock-neutral',
+      subLabel:'Logistic exec.',
+      subValue:`${fmtN(logNet)} t`,
+      subCls:logCls,
+      subTitle:subText
+    });
+  });
+  document.getElementById('stockDashboard').innerHTML=cards.map(c=>`<div class="stock-card"><div class="stock-card-l">${escHtml(c.label)}</div><div class="stock-card-v ${c.cls||''}">${escHtml(c.value)}</div>${c.subLabel?`<div class="stock-card-sub ${c.subCls||''}"><span>${escHtml(c.subLabel)}${c.subTitle?`<small>${escHtml(c.subTitle)}</small>`:''}</span><b>${escHtml(c.subValue)}</b></div>`:''}</div>`).join('');
 }
 function renderStockSitesList(){
   const box=document.getElementById('stockSitesManager'); if(!box) return;
