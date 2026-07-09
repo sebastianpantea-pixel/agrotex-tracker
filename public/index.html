@@ -1634,6 +1634,116 @@
 </div>
 
 
+<div id="pcAddendumOverlay" class="overlay">
+  <div class="modal" style="width:min(980px,94vw);max-height:92vh;overflow:auto;">
+    <div class="mtitle">Act adițional la contract</div>
+    <div class="purchase-small" id="pcAddendumInfo">Alege contractul din istoric.</div>
+
+    <div class="purchase-row2">
+      <div>
+        <div class="purchase-label">Nr. act adițional</div>
+        <input id="pcAddNo" class="purchase-input" value="1">
+      </div>
+      <div>
+        <div class="purchase-label">Data act adițional</div>
+        <input id="pcAddDate" type="date" class="purchase-input">
+      </div>
+    </div>
+
+    <div class="purchase-row2">
+      <div>
+        <div class="purchase-label">Nr. contract inițial</div>
+        <input id="pcAddContractNo" class="purchase-input">
+      </div>
+      <div>
+        <div class="purchase-label">Data contract inițial</div>
+        <input id="pcAddContractDate" type="date" class="purchase-input">
+      </div>
+    </div>
+
+    <div class="purchase-row2">
+      <div>
+        <div class="purchase-label">Produs</div>
+        <select id="pcAddProduct" class="purchase-select">
+          <option value="wheat">Grau</option>
+          <option value="corn">Porumb</option>
+          <option value="rapeseed">Rapita</option>
+          <option value="sunflower">Floarea-soarelui</option>
+          <option value="triticale">Triticale</option>
+          <option value="soybean">Soia</option>
+          <option value="barley">Orz</option>
+        </select>
+      </div>
+      <div>
+        <div class="purchase-label">Recoltă</div>
+        <input id="pcAddCropYear" class="purchase-input">
+      </div>
+    </div>
+
+    <div class="purchase-row2">
+      <div>
+        <div class="purchase-label">Cantitate suplimentară, tone</div>
+        <input id="pcAddQuantity" type="number" step="0.001" class="purchase-input">
+      </div>
+      <div>
+        <div class="purchase-label">Preț, lei / tonă</div>
+        <input id="pcAddPriceRon" type="number" step="0.01" class="purchase-input">
+      </div>
+    </div>
+
+    <div class="purchase-row2">
+      <div>
+        <div class="purchase-label">Paritate</div>
+        <select id="pcAddParity" class="purchase-select">
+          <option value="FCA">FCA</option>
+          <option value="DAP">DAP</option>
+        </select>
+      </div>
+      <div>
+        <div class="purchase-label">Loc livrare</div>
+        <input id="pcAddDeliveryPlace" class="purchase-input">
+      </div>
+    </div>
+
+    <div class="purchase-row2">
+      <div>
+        <div class="purchase-label">Livrare de la</div>
+        <input id="pcAddDeliveryStart" type="date" class="purchase-input">
+      </div>
+      <div>
+        <div class="purchase-label">Livrare până la</div>
+        <input id="pcAddDeliveryEnd" type="date" class="purchase-input">
+      </div>
+    </div>
+
+    <div>
+      <div class="purchase-label">Manager de zonă / Agent</div>
+      <input id="pcAddAgent" class="purchase-input" list="agentList">
+    </div>
+
+    <div>
+      <div class="purchase-label">Date vânzător pentru act</div>
+      <textarea id="pcAddSellerFull" class="purchase-textarea" style="min-height:86px;"></textarea>
+    </div>
+
+    <div>
+      <div class="purchase-label">Observații / text suplimentar</div>
+      <textarea id="pcAddNotes" class="purchase-textarea" placeholder="Opțional. Se poate lăsa gol."></textarea>
+    </div>
+
+    <label class="contract-check-row" style="margin-top:2px;">
+      <input id="pcAddCreateTrade" type="checkbox" checked> Introdu cantitatea suplimentară și în Poziție ca LONG
+    </label>
+
+    <div id="pcAddStatus"></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closePurchaseAddendumModal()">Anulează</button>
+      <button id="pcAddBtnGenerate" class="btn-save" onclick="purchaseGenerateAddendum()">Generează act adițional</button>
+    </div>
+  </div>
+</div>
+
+
 <div id="emailSection">
   <div class="email-toolbar">
     <button class="news-back-btn" onclick="closeEmailTab()">← Înapoi</button>
@@ -10158,11 +10268,170 @@ function renderPurchaseHistory(){
       <div class="purchase-history-meta" title="Pozitie ID: ${htmlEsc(tradeId||'—')}">${htmlEsc(seller)}<br>${htmlEsc(qty)} t · ${htmlEsc(price)} lei/t · ${htmlEsc(c.parity||'')} ${htmlEsc(c.deliveryPlace||'')}</div>
       ${signed && c.signedReturnedAt ? `<div class="purchase-signed-line on">${htmlEsc(new Date(c.signedReturnedAt).toLocaleDateString('ro-RO'))}</div>` : ''}
       <div class="purchase-history-actions">
+        <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="addendum" data-pc-id="${idAttr}">Act adițional</button>
         <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="download" data-pc-id="${idAttr}">DOCX</button>
         <button type="button" class="btn-purchase secondary" ${disabledAttr} data-pc-action="delete" data-pc-id="${idAttr}" data-pc-trade-id="${tradeIdAttr}" style="border-color:rgba(240,138,142,.45);color:var(--short);">Sterge</button>
       </div>
     </div>`;
   }).join('');
+}
+
+
+function purchaseFindContractById(id){
+  return (purchaseContracts||[]).find(c=>String(c.id || c.contractId || c._rowId || '')===String(id)) || null;
+}
+function purchaseContractSellerText(c){
+  return String(c?.sellerFullTextFinal || c?.sellerFullText || c?.manualSellerFullText || c?.sellerName || '').trim();
+}
+function purchaseContractSellerName(c){
+  return String(c?.sellerName || purchaseContractSellerText(c).split(',')[0] || 'VANZATOR').trim();
+}
+function openPurchaseAddendumModal(id){
+  const c=purchaseFindContractById(id);
+  if(!c){ alert('Nu găsesc contractul. Apasă Refresh și încearcă din nou.'); return; }
+  window.currentPurchaseAddendumContractId=String(id);
+  const set=(idv,val)=>{ const el=document.getElementById(idv); if(el) el.value=(val==null?'':val); };
+  const nextNo=(Number(c.addendumCount||0)||0)+1;
+  set('pcAddNo', nextNo);
+  set('pcAddDate', today());
+  set('pcAddContractNo', c.contractNo||'');
+  set('pcAddContractDate', (c.contractDate||'').slice(0,10));
+  set('pcAddProduct', normalizeProductKey(c.product||c.productLabel||'wheat'));
+  set('pcAddCropYear', c.cropYear||c.crop||'2026');
+  set('pcAddQuantity','');
+  set('pcAddPriceRon', c.priceRon||'');
+  set('pcAddParity', c.parity||'FCA');
+  set('pcAddDeliveryPlace', c.deliveryPlace||'');
+  set('pcAddDeliveryStart', (c.deliveryStart||'').slice(0,10));
+  set('pcAddDeliveryEnd', (c.deliveryEnd||'').slice(0,10));
+  set('pcAddAgent', c.agent||'');
+  set('pcAddSellerFull', purchaseContractSellerText(c));
+  set('pcAddNotes','');
+  const info=document.getElementById('pcAddendumInfo');
+  if(info) info.innerHTML=`Contract inițial: <b>${htmlEsc(c.contractNo||'—')}</b> · ${htmlEsc(PURCHASE_PRODUCT_LABELS[normalizeProductKey(c.product)]||c.productLabel||c.product||'—')} · ${htmlEsc(purchaseContractSellerName(c))}`;
+  const st=document.getElementById('pcAddStatus'); if(st) st.innerHTML='';
+  const chk=document.getElementById('pcAddCreateTrade'); if(chk) chk.checked=true;
+  document.getElementById('pcAddendumOverlay')?.classList.add('open');
+}
+function closePurchaseAddendumModal(){
+  document.getElementById('pcAddendumOverlay')?.classList.remove('open');
+  window.currentPurchaseAddendumContractId='';
+}
+function purchaseReadAddendumForm(){
+  const c=purchaseFindContractById(window.currentPurchaseAddendumContractId);
+  const product=normalizeProductKey(document.getElementById('pcAddProduct')?.value||c?.product||'wheat');
+  return {
+    baseContract:c,
+    contractId: window.currentPurchaseAddendumContractId||'',
+    addendumNo:(document.getElementById('pcAddNo')?.value||'').trim(),
+    addendumDate:document.getElementById('pcAddDate')?.value||today(),
+    contractNo:(document.getElementById('pcAddContractNo')?.value||c?.contractNo||'').trim(),
+    contractDate:document.getElementById('pcAddContractDate')?.value||c?.contractDate||'',
+    product,
+    productLabel:PURCHASE_PRODUCT_LABELS[product]||product,
+    cropYear:(document.getElementById('pcAddCropYear')?.value||c?.cropYear||c?.crop||'2026').trim(),
+    quantity:parseFloat(document.getElementById('pcAddQuantity')?.value)||0,
+    priceRon:parseFloat(document.getElementById('pcAddPriceRon')?.value)||0,
+    parity:document.getElementById('pcAddParity')?.value||c?.parity||'FCA',
+    deliveryPlace:(document.getElementById('pcAddDeliveryPlace')?.value||c?.deliveryPlace||'').trim(),
+    deliveryStart:document.getElementById('pcAddDeliveryStart')?.value||'',
+    deliveryEnd:document.getElementById('pcAddDeliveryEnd')?.value||'',
+    agent:(document.getElementById('pcAddAgent')?.value||c?.agent||'').trim(),
+    sellerFullText:(document.getElementById('pcAddSellerFull')?.value||purchaseContractSellerText(c)).trim(),
+    sellerName: purchaseContractSellerName(c),
+    notes:(document.getElementById('pcAddNotes')?.value||'').trim(),
+    createTrade:!!document.getElementById('pcAddCreateTrade')?.checked
+  };
+}
+function purchaseValidateAddendum(a){
+  const w=[];
+  if(!a.baseContract) w.push('Lipsește contractul inițial.');
+  if(!a.addendumNo) w.push('Lipsește numărul actului adițional.');
+  if(!a.addendumDate) w.push('Lipsește data actului adițional.');
+  if(!a.contractNo) w.push('Lipsește numărul contractului inițial.');
+  if(!a.contractDate) w.push('Lipsește data contractului inițial.');
+  if(!a.sellerFullText) w.push('Lipsesc datele vânzătorului.');
+  if(!a.quantity || a.quantity<=0) w.push('Cantitatea suplimentară trebuie să fie mai mare decât 0.');
+  if(!a.priceRon || a.priceRon<=0) w.push('Prețul trebuie să fie mai mare decât 0.');
+  if(!a.deliveryPlace) w.push('Locul de livrare trebuie completat.');
+  if(!a.agent) w.push('Lipsește managerul de zonă / agentul.');
+  return w;
+}
+function purchaseAddendumPeriod(a){
+  if(a.deliveryStart && a.deliveryEnd) return `${purchaseDateRo(a.deliveryStart)} - ${purchaseDateRo(a.deliveryEnd)}`;
+  if(a.deliveryStart) return `de la ${purchaseDateRo(a.deliveryStart)}`;
+  if(a.deliveryEnd) return `până la ${purchaseDateRo(a.deliveryEnd)}`;
+  return '';
+}
+function purchaseBuildAddendumDocHtml(a){
+  const sellerName=purchaseContractSellerName(a.baseContract);
+  const period=purchaseAddendumPeriod(a);
+  const extra=a.notes ? `<p><b>Observații:</b> ${htmlEsc(a.notes)}</p>` : '';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Act adițional</title>
+  <style>
+    @page{size:A4;margin:1.7cm 1.8cm;} body{font-family:Arial,Times New Roman,sans-serif;font-size:11.5pt;color:#111;line-height:1.22;} .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:34px;} .logo{font-size:28pt;font-weight:bold;color:#2d8a3e;font-style:italic;} .company{text-align:right;font-size:9.5pt;line-height:1.15;} h1{text-align:center;font-size:12pt;text-decoration:underline;margin:0 0 4px 0;} h2{text-align:center;font-size:12pt;text-decoration:underline;margin:0 0 28px 0;} .art{font-weight:bold;margin-top:18px;} p{margin:7px 0;text-align:left;} .indent{text-indent:32px;} .cols{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:54px;} .sig-title{text-decoration:underline;margin-bottom:15px;} .sig{font-size:10.5pt;line-height:1.25;} .manager{margin-top:10px;font-weight:bold;} .page{position:fixed;right:0;bottom:0;font-size:10pt;}
+  </style></head><body>
+  <div class="top"><div class="logo">agrotex</div><div class="company"><b>S.C. AGROTEX S.R.L. CAREI</b><br>Jud. Satu Mare, calea Armatei Române nr. 81/B<br>Nr. înregistrare O.R.C. J 30/1481/1992<br>CIF RO 2830353<br>Tel/fax: 0261 861399 / 865386 / 864506<br>www.agrotex.ro secretariat@agrotex.ro</div></div>
+  <h1>ACT ADIȚIONAL NR.${htmlEsc(a.addendumNo)} / ${htmlEsc(purchaseDateRo(a.addendumDate))} LA</h1>
+  <h2>CONTRACT DE VÂNZARE - CUMPĂRARE<br>nr. ${htmlEsc(a.contractNo)} / ${htmlEsc(purchaseDateRo(a.contractDate))}</h2>
+  <p class="art">Art.1 &nbsp; PĂRȚILE CONTRACTANTE</p>
+  <p class="indent"><b>S.C. AGROTEX S.R.L.</b> cu sediul în Carei, jud. Satu Mare, C-lea Armatei Române, nr.81/B, înmatriculată sub nr. J30/1481/92 la Reg. C.C.I. Satu Mare, CIF RO2830353, tel./fax. 061861399/865386, având contul IBAN RO59 BACX 0000 0004 7704 7001 deschis la Unicredit Tiriac Bank S.A. suc. Satu Mare, reprezentată prin ing. Adrian Mircea Lăța director general în calitate de <b>CUMPĂRĂTOR</b>.</p>
+  <p>Și</p>
+  <p class="indent">${htmlEsc(a.sellerFullText)} în calitate de <b>VÂNZĂTOR</b>.</p>
+  <p class="art">Art.2 &nbsp; OBIECTUL ȘI SCOPUL ACTULUI ADIȚIONAL</p>
+  <p>Se modifică art. 5</p>
+  <p><b>Cantitatea:</b> s-a încheiat prezentul Act Adițional la Contractul de Vânzare-Cumpărare nr.${htmlEsc(a.contractNo)} din data de ${htmlEsc(purchaseDateRo(a.contractDate))}, având ca obiect mărirea cantității cu <b>${htmlEsc(purchaseNum(a.quantity))} to ${htmlEsc(a.productLabel.toUpperCase())}</b> la preț de <b>${htmlEsc(purchaseMoney(a.priceRon))} lei/to</b>, paritate <b>${htmlEsc(a.parity)} ${htmlEsc(a.deliveryPlace)}</b>${period?`, perioada ${htmlEsc(period)}`:''}.</p>
+  ${extra}
+  <p style="margin-top:32px;">Toate celelalte articole rămân neschimbate.</p>
+  <div class="cols"><div class="sig"><div class="sig-title">CUMPĂRĂTOR,</div><b>S.C. AGROTEX S.R.L.</b><br>director general,<br>ing. Adrian Mircea Lăța<br><br>director financiar<br>ec. Adina Timonea<br>director achiziții<br>ec. Sebastian Pantea<br>viza<br>c,j, Vadim Leșan Iliszi<br><div class="manager">MANAGER DE ZONA<br>${htmlEsc((a.agent||'').toUpperCase())}</div></div><div class="sig"><div class="sig-title">VÂNZĂTOR,</div><b>${htmlEsc(sellerName)}</b><br>administrator,</div></div>
+  <div class="page">1</div></body></html>`;
+}
+function purchaseDownloadAddendumDoc(a){
+  const content='\ufeff'+purchaseBuildAddendumDocHtml(a);
+  const blob=new Blob([content], {type:'application/msword;charset=utf-8'});
+  const safe=s=>String(s||'').replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'');
+  const filename=`Act_aditional_${safe(a.addendumNo)}_la_contract_${safe(a.contractNo)}.doc`;
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url; link.download=filename;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+async function purchaseGenerateAddendum(){
+  const a=purchaseReadAddendumForm();
+  const w=purchaseValidateAddendum(a);
+  const status=document.getElementById('pcAddStatus');
+  if(w.length){ if(status) status.innerHTML=`<div class="purchase-warning">${w.map(x=>'• '+htmlEsc(x)).join('<br>')}</div>`; else alert(w.join('\n')); return; }
+  if(!confirm(`Generez act adițional la contractul ${a.contractNo}:\n\n${a.productLabel}, +${purchaseNum(a.quantity)} t, ${purchaseMoney(a.priceRon)} lei/t, ${a.parity} ${a.deliveryPlace}\n\nContinui?`)) return;
+  const btn=document.getElementById('pcAddBtnGenerate');
+  if(btn){ btn.disabled=true; btn.textContent='Se generează...'; }
+  try{
+    purchaseDownloadAddendumDoc(a);
+    let tradeId='';
+    if(a.createTrade){
+      const t={
+        product:a.product, crop:a.cropYear, dir:'long', qty:a.quantity, ptype:'fix', price:a.priceRon, currency:'ron',
+        parity:a.parity, loc:a.deliveryPlace, cpty:purchaseContractSellerName(a.baseContract),
+        note:`Act ad. ${a.addendumNo} la ctr ${a.contractNo}`, agent:a.agent, date:a.addendumDate,
+        purchaseContractId:a.contractId, addendumNo:a.addendumNo, addendumToContractNo:a.contractNo
+      };
+      tradeId=await apiAddTrade(t);
+      t.id=tradeId;
+      trades.unshift(t);
+      render();
+    }
+    const localKey='purchaseAddendums';
+    let list=[];
+    try{ list=JSON.parse(localStorage.getItem(localKey)||'[]'); }catch(_){ list=[]; }
+    list.unshift({contractId:a.contractId, contractNo:a.contractNo, addendumNo:a.addendumNo, addendumDate:a.addendumDate, product:a.product, quantity:a.quantity, priceRon:a.priceRon, parity:a.parity, deliveryPlace:a.deliveryPlace, tradeId, agent:a.agent, createdAt:new Date().toISOString()});
+    localStorage.setItem(localKey, JSON.stringify(list.slice(0,500)));
+    if(status) status.innerHTML=`<div class="purchase-ok">Act adițional generat${a.createTrade?' și introdus în Poziție':''}.</div>`;
+    setTimeout(()=>{ closePurchaseAddendumModal(); },700);
+  }catch(err){
+    if(status) status.innerHTML=`<div class="purchase-warning">${htmlEsc(err.message||'Eroare la generare act adițional.')}</div>`;
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Generează act adițional'; }
+  }
 }
 
 function purchaseHandleHistoryClick(ev){
@@ -10173,6 +10442,10 @@ function purchaseHandleHistoryClick(ev){
   const action=btn.dataset.pcAction;
   const id=(btn.dataset.pcId||'').trim();
   if(!id){ alert('ID contract lipsa. Apasa Refresh si incearca din nou.'); return; }
+  if(action==='addendum'){
+    openPurchaseAddendumModal(id);
+    return;
+  }
   if(action==='download'){
     window.open(`/api/purchase-contracts/${encodeURIComponent(id)}/download`, '_blank');
     return;
