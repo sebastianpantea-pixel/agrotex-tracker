@@ -8005,8 +8005,41 @@ function getFilteredStockEntries(){
   if(f.onlyPositive) rows=rows.filter(r=>(Number(r.qty)||0)>0);
   return rows.sort((a,b)=>String(a.base||'').localeCompare(String(b.base||''),'ro') || String(a.space||'').localeCompare(String(b.space||''),'ro') || String(a.product||'').localeCompare(String(b.product||''),'ro'));
 }
+function stockCanonicalBaseKey(name){
+  const k=stockBaseKey(name);
+  if(!k) return '';
+  if(k.includes('direct furnizor') || k.includes('fara baza')) return '';
+  if(k.includes('carei')) return 'carei';
+  if(k.includes('valea')) return 'valea';
+  if(k.includes('sacueni') || k.includes('sacuen')) return 'sacueni';
+  if(k.includes('apa')) return 'apa';
+  if(k.includes('sanislau')) return 'sanislau';
+  return k;
+}
+function isStockLogMovementRealized(m){
+  if(!m) return false;
+  if(String(m.status||'delivered').toLowerCase()==='problem') return false;
+  const qty=Number(m.qty)||0;
+  if(qty<=0) return false;
+  const d=String(m.date||'').slice(0,10);
+  if(d && d>today()) return false;
+  return true;
+}
 function logisticsStockMovementRows(){
   const rows=[];
+  const validBaseKeys=new Set();
+  (stockSites||[]).forEach(s=>{
+    if(s && s.type!=='tert' && s.name){
+      const k=stockCanonicalBaseKey(s.name);
+      if(k) validBaseKeys.add(k);
+    }
+  });
+  (stockEntries||[]).forEach(r=>{
+    const site=getStockEntrySite(r);
+    if(site && site.type==='tert') return;
+    const k=stockCanonicalBaseKey(r.base);
+    if(k) validBaseKeys.add(k);
+  });
   (logisticsContracts||[]).forEach(c=>{
     const t=getLogTrade(c) || {};
     const flow=logFlow(c);
@@ -8014,17 +8047,21 @@ function logisticsStockMovementRows(){
     const crop=String(t.crop || c.crop || c.tradeCrop || '').trim();
     if(!product) return;
     (c.movements||c.deliveries||[]).forEach(m=>{
-      if(!m) return;
-      if(String(m.status||'delivered').toLowerCase()==='problem') return;
+      if(!isStockLogMovementRealized(m)) return;
+      if(flow==='pickup' && (m.directDeliveryContractId || m.linkedDeliveryMovementId)) return;
+      if(flow==='delivery' && (m.autoFromPickup || m.linkedPickupContractId || m.linkedPickupMovementId)) return;
       const qty=Number(m.qty)||0;
-      if(qty<=0) return;
-      const base = flow==='pickup'
+      const rawBase = flow==='pickup'
         ? String(m.deliveryLocation || m.destinationBase || m.destBase || m.departureBase || t.loc || '').trim()
         : String(m.departureBase || m.base || m.bazaPlecare || '').trim();
+      const baseKey=stockCanonicalBaseKey(rawBase);
+      if(!baseKey) return;
+      if(validBaseKeys.size && !validBaseKeys.has(baseKey)) return;
       rows.push({
         product,
         crop,
-        base,
+        base:rawBase,
+        baseKey,
         flow,
         qty,
         signedQty: flow==='pickup' ? qty : -qty,
@@ -8039,7 +8076,7 @@ function logisticsStockMovementRows(){
 function getFilteredLogisticsStockRows(){
   const f=getStockFilterState();
   let rows=logisticsStockMovementRows();
-  if(f.base) rows=rows.filter(r=>stockBaseKey(r.base)===stockBaseKey(f.base));
+  if(f.base) rows=rows.filter(r=>stockCanonicalBaseKey(r.base)===stockCanonicalBaseKey(f.base));
   if(f.locationType==='tert') rows=[];
   if(f.product) rows=rows.filter(r=>r.product===f.product);
   if(f.crop) rows=rows.filter(r=>String(r.crop||'')===String(f.crop));
@@ -8099,9 +8136,9 @@ function renderStockDashboard(rows){
   const diffCls=Math.abs(diff)<0.001?'stock-positive':'stock-negative';
   const cards=[
     ['Stoc manual filtrat',`${fmtN(total)} t`,'stock-positive'],
-    ['Intrări logistică',`${fmtN(logStock.incoming)} t`,'stock-positive'],
-    ['Ieșiri logistică',`${fmtN(logStock.outgoing)} t`,'stock-neutral'],
-    ['Stoc logistic calculat',`${fmtN(logStock.net)} t`,logStock.net>=0?'stock-positive':'stock-negative'],
+    ['Intrări logistică la zi',`${fmtN(logStock.incoming)} t`,'stock-positive'],
+    ['Ieșiri logistică la zi',`${fmtN(logStock.outgoing)} t`,'stock-neutral'],
+    ['Stoc logistic calculat la zi',`${fmtN(logStock.net)} t`,logStock.net>=0?'stock-positive':'stock-negative'],
     ['Diferență manual - logistic',`${diff>=0?'+':''}${fmtN(diff)} t`,diffCls],
     ['Capacitate selecție',`${fmtN(capInfo.cap)} t`,''],
     ['Spațiu liber estimat',`${fmtN(capInfo.free)} t`,'stock-neutral'],
