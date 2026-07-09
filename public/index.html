@@ -1051,6 +1051,10 @@
   .purchase-history-actions{display:flex;gap:6px;margin-top:2px;width:100%;align-items:center;position:relative;z-index:5;}
   .purchase-history-actions .btn-purchase{flex:1;min-width:0;text-align:center;padding:5px 6px;font-size:9px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:6;pointer-events:auto;}
   .purchase-history-actions button,.purchase-history-actions a,.purchase-tick{pointer-events:auto;position:relative;z-index:7;}
+  .purchase-history-tools{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:7px;margin-bottom:8px;}
+  .purchase-history-search,.purchase-history-filter{background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:7px 8px;outline:none;min-width:0;}
+  .purchase-history-search:focus,.purchase-history-filter:focus{border-color:var(--acc);box-shadow:0 0 0 1px rgba(224,183,94,.12);}
+  .purchase-history-count{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin:-2px 0 7px;line-height:1.35;}
   .purchase-addendum-list{display:flex;flex-direction:column;gap:5px;margin-top:5px;padding-top:6px;border-top:1px dashed var(--border);}
   .purchase-addendum-inline{border:1px solid rgba(224,183,94,.22);background:rgba(224,183,94,.045);border-radius:4px;padding:6px;display:flex;flex-direction:column;gap:4px;}
   .purchase-addendum-inline .purchase-history-name{font-size:10px;}
@@ -1631,6 +1635,15 @@
         <button class="btn-purchase secondary" onclick="loadPurchaseContracts()">Refresh</button>
       </div>
       <div class="purchase-body">
+        <div class="purchase-history-tools">
+          <input id="pcHistorySearch" class="purchase-history-search" placeholder="Cauta contract, fermier, produs, agent, act aditional..." oninput="renderPurchaseHistory()">
+          <select id="pcHistorySignedFilter" class="purchase-history-filter" onchange="renderPurchaseHistory()">
+            <option value="all">Toate</option>
+            <option value="signed">Semnate</option>
+            <option value="unsigned">Nesemnate</option>
+          </select>
+        </div>
+        <div id="pcHistoryCount" class="purchase-history-count"></div>
         <div id="pcHistory" class="purchase-history"></div>
         <div id="pcAddendumHistory" style="display:none;"></div>
       </div>
@@ -10245,6 +10258,57 @@ async function purchaseDeleteContract(id, tradeId){
     alert(err.message||'Eroare la stergere.');
   }
 }
+
+function purchaseHistoryQueryText(){
+  const el=document.getElementById('pcHistorySearch');
+  return String(el?.value || '').trim().toLowerCase();
+}
+function purchaseHistorySignedFilter(){
+  const el=document.getElementById('pcHistorySignedFilter');
+  return String(el?.value || 'all');
+}
+function purchaseHistoryContractId(c){
+  return String(c?.id || c?.contractId || c?._rowId || '').trim();
+}
+function purchaseHistoryAddendumId(r, idx){
+  return String(r?.id || `${r?.contractId||'ctr'}_${r?.addendumNo||idx}_${r?.createdAt||idx}`);
+}
+function purchaseHistoryFindBaseContractForAddendum(r){
+  return (purchaseContracts||[]).find(c=>{
+    const cid=purchaseHistoryContractId(c);
+    return (r?.contractId && cid && String(r.contractId)===cid) || (c?.contractNo && r?.contractNo && String(c.contractNo)===String(r.contractNo));
+  }) || null;
+}
+function purchaseHistoryIsSignedContract(c){
+  return !!c?.signedReturned;
+}
+function purchaseHistoryIsSignedAddendum(r){
+  const c=purchaseHistoryFindBaseContractForAddendum(r);
+  return c ? !!c.signedReturned : false;
+}
+function purchaseHistoryMatchesSigned(type, item){
+  const f=purchaseHistorySignedFilter();
+  if(f==='all') return true;
+  const signed = type==='addendum' ? purchaseHistoryIsSignedAddendum(item) : purchaseHistoryIsSignedContract(item);
+  return f==='signed' ? signed : !signed;
+}
+function purchaseHistoryTextContract(c){
+  const product=PURCHASE_PRODUCT_LABELS[c?.product]||c?.productLabel||c?.product||'';
+  const seller=c?.sellerName || (c?.sellerFullTextFinal||c?.sellerFullText||'').split(',')[0] || '';
+  return [c?.contractNo, product, seller, c?.quantity, c?.priceRon, c?.parity, c?.deliveryPlace, c?.agent, c?.contractDate, c?.createdAt, c?.tradeId].join(' ').toLowerCase();
+}
+function purchaseHistoryTextAddendum(r){
+  const product=PURCHASE_PRODUCT_LABELS[normalizeProductKey(r?.product)] || r?.productLabel || r?.product || '';
+  const seller=r?.sellerName || purchaseContractSellerName(purchaseHistoryFindBaseContractForAddendum(r));
+  return ['act aditional', 'act ad.', r?.addendumNo, r?.contractNo, product, seller, r?.quantity, r?.priceRon, r?.parity, r?.deliveryPlace, r?.agent, r?.addendumDate, r?.createdAt, r?.tradeId].join(' ').toLowerCase();
+}
+function purchaseHistoryMatchesSearch(type, item){
+  const q=purchaseHistoryQueryText();
+  if(!q) return true;
+  const hay = type==='addendum' ? purchaseHistoryTextAddendum(item) : purchaseHistoryTextContract(item);
+  return q.split(/\s+/).filter(Boolean).every(part=>hay.includes(part));
+}
+
 function purchaseRenderAddendumItem(r, idx){
   const id=String(r.id || `${r.contractId||'ctr'}_${r.addendumNo||idx}_${r.createdAt||idx}`);
   const product=PURCHASE_PRODUCT_LABELS[normalizeProductKey(r.product)] || r.productLabel || r.product || '—';
@@ -10270,10 +10334,19 @@ function renderPurchaseHistory(){
   const box=document.getElementById('pcHistory');
   if(!box) return;
   const addendums=purchaseGetAddendums ? purchaseGetAddendums() : [];
-  if(!purchaseContracts.length && !addendums.length){ box.innerHTML='<div class="purchase-small">Nu exista inca contracte generate.</div>'; return; }
+  const countBox=document.getElementById('pcHistoryCount');
+  if(!purchaseContracts.length && !addendums.length){
+    if(countBox) countBox.textContent='';
+    box.innerHTML='<div class="purchase-small">Nu exista inca contracte generate.</div>';
+    return;
+  }
+  const queryActive=!!purchaseHistoryQueryText();
+  const filterActive=purchaseHistorySignedFilter()!=='all';
   const matchedAddendumIds=new Set();
-  const cards=purchaseContracts.slice(0,50).map(c=>{
-    const id=String(c.id || c.contractId || c._rowId || '').trim();
+  const visibleContracts=(purchaseContracts||[]).filter(c=>purchaseHistoryMatchesSigned('contract', c) && purchaseHistoryMatchesSearch('contract', c));
+
+  const cards=visibleContracts.map(c=>{
+    const id=purchaseHistoryContractId(c);
     const tradeId=String(c.tradeId || '').trim();
     const product=PURCHASE_PRODUCT_LABELS[c.product]||c.productLabel||c.product||'—';
     const seller=c.sellerName || (c.sellerFullTextFinal||c.sellerFullText||'').split(',')[0] || '—';
@@ -10284,10 +10357,12 @@ function renderPurchaseHistory(){
     const idAttr=htmlEsc(id);
     const tradeIdAttr=htmlEsc(tradeId);
     const contractAdds=addendums.filter((r,idx)=>{
-      const rid=String(r.id || `${r.contractId||'ctr'}_${r.addendumNo||idx}_${r.createdAt||idx}`);
+      const rid=purchaseHistoryAddendumId(r, idx);
       const match=(id && String(r.contractId||'')===String(id)) || (c.contractNo && r.contractNo && String(r.contractNo)===String(c.contractNo));
-      if(match) matchedAddendumIds.add(rid);
-      return match;
+      if(!match) return false;
+      const addVisible=purchaseHistoryMatchesSigned('addendum', r) && purchaseHistoryMatchesSearch('addendum', r);
+      if(addVisible || (!queryActive && !filterActive)) matchedAddendumIds.add(rid);
+      return addVisible || (!queryActive && !filterActive);
     });
     const addHtml=contractAdds.length ? `<div class="purchase-addendum-list">${contractAdds.map((r,idx)=>purchaseRenderAddendumItem(r,idx)).join('')}</div>` : '';
     return `<div class="purchase-history-item" data-pc-id="${idAttr}">
@@ -10309,14 +10384,25 @@ function renderPurchaseHistory(){
       ${addHtml}
     </div>`;
   });
-  const orphanAdds=addendums.filter((r,idx)=>{
-    const rid=String(r.id || `${r.contractId||'ctr'}_${r.addendumNo||idx}_${r.createdAt||idx}`);
-    return !matchedAddendumIds.has(rid);
-  });
-  const orphanHtml=orphanAdds.length ? orphanAdds.map((r,idx)=>`<div class="purchase-history-item">${purchaseRenderAddendumItem(r,idx)}</div>`).join('') : '';
-  box.innerHTML=cards.join('') + orphanHtml;
-}
 
+  const visibleOrphanAdds=addendums.filter((r,idx)=>{
+    const rid=purchaseHistoryAddendumId(r, idx);
+    if(matchedAddendumIds.has(rid)) return false;
+    return purchaseHistoryMatchesSigned('addendum', r) && purchaseHistoryMatchesSearch('addendum', r);
+  });
+  const orphanHtml=visibleOrphanAdds.length ? visibleOrphanAdds.map((r,idx)=>`<div class="purchase-history-item">${purchaseRenderAddendumItem(r,idx)}</div>`).join('') : '';
+  const totalVisible=visibleContracts.length + visibleOrphanAdds.length;
+  const totalAll=(purchaseContracts||[]).length + addendums.length;
+  if(countBox){
+    const q=purchaseHistoryQueryText();
+    const f=purchaseHistorySignedFilter();
+    const parts=[`${totalVisible} / ${totalAll} afisate`];
+    if(q) parts.push(`cautare: ${q}`);
+    if(f!=='all') parts.push(f==='signed'?'doar semnate':'doar nesemnate');
+    countBox.textContent=parts.join(' · ');
+  }
+  box.innerHTML=cards.join('') + orphanHtml || '<div class="purchase-small">Nu exista rezultate pentru cautarea/filtrul ales.</div>';
+}
 
 function purchaseFindContractById(id){
   return (purchaseContracts||[]).find(c=>String(c.id || c.contractId || c._rowId || '')===String(id)) || null;
