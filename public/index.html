@@ -1780,6 +1780,9 @@
     <label class="contract-check-row" style="margin-top:2px;">
       <input id="pcAddCreateTrade" type="checkbox" checked> Introdu cantitatea suplimentară și în Poziție ca LONG
     </label>
+    <label class="contract-check-row" style="margin-top:2px;">
+      <input id="pcAddUpdateLogistics" type="checkbox" checked> Adaugă cantitatea și în contractul logistic existent, dacă este legat
+    </label>
 
     <div id="pcAddStatus"></div>
     <div class="mbtns">
@@ -10527,6 +10530,7 @@ function openPurchaseAddendumModal(id){
   if(info) info.innerHTML=`Contract inițial: <b>${htmlEsc(c.contractNo||'—')}</b> · ${htmlEsc(PURCHASE_PRODUCT_LABELS[normalizeProductKey(c.product)]||c.productLabel||c.product||'—')} · ${htmlEsc(purchaseContractSellerName(c))}`;
   const st=document.getElementById('pcAddStatus'); if(st) st.innerHTML='';
   const chk=document.getElementById('pcAddCreateTrade'); if(chk) chk.checked=true;
+  const chkLog=document.getElementById('pcAddUpdateLogistics'); if(chkLog) chkLog.checked=true;
   document.getElementById('pcAddendumOverlay')?.classList.add('open');
 }
 function closePurchaseAddendumModal(){
@@ -10556,7 +10560,8 @@ function purchaseReadAddendumForm(){
     sellerFullText:(document.getElementById('pcAddSellerFull')?.value||purchaseContractSellerText(c)).trim(),
     sellerName: purchaseContractSellerName(c),
     notes:(document.getElementById('pcAddNotes')?.value||'').trim(),
-    createTrade:!!document.getElementById('pcAddCreateTrade')?.checked
+    createTrade:!!document.getElementById('pcAddCreateTrade')?.checked,
+    updateLogistics:!!document.getElementById('pcAddUpdateLogistics')?.checked
   };
 }
 function purchaseValidateAddendum(a){
@@ -10613,6 +10618,102 @@ function purchaseDownloadAddendumDoc(a){
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+
+function purchaseAddendumMonthKey(dateStr){
+  return String(dateStr || '').slice(0,7);
+}
+function purchaseFindLinkedLogisticsContract(a){
+  const base=a?.baseContract || {};
+  const tradeIds=[
+    base.tradeId,
+    base.source_trade_id,
+    base.sourceTradeId,
+    base.trade_id
+  ].filter(v=>v!==undefined && v!==null && String(v).trim()!=='').map(v=>String(v));
+  const contractId=String(a?.contractId || base.id || base.contractId || '').trim();
+  const contractNo=String(a?.contractNo || base.contractNo || '').trim();
+
+  const matches=(c)=>{
+    const ids=[c.tradeId,c.source_trade_id,c.sourceTradeId,c.trade_id].filter(v=>v!==undefined && v!==null && String(v).trim()!=='').map(v=>String(v));
+    if(tradeIds.length && ids.some(id=>tradeIds.includes(id))) return true;
+    const cPurchaseId=String(c.purchaseContractId || c.contractId || c.sourceContractId || '').trim();
+    if(contractId && cPurchaseId && cPurchaseId===contractId) return true;
+    const cNo=String(logContractNo(c) || c.contractNo || c.contractNumber || '').trim();
+    if(contractNo && cNo && cNo===contractNo) return true;
+    return false;
+  };
+
+  const candidates=(logisticsContracts||[]).filter(c=>matches(c));
+  if(!candidates.length) return null;
+
+  const pickup=candidates.find(c=>logFlow(c)==='pickup');
+  return pickup || candidates[0];
+}
+function purchaseAddendumAllocationMonths(a, c){
+  const s=purchaseAddendumMonthKey(a.deliveryStart);
+  const e=purchaseAddendumMonthKey(a.deliveryEnd || a.deliveryStart);
+  if(s && e){
+    const arr=monthRange(s+'-01', e+'-01');
+    if(arr.length) return arr;
+  }
+  const preferred=purchaseAddendumMonthKey(a.addendumDate) || c.deliveryEndMonth || c.deliveryStartMonth || today().slice(0,7);
+  return [preferred];
+}
+function purchaseAddAddendumQtyToLogisticsAllocations(c, a){
+  c.allocations=Array.isArray(c.allocations) ? c.allocations : [];
+  const qty=Math.round((Number(a.quantity)||0)*1000)/1000;
+  if(!qty) return;
+  const months=purchaseAddendumAllocationMonths(a,c);
+  const base=Math.floor((qty/months.length)*1000)/1000;
+  let used=0;
+  months.forEach((m,idx)=>{
+    const add=idx===months.length-1 ? Math.round((qty-used)*1000)/1000 : base;
+    used+=add;
+    const row=c.allocations.find(x=>String(x.month)===String(m));
+    if(row) row.qty=Math.round(((Number(row.qty)||0)+add)*1000)/1000;
+    else c.allocations.push({month:m, qty:add});
+  });
+  c.allocations.sort((a,b)=>String(a.month||'').localeCompare(String(b.month||'')));
+  if(!c.deliveryStartMonth || String(months[0]).localeCompare(String(c.deliveryStartMonth))<0) c.deliveryStartMonth=months[0];
+  const last=months[months.length-1];
+  if(!c.deliveryEndMonth || String(last).localeCompare(String(c.deliveryEndMonth))>0) c.deliveryEndMonth=last;
+}
+async function purchaseAddendumUpdateLinkedLogistics(a){
+  if(!a.updateLogistics) return {status:'skipped'};
+  const c=purchaseFindLinkedLogisticsContract(a);
+  if(!c) return {status:'missing'};
+
+  const addQty=Number(a.quantity)||0;
+  const currentSnap=c.tradeSnapshot || {};
+  const existingTrade=getLogTrade(c) || getLogRealTrade(c) || {};
+  const currentQty=Number(currentSnap.qty || currentSnap.tradeQty || existingTrade.qty || c.qty || c.tradeQty || allocatedQty(c) || 0);
+  const newQty=Math.round((currentQty + addQty)*1000)/1000;
+
+  c.tradeSnapshot={
+    ...currentSnap,
+    productKey: currentSnap.productKey || currentSnap.product || existingTrade.product || a.product,
+    product: currentSnap.product || existingTrade.product || a.product,
+    crop: currentSnap.crop || existingTrade.crop || a.cropYear,
+    qty:newQty,
+    tradeQty:newQty,
+    counterparty: currentSnap.counterparty || currentSnap.cpty || existingTrade.cpty || purchaseContractSellerName(a.baseContract),
+    cpty: currentSnap.cpty || currentSnap.counterparty || existingTrade.cpty || purchaseContractSellerName(a.baseContract),
+    dir: currentSnap.dir || existingTrade.dir || (logFlow(c)==='pickup'?'long':'short'),
+    parity: currentSnap.parity || existingTrade.parity || a.parity,
+    loc: currentSnap.loc || currentSnap.location || existingTrade.loc || a.deliveryPlace
+  };
+  c.qty=newQty;
+  c.tradeQty=newQty;
+  c.addendumQty=(Number(c.addendumQty)||0)+addQty;
+  c.lastAddendumNo=a.addendumNo || c.lastAddendumNo || '';
+  c.lastAddendumDate=a.addendumDate || c.lastAddendumDate || '';
+  c.updatedAt=new Date().toISOString();
+
+  purchaseAddAddendumQtyToLogisticsAllocations(c,a);
+  await saveLogistics(c);
+  try{ renderLogistics(); }catch(_){}
+  return {status:'updated', contract:c, qty:newQty};
+}
 async function purchaseGenerateAddendum(){
   const a=purchaseReadAddendumForm();
   const w=purchaseValidateAddendum(a);
@@ -10636,6 +10737,7 @@ async function purchaseGenerateAddendum(){
       trades.unshift(t);
       render();
     }
+    const logUpdateResult=await purchaseAddendumUpdateLinkedLogistics(a);
     const localKey='purchaseAddendums';
     let list=[];
     try{ list=JSON.parse(localStorage.getItem(localKey)||'[]'); }catch(_){ list=[]; }
@@ -10649,8 +10751,11 @@ async function purchaseGenerateAddendum(){
     list.unshift(addendumRecord);
     localStorage.setItem(localKey, JSON.stringify(list.slice(0,500)));
     renderPurchaseAddendumHistory();
-    if(status) status.innerHTML=`<div class="purchase-ok">Act adițional generat${a.createTrade?' și introdus în Poziție':''}.</div>`;
-    setTimeout(()=>{ closePurchaseAddendumModal(); },700);
+    const logMsg = logUpdateResult?.status==='updated'
+      ? ` Logistică actualizată la ${purchaseNum(logUpdateResult.qty)} t.`
+      : (a.updateLogistics && logUpdateResult?.status==='missing' ? ' Nu am găsit contract logistic legat.' : '');
+    if(status) status.innerHTML=`<div class="purchase-ok">Act adițional generat${a.createTrade?' și introdus în Poziție':''}.${htmlEsc(logMsg)}</div>`;
+    setTimeout(()=>{ closePurchaseAddendumModal(); },900);
   }catch(err){
     if(status) status.innerHTML=`<div class="purchase-warning">${htmlEsc(err.message||'Eroare la generare act adițional.')}</div>`;
   }finally{
