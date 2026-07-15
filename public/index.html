@@ -7021,14 +7021,14 @@ function exportSelectedLogisticsContract(){
 function exportLogistics(){
   const wb=XLSX.utils.book_new();
 
-  const contracts=[['id','tradeId','flow','transport','problem','deliveryStartMonth','deliveryEndMonth','tradeProduct','tradeCrop','tradeQty','counterparty','allocatedQty','executedQty','invoicesRon','paidRon']];
+  const contracts=[['id','tradeId','flow','transport','problem','deliveryStartMonth','deliveryEndMonth','tradeProduct','tradeCrop','tradeQty','counterparty','parity','allocatedQty','executedQty','invoicesRon','paidRon']];
   logisticsContracts.forEach(c=>{
     const t=getLogTrade(c);
     const p=t ? (products[t.product]||{name:t.product}) : {name:''};
-    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',allocatedQty(c),movementQty(c),logFlow(c)==='delivery'?Math.round(invoicesTotalRon(c)*100)/100:0,logFlow(c)==='delivery'?Math.round(invoicesPaidRon(c)*100)/100:0]);
+    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',(t?.parity || c.parity || c.tradeParity || '').toString().toUpperCase(),allocatedQty(c),movementQty(c),logFlow(c)==='delivery'?Math.round(invoicesTotalRon(c)*100)/100:0,logFlow(c)==='delivery'?Math.round(invoicesPaidRon(c)*100)/100:0]);
   });
   const ws1=XLSX.utils.aoa_to_sheet(contracts);
-  ws1['!cols']=[12,10,12,12,10,16,16,18,10,12,22,12,12,14,14].map(w=>({wch:w}));
+  ws1['!cols']=[12,10,12,12,10,16,16,18,10,12,22,10,12,12,14,14].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws1,'Contracte');
 
   const allocations=[['contractId','tradeId','month','qty']];
