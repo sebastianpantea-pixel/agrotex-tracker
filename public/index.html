@@ -574,6 +574,11 @@
   .pt{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);}
   .pc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);}
   .two-col{display:grid;grid-template-columns:1fr 350px;gap:14px;}
+  .position-layout{align-items:stretch;}
+  .position-trades-panel{display:flex;flex-direction:column;min-height:calc(100vh - 285px);}
+  .position-trades-panel .tform{flex:0 0 auto;}
+  .position-trades-panel .tscroll{flex:1;max-height:none;min-height:520px;}
+  @media(max-width:1100px){.position-trades-panel{min-height:auto}.position-trades-panel .tscroll{min-height:360px;}}
 
   .tform{padding:13px;border-bottom:1px solid var(--border);}
   .fr{display:grid;gap:7px;margin-bottom:7px;}
@@ -1328,6 +1333,9 @@
   .log-create-wide .log-source-meta{font-size:8px;margin-top:3px;}
   .log-source-more{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);padding:6px 8px;border:1px dashed var(--border2);border-radius:4px;background:rgba(255,255,255,.015);}
 
+  /* UI simplificat: fara Stiri si fara AI Assistant */
+  #tabNews,#newsSection,#assistantFab,#assistantPanel{display:none!important;}
+
 </style>
 </head>
 <body>
@@ -1416,12 +1424,6 @@
       <div class="fx-sep"></div>
       <div class="matif-updated" id="matifUpdated" title="Date Euronext cu delay ~15 min">—</div>
       <div style="cursor:pointer;font-size:11px;color:var(--dim);padding:0 2px;transition:color .2s;" title="Refresh MATIF" onclick="loadMatif(0)" id="matifRefreshBtn">↻</div>
-    </div>
-
-    <div class="sep"></div>
-
-    <div id="tabNews" onclick="setNewsTab()" style="cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--dim);padding:3px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);transition:all .15s;white-space:nowrap;" onmouseover="if(!newsTabActive){this.style.color='var(--acc)';this.style.borderColor='var(--acc)'}" onmouseout="if(!newsTabActive){this.style.color='var(--dim)';this.style.borderColor='var(--border2)'}">
-      📰 Știri <span class="tbadge" id="bNews" style="background:var(--basis);color:#000;display:none;margin-left:2px;">0</span>
     </div>
 
     <div class="sep"></div>
@@ -2338,8 +2340,8 @@
 
   </div>
 
-  <div class="two-col">
-    <div class="panel">
+  <div class="two-col position-layout">
+    <div class="panel position-trades-panel">
       <div class="ph">
         <div class="pt">Registru Tranzacții</div>
         <div style="display:flex;gap:7px;align-items:center;">
@@ -2853,29 +2855,8 @@
 
 
 
-<button class="assistant-fab" id="assistantFab" title="Asistent tracker" onclick="toggleAssistantPanel()">AI</button>
-<div class="assistant-panel" id="assistantPanel">
-  <div class="assistant-head">
-    <div>
-      <div class="assistant-title">Asistent Tracker</div>
-      <div class="assistant-sub">Raspunde din datele din aplicatie: pozitie, stocuri, logistica, trenuri, contracte.</div>
-    </div>
-    <button class="assistant-close" onclick="toggleAssistantPanel(false)">×</button>
-  </div>
-  <div class="assistant-body" id="assistantBody">
-    <div class="assistant-msg bot">Intreaba-ma despre datele din tracker. Nu modific nimic, doar citesc si raspund din baza aplicatiei.</div>
-    <div class="assistant-examples" id="assistantExamples">
-      <button class="assistant-chip" onclick="assistantAskExample('Ce stoc de porumb 2026 am azi pe locatii?')">Ce stoc de porumb 2026 am azi pe locatii?</button>
-      <button class="assistant-chip" onclick="assistantAskExample('Care este pozitia la zi pe grau 2026?')">Care este pozitia la zi pe grau 2026?</button>
-      <button class="assistant-chip" onclick="assistantAskExample('Ce trenuri sunt planificate de azi inainte?')">Ce trenuri sunt planificate de azi inainte?</button>
-      <button class="assistant-chip" onclick="assistantAskExample('Ce facturi logistice sunt depasite?')">Ce facturi logistice sunt depasite?</button>
-    </div>
-  </div>
-  <div class="assistant-inputrow">
-    <textarea class="assistant-input" id="assistantInput" placeholder="Scrie intrebarea..." onkeydown="assistantInputKey(event)"></textarea>
-    <button class="assistant-send" id="assistantSend" onclick="sendAssistantQuestion()">Trimite</button>
-  </div>
-</div>
+
+
 
 <script>
 const SWATCHES=['#f59e0b','#e2a857','#f0c040','#22c55e','#8bc34a','#34d399','#3b82f6','#60a5fa','#a78bfa','#e879f9','#ef4444','#f97316','#06b6d4','#ec4899','#94a3b8'];
@@ -10953,7 +10934,6 @@ async function bootApp(){
   await loadAll();
   loadFxRates();
   loadMatif();
-  loadNews();
   loadWeatherPresets();
   await loadTrainContracts();
   await loadPartners();
@@ -10961,7 +10941,6 @@ async function bootApp(){
   setPositionTab();
   setInterval(loadFxRates, 3*60*60*1000);
   setInterval(loadMatif, 5*60*1000);
-  setInterval(loadNews, 15*60*1000);
   setInterval(loadWeatherPresets, 30*60*1000);
   setInterval(syncTrades, 60*1000);
 }
