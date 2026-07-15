@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agrotex Cereale - TEST DEPLOY 15.07</title>
+<title>Agrotex Cereale</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -1380,24 +1380,63 @@
     .position-trades-panel .tscroll{max-height:none!important;min-height:320px!important;}
   }
 
-</style>
 
-<!-- DEPLOY VISIBILITY TEST START -->
-<style>
-  #deployVisibilityTestBanner{
-    position:sticky;top:0;z-index:99999;
-    background:#ffcc00;color:#111;
-    border:4px solid #ff0000;
-    padding:14px 22px;
-    font-family:Arial,sans-serif;
-    font-size:22px;font-weight:900;
-    letter-spacing:.5px;text-align:center;
-    box-shadow:0 4px 18px rgba(0,0,0,.45);
+  /* Agrotex UI v5 — DOAR public/index.html */
+  #newsSection,
+  #emailSection,
+  #assistantFab,
+  #assistantPanel,
+  #tabEmail,
+  .assistant-fab,
+  .assistant-panel,
+  [onclick*="setNewsTab"],
+  [onclick*="setEmailTab"],
+  [onclick*="toggleAssistantPanel"]{
+    display:none!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
   }
-  .hdr{background:#3b0000 !important;border-bottom:4px solid #ffcc00 !important;}
-  .logo::after{content:'  / TEST DEPLOY 15.07';color:#ffcc00;font-weight:900;margin-left:10px;}
+
+  .main{
+    min-height:calc(100vh - 150px)!important;
+  }
+  .position-layout{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 300px!important;
+    gap:12px!important;
+    align-items:stretch!important;
+    flex:1 1 auto!important;
+    min-height:calc(100vh - 250px)!important;
+  }
+  .position-trades-panel{
+    display:flex!important;
+    flex-direction:column!important;
+    height:auto!important;
+    min-height:0!important;
+  }
+  .position-trades-panel .tform{
+    flex:0 0 auto!important;
+  }
+  .position-trades-panel .tscroll{
+    flex:1 1 auto!important;
+    height:auto!important;
+    min-height:520px!important;
+    max-height:none!important;
+    overflow:auto!important;
+  }
+  .position-trades-panel .tscroll table{
+    min-width:1280px!important;
+  }
+  @media(max-height:850px){
+    .position-layout{min-height:calc(100vh - 225px)!important;}
+    .position-trades-panel .tscroll{min-height:420px!important;}
+  }
+  @media(max-width:1200px){
+    .position-layout{grid-template-columns:1fr!important;min-height:auto!important;}
+    .position-trades-panel .tscroll{min-height:360px!important;}
+  }
+
 </style>
-<!-- DEPLOY VISIBILITY TEST END -->
 </head>
 <body>
 
@@ -1417,8 +1456,6 @@
 <datalist id="agentList"></datalist>
 
 <div id="app">
-<div id="deployVisibilityTestBanner">VERSIUNE TEST DEPLOY 15.07 - DACA VEZI ACEST TEXT, INDEXUL NOU ESTE LIVE</div>
-
 <header class="hdr">
   <div style="display:flex;align-items:center;gap:13px;">
     <div class="logo">AGROTEX <span>CEREALE</span></div>
@@ -1514,13 +1551,11 @@
       <button type="button" class="tools-item report" onclick="setReportTab(); closeToolsMenu();">📊 Rapoarte</button>
       <button type="button" class="tools-item" onclick="openAgentBulkModal(); closeToolsMenu();">👤 Agenți contracte</button>
       <div class="tools-sep"></div>
-      <button type="button" class="tools-item" onclick="setEmailTab(); closeToolsMenu();">✉️ Email</button>
       <button type="button" class="tools-item" onclick="setMeteoTab(); closeToolsMenu();">🌦 Meteo</button>
       <button type="button" class="tools-item" onclick="setContextTab(); closeToolsMenu();">🌍 Context global</button>
     </div>
   </div>
   <div class="tab" id="tabReport" style="display:none;">📊 Rapoarte</div>
-  <div class="tab" id="tabEmail" style="display:none;">✉️ Email</div>
   <div class="tab" id="tabContext" style="display:none;">🌍 Context global</div>
   <div class="tab" id="tabMeteo" style="display:none;">🌦 Meteo</div>
 </div>
@@ -2547,7 +2582,7 @@
 </div>
 
 <footer class="footer">
-  <div>Agrotex SRL · Physical Grain &amp; Oilseed Trading</div>
+  <div>Agrotex SRL · Physical Grain &amp; Oilseed Trading <span style="color:var(--acc);font-family:'IBM Plex Mono',monospace;font-size:9px;margin-left:8px;">UI v5 public/index</span></div>
   <div style="display:flex;align-items:center;gap:12px;">
     <div id="ftotal"></div>
     <button id="tabAdmin" onclick="setAdminTab()" class="btn-sm" style="font-size:9px;padding:3px 8px;opacity:.72;">🔐 Admin</button>
@@ -11047,6 +11082,23 @@ window.addEventListener('pageshow',(e)=>{
   window.toggleAssistantPanel = function(){ cleanupUnusedUi(); return false; };
   document.addEventListener('DOMContentLoaded', cleanupUnusedUi);
   setTimeout(cleanupUnusedUi, 300);
+})();
+
+
+// Agrotex UI v5 cleanup — no news / no email assistant / no floating AI.
+(function(){
+  function agrotexUiV5Cleanup(){
+    document.querySelectorAll('#newsSection,#emailSection,#assistantFab,#assistantPanel,#tabEmail,.assistant-fab,.assistant-panel,[onclick*="setNewsTab"],[onclick*="setEmailTab"],[onclick*="toggleAssistantPanel"]').forEach(el=>{
+      if(el) el.remove();
+    });
+  }
+  window.loadNews = async function(){ return []; };
+  window.setNewsTab = function(){ agrotexUiV5Cleanup(); if(typeof setPositionTab==='function') setPositionTab(); };
+  window.setEmailTab = function(){ agrotexUiV5Cleanup(); if(typeof setPositionTab==='function') setPositionTab(); };
+  window.toggleAssistantPanel = function(){ agrotexUiV5Cleanup(); return false; };
+  document.addEventListener('DOMContentLoaded', agrotexUiV5Cleanup);
+  setTimeout(agrotexUiV5Cleanup, 300);
+  setTimeout(agrotexUiV5Cleanup, 1500);
 })();
 
 </script>
