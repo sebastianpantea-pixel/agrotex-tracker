@@ -1336,6 +1336,50 @@
   /* UI simplificat: fara Stiri si fara AI Assistant */
   #tabNews,#newsSection,#assistantFab,#assistantPanel{display:none!important;}
 
+
+
+  /* Position workspace cleanup v2 — layout vizibil, fara Stiri / AI */
+  #newsSection,
+  #assistantFab,
+  #assistantPanel,
+  .assistant-fab,
+  .assistant-panel,
+  [onclick*="setNewsTab"],
+  [onclick*="toggleAssistantPanel"]{
+    display:none!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+
+  .position-layout{
+    grid-template-columns:minmax(0,1fr) 285px!important;
+    gap:10px!important;
+    align-items:start!important;
+  }
+  .position-trades-panel{
+    min-height:auto!important;
+    height:auto!important;
+  }
+  .position-trades-panel .tform{
+    flex:0 0 auto!important;
+  }
+  .position-trades-panel .tscroll{
+    flex:0 0 auto!important;
+    min-height:260px!important;
+    max-height:calc(100vh - 395px)!important;
+    overflow:auto!important;
+  }
+  .position-trades-panel .tscroll table{
+    min-width:1320px;
+  }
+  @media(min-height:900px){
+    .position-trades-panel .tscroll{max-height:calc(100vh - 360px)!important;}
+  }
+  @media(max-width:1200px){
+    .position-layout{grid-template-columns:1fr!important;}
+    .position-trades-panel .tscroll{max-height:none!important;min-height:320px!important;}
+  }
+
 </style>
 </head>
 <body>
@@ -1941,24 +1985,6 @@
         </table>
       </div>
     </div>
-  </div>
-</div>
-
-<div id="newsSection">
-  <div class="news-toolbar">
-    <button class="news-back-btn" onclick="setCropFromNews()">← Înapoi</button>
-    <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
-    <button class="news-filter-btn active" id="nfAll2" onclick="setNewsFilter('all')">Toate</button>
-    <button class="news-filter-btn" id="nfRo" onclick="setNewsFilter('ro')">🇷🇴 Română</button>
-    <button class="news-filter-btn" id="nfEn" onclick="setNewsFilter('en')">🌍 Internațional</button>
-    <div style="width:1px;height:16px;background:var(--border2);margin:0 4px;"></div>
-    <button class="news-filter-btn" id="nfAgri" onclick="setNewsFilter('agri')">🌾 Cereale</button>
-    <button class="news-filter-btn" id="nfMacro" onclick="setNewsFilter('macro')">📈 Macro</button>
-    <span class="news-updated" id="newsUpdated"></span>
-    <button class="news-refresh-btn" onclick="loadNews(true)">↻ Refresh</button>
-  </div>
-  <div class="news-grid" id="newsGrid">
-    <div class="news-loading"><div class="news-spinner"></div>Se încarcă știrile...</div>
   </div>
 </div>
 
@@ -10986,6 +11012,24 @@ window.addEventListener('pageshow',(e)=>{
     if(meteoTabActive) loadWeatherPresets();
   }
 });
+
+
+// UI cleanup v2: no news / no assistant in visible app.
+(function(){
+  function cleanupUnusedUi(){
+    ['newsSection','assistantFab','assistantPanel'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.remove();
+    });
+    document.querySelectorAll('[onclick*="setNewsTab"],[onclick*="toggleAssistantPanel"]').forEach(el=>el.remove());
+  }
+  window.loadNews = async function(){ return []; };
+  window.setNewsTab = function(){ cleanupUnusedUi(); if(typeof setPositionTab==='function') setPositionTab(); };
+  window.toggleAssistantPanel = function(){ cleanupUnusedUi(); return false; };
+  document.addEventListener('DOMContentLoaded', cleanupUnusedUi);
+  setTimeout(cleanupUnusedUi, 300);
+})();
+
 </script>
 </body>
 </html>
