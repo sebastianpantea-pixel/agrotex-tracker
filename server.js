@@ -1,6 +1,5 @@
 const express = require('express');
 const session = require('express-session');
-const SQLiteStoreFactory = require('connect-sqlite3');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
@@ -10,8 +9,6 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 const app = express();
-const SQLiteStore = SQLiteStoreFactory(session);
-
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PROD = NODE_ENV === 'production';
@@ -267,7 +264,6 @@ app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 
 app.use(session({
-  store: new SQLiteStore({ db: path.basename(sessionDbPath), dir: DB_DIR }),
   secret: SESSION_SECRET || 'dev-only-change-me',
   name: 'agrotex.sid',
   resave: false,
