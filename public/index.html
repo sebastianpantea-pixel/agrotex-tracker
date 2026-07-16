@@ -4649,26 +4649,51 @@ trainCalendarDate.setDate(1);
 let selectedTrainDate = typeof today === 'function' ? today() : new Date().toISOString().slice(0,10);
 let selectedTrainEvent = null;
 
+async function trainApiReadError(res){
+  try{
+    const txt = await res.text();
+    if(!txt) return `${res.status} ${res.statusText || ''}`.trim();
+    try{
+      const j = JSON.parse(txt);
+      return j.error || j.message || txt;
+    }catch(_){
+      return txt;
+    }
+  }catch(_){
+    return `${res.status} ${res.statusText || ''}`.trim();
+  }
+}
 async function apiLoadTrainContracts(){
-  const res = await fetch('/api/train/contracts');
-  if(!res.ok) throw new Error('Nu pot încărca trenurile de pe server.');
+  const res = await fetch('/api/train/contracts', {credentials:'same-origin', cache:'no-store'});
+  if(!res.ok) throw new Error(await trainApiReadError(res) || 'Nu pot încărca trenurile de pe server.');
   return await res.json();
 }
 async function apiSaveTrainContract(c, isNew){
-  const method = isNew ? 'POST' : 'PUT';
-  const url = isNew ? '/api/train/contracts' : '/api/train/contracts/' + encodeURIComponent(c.id);
-  const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(c)});
-  if(!res.ok) throw new Error(await res.text());
+  // Folosim POST upsert pentru salvare, nu PUT cu id în URL.
+  // Asta evită erorile "Load failed" când referința trenului conține spații/slash-uri
+  // sau când browser/proxy blochează PUT. Serverul face update dacă id-ul există.
+  const res = await fetch('/api/train/contracts', {
+    method:'POST',
+    credentials:'same-origin',
+    cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(c)
+  });
+  if(!res.ok) throw new Error(await trainApiReadError(res) || 'Nu pot salva trenul pe server.');
   const data = await res.json();
+  if(data && data.id){
+    c.id = data.id;
+    c._rowId = data.id;
+  }
   return data.id || c.id;
 }
 async function apiDeleteTrainContract(id){
-  const res = await fetch('/api/train/contracts/' + encodeURIComponent(id), {method:'DELETE'});
-  if(!res.ok) throw new Error(await res.text());
+  const res = await fetch('/api/train/contracts/' + encodeURIComponent(id), {method:'DELETE', credentials:'same-origin', cache:'no-store'});
+  if(!res.ok) throw new Error(await trainApiReadError(res));
 }
 async function apiBulkTrainContracts(contracts, mode){
-  const res = await fetch('/api/train/contracts/bulk', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contracts, mode:mode||'upsert'})});
-  if(!res.ok) throw new Error(await res.text());
+  const res = await fetch('/api/train/contracts/bulk', {method:'POST', credentials:'same-origin', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contracts, mode:mode||'upsert'})});
+  if(!res.ok) throw new Error(await trainApiReadError(res));
   return await res.json();
 }
 
