@@ -3728,11 +3728,40 @@ function getFilteredTrades(){
   if(f.dateTo) ft=ft.filter(t=>t.date && t.date<=f.dateTo);
   return ft;
 }
+function logisticsContractMatchesTrade(c, tradeOrId){
+  const t = (tradeOrId && typeof tradeOrId === 'object') ? tradeOrId : trades.find(x=>String(x.id)===String(tradeOrId));
+  const tid = t ? String(t.id || '') : String(tradeOrId || '');
+  if(!c) return false;
+  const ids=[c.tradeId,c.source_trade_id,c.sourceTradeId,c.trade_id,c.positionTradeId,c.linkedTradeId]
+    .filter(v=>v!==undefined && v!==null && String(v).trim()!=='')
+    .map(v=>String(v));
+  if(tid && ids.includes(tid)) return true;
+  if(!t) return false;
+
+  const snap=c.tradeSnapshot || {};
+  const cNo=normalizeTextLoose(c.contractNo || snap.contractNo || snap.note || snap.sourceContractNo);
+  const tNo=normalizeTextLoose(getTradeContractNo(t));
+  if(!cNo || !tNo || cNo!==tNo) return false;
+
+  const cProd=normalizeProductKey(snap.productKey || snap.product || c.product || '');
+  const tProd=normalizeProductKey(t.product || '');
+  const cCrop=String(snap.crop || c.crop || '').trim();
+  const tCrop=String(t.crop || '').trim();
+  const cCpty=normalizeTextLoose(snap.counterparty || snap.cpty || c.counterparty || c.client || '');
+  const tCpty=normalizeTextLoose(t.cpty || '');
+
+  const productOk=!cProd || !tProd || cProd===tProd;
+  const cropOk=!cCrop || !tCrop || cCrop===tCrop;
+  const cptyOk=!cCpty || !tCpty || cCpty===tCpty || cCpty.includes(tCpty) || tCpty.includes(cCpty);
+  return productOk && cropOk && cptyOk;
+}
 function hasLogisticsForTrade(tradeId){
-  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId) || String(c.source_trade_id)===String(tradeId) || String(c.sourceTradeId)===String(tradeId));
+  const t=trades.find(x=>String(x.id)===String(tradeId));
+  return logisticsContracts.some(c=>logisticsContractMatchesTrade(c, t || tradeId));
 }
 function getLogisticsContractsForTrade(tradeId){
-  return logisticsContracts.filter(c=>String(c.tradeId)===String(tradeId));
+  const t=trades.find(x=>String(x.id)===String(tradeId));
+  return logisticsContracts.filter(c=>logisticsContractMatchesTrade(c, t || tradeId));
 }
 function isTradeLogisticsFinished(tradeId){
   const linked=getLogisticsContractsForTrade(tradeId);
@@ -5590,7 +5619,8 @@ async function createLogisticsFromTrade(){
   }
 }
 function hasLogisticsForTrade(tradeId){
-  return logisticsContracts.some(c=>String(c.tradeId)===String(tradeId) || String(c.source_trade_id)===String(tradeId) || String(c.sourceTradeId)===String(tradeId));
+  const t=trades.find(x=>String(x.id)===String(tradeId));
+  return logisticsContracts.some(c=>logisticsContractMatchesTrade(c, t || tradeId));
 }
 function getLogContract(id){
   return logisticsContracts.find(c=>String(c.id)===String(id));
@@ -6566,6 +6596,9 @@ async function linkLogisticsToTrade(tradeId, updateSnapshot=false){
   c.updatedAt=new Date().toISOString();
   await saveLogistics(c);
   closeModal('modLogLinkPosition');
+  const selectedSource=document.getElementById('logSelectedTradeId');
+  if(selectedSource && String(selectedSource.value)===String(t.id)) selectedSource.value='';
+  try{ populateLogisticsSourceTrades(); }catch(_){}
   renderLogistics();
   render();
 }
