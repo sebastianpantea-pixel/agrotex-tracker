@@ -945,9 +945,9 @@
   .train-filter-input{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--bright);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 8px;outline:none;min-width:260px;}
   .train-filter-input.short{min-width:150px;}
   .train-filter-input:focus{border-color:var(--transport);}
-  .train-calendar-layout{display:grid;grid-template-columns:minmax(780px,1fr) 370px;gap:12px;align-items:start;}
+  .train-calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:10px;align-items:start;max-width:100%;overflow:hidden;}
   @media(max-width:1180px){.train-calendar-layout{grid-template-columns:1fr}.train-side-panel{position:static!important}.train-filter-input{min-width:180px}}
-  .train-calendar-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px;}
+  .train-calendar-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:8px;min-width:0;overflow:hidden;}
   .train-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}
   .train-calendar-dow{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:5px 0;}
   .train-cal-day{min-height:158px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px;display:flex;flex-direction:column;gap:6px;cursor:pointer;overflow:hidden;}
@@ -984,30 +984,36 @@
   .train-cal-day.station-carei{background:linear-gradient(180deg,rgba(138,180,248,.055),var(--surface2) 38%);}
   .train-cal-day.station-valea{background:linear-gradient(180deg,rgba(224,183,94,.06),var(--surface2) 38%);}
 
-  /* Train calendar compact wide layout - v4 */
-  .train-calendar-panel{overflow-x:auto;overflow-y:hidden;}
-  .train-calendar-panel::-webkit-scrollbar{height:7px;}
-  .train-calendar-panel::-webkit-scrollbar-track{background:var(--bg);}
-  .train-calendar-panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
-  .train-calendar-grid{grid-template-columns:repeat(7,300px)!important;grid-auto-rows:134px!important;min-width:2130px!important;align-items:stretch;}
-  .train-calendar-dow{width:300px!important;}
-  .train-cal-day{height:134px!important;min-height:134px!important;padding:7px!important;gap:5px!important;overflow:hidden!important;}
-  .train-day-head{min-height:18px;}
-  .train-day-total{font-size:10px!important;}
-  .train-event-card{min-height:86px!important;max-height:92px!important;padding:8px 9px!important;font-size:10px!important;line-height:1.25!important;display:flex;flex-direction:column;gap:3px;}
-  .train-event-title{font-size:11px!important;line-height:1.15!important;max-width:100%;}
-  .train-event-product{font-size:15px!important;line-height:1.12!important;margin-top:0!important;}
-  .train-event-bottom{display:grid!important;grid-template-columns:auto 1fr!important;gap:7px!important;align-items:center!important;margin-top:2px!important;}
-  .train-station-badge{font-size:10px!important;padding:3px 10px!important;border-radius:12px!important;}
-  .train-event-contract{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-  .train-event-qty{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:900;color:var(--bright);opacity:.9;white-space:nowrap;margin-top:1px;}
-  @media(max-width:1180px){.train-calendar-grid{grid-template-columns:repeat(7,280px)!important;min-width:1970px!important}.train-calendar-dow{width:280px!important}}
+  /* Train calendar compact fit-screen layout - v5 */
+  .train-calendar-panel{overflow:hidden!important;}
+  .train-calendar-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;grid-auto-rows:minmax(96px,108px)!important;min-width:0!important;align-items:stretch;}
+  .train-calendar-dow{width:auto!important;font-size:7px!important;padding:3px 0!important;}
+  .train-cal-day{height:108px!important;min-height:96px!important;padding:5px!important;gap:3px!important;overflow:hidden!important;}
+  .train-day-head{min-height:15px;}
+  .train-day-total{font-size:8px!important;white-space:nowrap;}
+  .train-event-card{min-height:62px!important;max-height:70px!important;padding:5px 6px!important;font-size:8px!important;line-height:1.18!important;display:flex;flex-direction:column;gap:2px;}
+  .train-event-title{font-size:9px!important;line-height:1.05!important;max-width:100%;}
+  .train-event-product{font-size:12px!important;line-height:1.05!important;margin-top:0!important;}
+  .train-event-bottom{display:grid!important;grid-template-columns:auto 1fr!important;gap:4px!important;align-items:center!important;margin-top:1px!important;}
+  .train-station-badge{font-size:8px!important;padding:2px 6px!important;border-radius:10px!important;}
+  .train-event-contract{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .train-event-qty{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--bright);opacity:.9;white-space:nowrap;margin-top:0;}
+  @media(max-width:1180px){.train-calendar-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;min-width:0!important}.train-calendar-dow{width:auto!important}}
 
-  .train-side-panel{position:sticky;top:72px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;min-height:360px;}
+  .train-side-panel{position:sticky;top:72px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px;min-height:360px;max-height:calc(100vh - 96px);overflow:auto;}
   .train-side-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
   .train-side-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.45;margin-bottom:10px;}
   .train-side-list{display:flex;flex-direction:column;gap:7px;}
   .train-side-item{border:1px solid var(--border);background:var(--surface2);border-radius:4px;padding:8px;cursor:pointer;}
+  .train-side-section{border-top:1px solid var(--border);padding-top:9px;margin-top:10px;}
+  .train-side-section:first-child{border-top:none;padding-top:0;margin-top:0;}
+  .train-all-list{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto;padding-right:2px;}
+  .train-all-item{border:1px solid var(--border);background:rgba(255,255,255,.018);border-radius:4px;padding:7px;cursor:pointer;border-left:4px solid var(--dim);transition:all .12s;}
+  .train-all-item:hover{border-color:var(--border2);background:rgba(255,255,255,.04);}
+  .train-all-date{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;color:var(--acc);letter-spacing:.4px;}
+  .train-all-title{font-size:11px;font-weight:900;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+  .train-all-meta{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);line-height:1.35;margin-top:3px;}
+  .train-side-minirow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .train-side-item:hover{border-color:var(--transport);background:rgba(232,160,106,.05);}
   .train-status-pill{display:inline-block;padding:2px 7px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;border:1px solid var(--border2);color:var(--dim);background:rgba(255,255,255,.025);}
   .train-status-pill.planned{color:var(--neutral);border-color:rgba(155,196,246,.35);background:rgba(155,196,246,.08);}
@@ -2212,7 +2218,7 @@
   <div class="train-calendar-layout">
     <div class="train-calendar-panel">
       <div class="train-calendar-grid" id="trainCalendarGrid"></div>
-      <div class="train-window-note">Click pe o zi pentru agenda zilei. Click pe un tren pentru detalii. În această versiune, mutarea trenului se face din fisa trenului, schimbând data.</div>
+      <div class="train-window-note">Calendar compact fără scroll orizontal. Click pe o zi pentru agenda zilei; lista din dreapta arată trenurile din calendar pentru acces rapid.</div>
     </div>
     <div class="train-side-panel" id="trainSidePanel"></div>
   </div>
@@ -5124,20 +5130,51 @@ function renderTrainEventCard(ev){
   </div>`;
 }
 
+function trainAllEventsSorted(){
+  return getAllTrainEvents(false)
+    .filter(ev=>ev && ev.date)
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)) || String(trainClient(a.contract)).localeCompare(String(trainClient(b.contract))));
+}
+function renderTrainAllList(){
+  const events = trainAllEventsSorted();
+  const monthKey = trainMonthKey(trainCalendarDate);
+  const currentMonth = events.filter(ev=>String(ev.date||'').slice(0,7)===monthKey);
+  const shown = currentMonth.length ? currentMonth : events;
+  const subtitle = currentMonth.length ? `${currentMonth.length} în luna curentă · ${events.length} total` : `${events.length} total`;
+  return `<div class="train-side-section">
+    <div class="train-side-minirow"><div class="train-side-title">Toate trenurile</div><span class="train-cal-badge">${escHtml(subtitle)}</span></div>
+    <div class="train-side-sub">Listă rapidă — click pe tren ca să îl vezi/editezi, fără să cauți prin luni.</div>
+    ${shown.length ? `<div class="train-all-list">${shown.map(ev=>renderTrainAllItem(ev)).join('')}</div>` : '<div class="tr-empty">// niciun tren în calendar</div>'}
+  </div>`;
+}
+function renderTrainAllItem(ev){
+  const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
+  const color = trainEventColor(ev);
+  const selected = isSelectedTrainEvent(ev);
+  const date = (ev.date || '').split('-').reverse().join('.');
+  const dateTo = ev.dateTo && ev.dateTo!==ev.date ? ' → '+ev.dateTo.split('-').reverse().join('.') : '';
+  const bg = selected ? `linear-gradient(90deg, ${hexToRgba(color,.18)} 0%, rgba(255,255,255,.018) 100%)` : '';
+  return `<div class="train-all-item${selected?' train-selected':''}" style="border-left-color:${color};${bg?`background:${bg};`:''}" onclick="selectTrainEvent('${ev.contractId}','${ev.shipmentId}')">
+    <div class="train-side-minirow"><span class="train-all-date">${escHtml(date+dateTo)}</span><span class="train-status-pill ${st.cls}">${st.label}</span></div>
+    <div class="train-all-title">${escHtml(trainClient(c)||trainContractLabel(c))}</div>
+    <div class="train-all-meta">${escHtml(trainProductName(c.product))} · ${fmtN(trainQty(sh,c))} t · ${escHtml(trainStation(sh,c)||'fără bază')}<br>Ctr ${escHtml(trainContractLabel(c))}</div>
+  </div>`;
+}
 function renderTrainSide(){
   const el = document.getElementById('trainSidePanel');
   if(!el) return;
+  const allList = renderTrainAllList();
   if(selectedTrainEvent){
     const ev = getEvent(selectedTrainEvent.contractId, selectedTrainEvent.shipmentId);
-    if(ev){ el.innerHTML = renderTrainEventDetail(ev); return; }
+    if(ev){ el.innerHTML = `<div class="train-side-section">${renderTrainEventDetail(ev)}</div>${allList}`; return; }
   }
   const key = selectedTrainDate || trainTodayKey();
   const events = getEventsForDate(key);
   const label = key.split('-').reverse().join('.');
-  el.innerHTML = `<div class="train-side-title">Agenda zilei</div>
+  el.innerHTML = `<div class="train-side-section"><div class="train-side-title">Agenda zilei</div>
     <div class="train-side-sub">${label} · ${events.length} trenuri</div>
     <button class="btn-tr" style="width:100%;margin-bottom:10px;" onclick="openTrainContractModal(null,null,'${key}')">+ Adaugă tren în această zi</button>
-    ${events.length ? `<div class="train-side-list">${events.map(ev=>renderTrainSideItem(ev)).join('')}</div>` : '<div class="tr-empty">// niciun tren planificat în această zi</div>'}`;
+    ${events.length ? `<div class="train-side-list">${events.map(ev=>renderTrainSideItem(ev)).join('')}</div>` : '<div class="tr-empty">// niciun tren planificat în această zi</div>'}</div>${allList}`;
 }
 function renderTrainSideItem(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
