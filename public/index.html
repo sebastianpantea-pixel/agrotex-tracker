@@ -4400,6 +4400,7 @@ async function saveEdit(){
   setSyncStatus('saved','● saved');
   const idx=trades.findIndex(x=>x.id===id);
   if(idx>=0) trades[idx]={...t,id};
+  await syncLogisticsFromTradeEdit(oldTrade, {...t,id});
   const pcId=agentBulkPurchaseIdForTrade({...oldTrade, ...t, id});
   if(pcId && oldSigned !== !!t.signedReturned){
     try{
@@ -4588,7 +4589,7 @@ async function saveLogistics(contract=null){
   if(!c) return;
   try{
     const payload = {...c, source_trade_id:c.source_trade_id || c.tradeId || null};
-    const res = await fetch('/api/logistics/contracts/'+c.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const res = await fetch('/api/logistics/contracts/'+c.id,{method:'PUT',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('HTTP '+res.status);
   }catch(e){
     console.error('Logistics save error:', e);
@@ -5593,6 +5594,74 @@ function hasLogisticsForTrade(tradeId){
 }
 function getLogContract(id){
   return logisticsContracts.find(c=>String(c.id)===String(id));
+}
+function getLogisticsForTrade(tradeId){
+  const tid=String(tradeId||'');
+  if(!tid) return [];
+  return (logisticsContracts||[]).filter(c=>
+    String(c.tradeId||'')===tid ||
+    String(c.source_trade_id||'')===tid ||
+    String(c.sourceTradeId||'')===tid
+  );
+}
+function redistributeLogisticsAllocationsToQty(c, newQty){
+  const qty=Math.round((Number(newQty)||0)*100)/100;
+  c.allocations=Array.isArray(c.allocations) ? c.allocations : [];
+  if(qty<=0) return;
+  const positive=c.allocations.filter(a=>Number(a.qty)>0);
+  if(positive.length){
+    const oldTotal=positive.reduce((s,a)=>s+(Number(a.qty)||0),0);
+    if(oldTotal>0){
+      let used=0;
+      positive.forEach((a,idx)=>{
+        const val=idx===positive.length-1
+          ? Math.round((qty-used)*100)/100
+          : Math.round((qty*((Number(a.qty)||0)/oldTotal))*100)/100;
+        a.qty=val;
+        used+=val;
+      });
+      return;
+    }
+  }
+  const months=monthRange(c.deliveryStartMonth, c.deliveryEndMonth);
+  if(months.length){
+    const per=Math.round((qty/months.length)*100)/100;
+    c.allocations=months.map((m,idx)=>({month:m, qty: idx===months.length-1 ? Math.round((qty-per*(months.length-1))*100)/100 : per}));
+  }
+}
+async function syncLogisticsFromTradeEdit(oldTrade, newTrade){
+  const id=newTrade?.id || oldTrade?.id;
+  if(!id) return;
+  if(!Array.isArray(logisticsContracts) || !logisticsContracts.length){
+    try{ await loadLogistics(); }catch(e){ console.warn('Logistics load before sync failed', e); }
+  }
+  const linked=getLogisticsForTrade(id);
+  if(!linked.length) return;
+  const oldQty=Number(oldTrade?.qty)||0;
+  const newQty=Number(newTrade?.qty)||0;
+  const qtyChanged=Math.abs(oldQty-newQty)>0.0001;
+  for(const c of linked){
+    c.tradeId=c.tradeId || id;
+    c.source_trade_id=c.source_trade_id || id;
+    c.sourceTradeId=c.sourceTradeId || id;
+    c.tradeSnapshot={...(c.tradeSnapshot||{}),
+      productKey:newTrade.product,
+      product:newTrade.product,
+      crop:newTrade.crop,
+      qty:newQty,
+      counterparty:newTrade.cpty || '',
+      cpty:newTrade.cpty || '',
+      dir:newTrade.dir,
+      parity:newTrade.parity || '',
+      loc:newTrade.loc || '',
+      date:newTrade.date || '',
+      note:(newTrade.contractNo || newTrade.note || c.contractNo || '')
+    };
+    if(newTrade.contractNo || newTrade.note) c.contractNo = newTrade.contractNo || newTrade.note || c.contractNo || '';
+    if(qtyChanged) redistributeLogisticsAllocationsToQty(c, newQty);
+    c.updatedAt=new Date().toISOString();
+    await saveLogistics(c);
+  }
 }
 function normalizeTextLoose(v){
   return String(v || '')
