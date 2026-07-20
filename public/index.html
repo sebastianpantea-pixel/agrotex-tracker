@@ -1008,6 +1008,14 @@
   .train-side-minirow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .train-all-list{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto;padding-right:2px;}
   .train-all-list::-webkit-scrollbar{width:3px;}.train-all-list::-webkit-scrollbar-thumb{background:var(--border2);}
+  .train-all-list-months{gap:9px!important;}
+  .train-month-group{border:1px solid var(--border);border-radius:5px;background:rgba(255,255,255,.015);overflow:hidden;}
+  .train-month-group.active{border-color:rgba(224,183,94,.45);background:rgba(224,183,94,.045);}
+  .train-month-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;}
+  .train-month-head:hover{color:var(--acc);background:rgba(224,183,94,.07);}
+  .train-month-head span{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1px;}
+  .train-month-head b{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--acc);white-space:nowrap;}
+  .train-month-items{display:flex;flex-direction:column;gap:5px;padding:6px;}
   .train-all-item{border:1px solid var(--border);border-left:4px solid var(--acc);background:var(--surface2);border-radius:4px;padding:7px;cursor:pointer;}
   .train-all-item:hover{border-color:var(--transport);background:rgba(232,160,106,.05);}
   .train-all-date{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:900;color:var(--acc);}
@@ -5141,17 +5149,50 @@ function trainAllEventsSorted(){
     .filter(ev=>ev && ev.date)
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)) || String(trainClient(a.contract)).localeCompare(String(trainClient(b.contract))));
 }
+function trainMonthLabelFromKey(key){
+  const m=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+  const [y,mo]=String(key||'').split('-');
+  const idx=(parseInt(mo,10)||1)-1;
+  return `${m[idx]||mo} ${y||''}`.trim();
+}
+function trainEventMonthKey(ev){
+  return String(ev?.date || ev?.dateTo || '').slice(0,7) || 'fără lună';
+}
 function renderTrainAllList(){
   const events = trainAllEventsSorted();
   const monthKey = trainMonthKey(trainCalendarDate);
-  const monthEvents = events.filter(ev=>String(ev.date||'').slice(0,7)===monthKey || (ev.dateTo && String(ev.dateTo||'').slice(0,7)===monthKey));
-  const shown = monthEvents.length ? monthEvents : events;
-  const subtitle = monthEvents.length ? `${monthEvents.length} luna curentă · ${events.length} total` : `${events.length} total`;
+  const total = events.length;
+  const groups = {};
+  events.forEach(ev=>{
+    const key = trainEventMonthKey(ev);
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(ev);
+  });
+  const orderedKeys = Object.keys(groups).sort();
+  const groupsHtml = orderedKeys.map(key=>{
+    const active = key===monthKey;
+    const items = groups[key] || [];
+    return `<div class="train-month-group${active?' active':''}">
+      <div class="train-month-head" onclick="jumpTrainCalendarToMonth('${escHtml(key)}')">
+        <span>${escHtml(trainMonthLabelFromKey(key))}</span>
+        <b>${items.length} tren${items.length===1?'':'uri'}</b>
+      </div>
+      <div class="train-month-items">${items.map(ev=>renderTrainAllItem(ev)).join('')}</div>
+    </div>`;
+  }).join('');
   return `<div class="train-side-section">
-    <div class="train-side-minirow"><div class="train-side-title">Toate trenurile</div><span class="train-cal-badge">${escHtml(subtitle)}</span></div>
-    <div class="train-side-sub">Click pe tren ca să îl selectezi rapid, fără să cauți prin luni.</div>
-    ${shown.length ? `<div class="train-all-list">${shown.map(ev=>renderTrainAllItem(ev)).join('')}</div>` : '<div class="tr-empty">// niciun tren în calendar</div>'}
+    <div class="train-side-minirow"><div class="train-side-title">Toate trenurile</div><span class="train-cal-badge">${escHtml(String(total)+' total')}</span></div>
+    <div class="train-side-sub">Grupate pe luni. Click pe lună ca să sari direct în calendar, sau click pe tren pentru detalii.</div>
+    ${total ? `<div class="train-all-list train-all-list-months">${groupsHtml}</div>` : '<div class="tr-empty">// niciun tren în calendar</div>'}
   </div>`;
+}
+function jumpTrainCalendarToMonth(key){
+  const m = String(key||'').match(/^(\d{4})-(\d{2})$/);
+  if(!m) return;
+  trainCalendarDate = new Date(Number(m[1]), Number(m[2])-1, 1);
+  selectedTrainDate = `${m[1]}-${m[2]}-01`;
+  selectedTrainEvent = null;
+  renderTrainTab();
 }
 function renderTrainAllItem(ev){
   const c=ev.contract, sh=ev.shipment, st=TRAIN_STATUS[ev.status]||TRAIN_STATUS.planned;
