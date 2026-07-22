@@ -1403,14 +1403,11 @@
 
   /* Agrotex UI v5 — DOAR public/index.html */
   #newsSection,
-  #emailSection,
   #assistantFab,
   #assistantPanel,
-  #tabEmail,
   .assistant-fab,
   .assistant-panel,
   [onclick*="setNewsTab"],
-  [onclick*="setEmailTab"],
   [onclick*="toggleAssistantPanel"]{
     display:none!important;
     visibility:hidden!important;
@@ -1570,6 +1567,7 @@
     <div class="tools-menu" id="toolsMenu">
       <button type="button" class="tools-item report" onclick="setReportTab(); closeToolsMenu();">📊 Rapoarte</button>
       <button type="button" class="tools-item" onclick="openAgentBulkModal(); closeToolsMenu();">👤 Agenți contracte</button>
+      <button type="button" class="tools-item" id="tabEmail" onclick="setEmailTab(); closeToolsMenu();">✉ Email RO/EN</button>
       <div class="tools-sep"></div>
       <button type="button" class="tools-item" onclick="setMeteoTab(); closeToolsMenu();">🌦 Meteo</button>
       <button type="button" class="tools-item" onclick="setContextTab(); closeToolsMenu();">🌍 Context global</button>
@@ -3278,7 +3276,7 @@ function closeAllSideTabs(){
   }
   if(emailTabActive){
     emailTabActive=false;
-    document.getElementById('tabEmail').className='tab';
+    const emailTabBtn=document.getElementById('tabEmail'); if(emailTabBtn) emailTabBtn.className='tools-item';
     document.getElementById('emailSection').style.display='none';
     setCropTabsVisible(true);
   }
@@ -8724,7 +8722,7 @@ async function loadAdminAudit(){
 function setEmailTab(){
   closeAllSideTabs();
   emailTabActive=true;
-  document.getElementById('tabEmail').className='tab email-tab-active';
+  const emailTabBtn=document.getElementById('tabEmail'); if(emailTabBtn) emailTabBtn.className='tools-item email-tab-active';
   setCropTabsVisible(false);
   document.querySelector('.main').style.display='none';
   setPositionTabVisual(false);
@@ -8732,7 +8730,7 @@ function setEmailTab(){
 }
 function closeEmailTab(){
   emailTabActive=false;
-  document.getElementById('tabEmail').className='tab';
+  const emailTabBtn=document.getElementById('tabEmail'); if(emailTabBtn) emailTabBtn.className='tools-item';
   document.getElementById('emailSection').style.display='none';
   setCropTabsVisible(true);
   document.querySelector('.main').style.display='flex';
@@ -8744,7 +8742,7 @@ function setEmailOut(id, text, state=''){
   el.textContent=text || '';
 }
 async function callEmailApi(endpoint, payload){
-  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const res=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const data=await res.json().catch(()=>({}));
   if(!res.ok) throw new Error(data.error || 'Eroare la modulul Email');
   return data;
@@ -11319,20 +11317,20 @@ window.addEventListener('pageshow',(e)=>{
 })();
 
 
-// Agrotex UI v5 cleanup — no news / no email assistant / no floating AI.
+
+// Agrotex UI cleanup — no news / no floating AI. Email RO/EN remains available.
 (function(){
-  function agrotexUiV5Cleanup(){
-    document.querySelectorAll('#newsSection,#emailSection,#assistantFab,#assistantPanel,#tabEmail,.assistant-fab,.assistant-panel,[onclick*="setNewsTab"],[onclick*="setEmailTab"],[onclick*="toggleAssistantPanel"]').forEach(el=>{
+  function agrotexUiCleanup(){
+    document.querySelectorAll('#newsSection,#assistantFab,#assistantPanel,.assistant-fab,.assistant-panel,[onclick*="setNewsTab"],[onclick*="toggleAssistantPanel"]').forEach(el=>{
       if(el) el.remove();
     });
   }
   window.loadNews = async function(){ return []; };
-  window.setNewsTab = function(){ agrotexUiV5Cleanup(); if(typeof setPositionTab==='function') setPositionTab(); };
-  window.setEmailTab = function(){ agrotexUiV5Cleanup(); if(typeof setPositionTab==='function') setPositionTab(); };
-  window.toggleAssistantPanel = function(){ agrotexUiV5Cleanup(); return false; };
-  document.addEventListener('DOMContentLoaded', agrotexUiV5Cleanup);
-  setTimeout(agrotexUiV5Cleanup, 300);
-  setTimeout(agrotexUiV5Cleanup, 1500);
+  window.setNewsTab = function(){ agrotexUiCleanup(); if(typeof setPositionTab==='function') setPositionTab(); };
+  window.toggleAssistantPanel = function(){ agrotexUiCleanup(); return false; };
+  document.addEventListener('DOMContentLoaded', agrotexUiCleanup);
+  setTimeout(agrotexUiCleanup, 300);
+  setTimeout(agrotexUiCleanup, 1500);
 })();
 
 </script>
