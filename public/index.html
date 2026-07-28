@@ -3044,6 +3044,7 @@ let emailTabActive = false;
 let adminTabActive = false;
 let trainTabActive = false;
 let trainContracts = [];
+let trainContractsLoaded = false;
 let selectedTrainId = null;
 let trainGanttOffset = 0; // months offset from current month
 let trainView = 'gantt'; // 'gantt' | 'list'
@@ -4732,7 +4733,11 @@ async function trainApiReadError(res){
 }
 async function apiLoadTrainContracts(){
   const res = await fetch('/api/train/contracts', {credentials:'same-origin', cache:'no-store'});
-  if(!res.ok) throw new Error(await trainApiReadError(res) || 'Nu pot încărca trenurile de pe server.');
+  if(!res.ok){
+    const err = new Error(await trainApiReadError(res) || 'Nu pot încărca trenurile de pe server.');
+    err.status = res.status;
+    throw err;
+  }
   return await res.json();
 }
 async function apiSaveTrainContract(c, isNew){
@@ -4808,16 +4813,28 @@ function trainQty(sh, c){ return Number(sh?.qty || sh?.quantity || c?.qty || 0) 
 function trainStation(sh, c){ return String(sh?.station || sh?.loadingBase || c?.defaultStation || c?.station || '').trim(); }
 function trainClient(c){ return String(c?.client || c?.counterparty || c?.cpty || '').trim(); }
 
-async function loadTrainContracts(){
+async function loadTrainContracts(options={}){
+  const silent = !!options.silent;
+  const preserveExisting = !!options.preserveExisting;
+  const previousContracts = trainContracts;
+  const hadLoadedData = trainContractsLoaded;
   try{
-    trainContracts = await apiLoadTrainContracts();
+    const loadedContracts = await apiLoadTrainContracts();
+    trainContracts = Array.isArray(loadedContracts) ? loadedContracts : [];
     normalizeTrainContracts();
+    trainContractsLoaded = true;
+    updateTrainBadge();
+    return {ok:true, preserved:false};
   }catch(e){
     console.error('Train server load failed:', e);
-    trainContracts = [];
-    alert('Eroare la încărcarea modulului Trenuri de pe server: ' + (e && e.message ? e.message : e));
+    const preserved = preserveExisting && hadLoadedData;
+    trainContracts = preserved ? previousContracts : [];
+    if(!silent){
+      alert('Eroare la încărcarea modulului Trenuri de pe server: ' + (e && e.message ? e.message : e));
+    }
+    updateTrainBadge();
+    return {ok:false, preserved, status:e?.status || 0, error:e};
   }
-  updateTrainBadge();
 }
 async function saveTrainContracts(){
   try{
@@ -10214,14 +10231,19 @@ async function generateActivityReport(){
     if(meta) meta.textContent='Raport in lucru...';
     const loaders=[
       ['logistica', typeof loadLogistics==='function' ? loadLogistics : null],
-      ['trenuri', typeof loadTrainContracts==='function' ? loadTrainContracts : null],
+      ['trenuri', typeof loadTrainContracts==='function' ? ()=>loadTrainContracts({silent:true,preserveExisting:true}) : null],
       ['contracte', typeof loadPurchaseContracts==='function' ? loadPurchaseContracts : null],
       ['locatii stoc', typeof loadStockSites==='function' ? loadStockSites : null],
       ['intrari stoc', typeof loadStockEntries==='function' ? loadStockEntries : null]
     ];
-    const loadResults=await Promise.allSettled(loaders.filter(x=>x[1]).map(x=>x[1]()));
+    const activeLoaders=loaders.filter(x=>x[1]);
+    const loadResults=await Promise.allSettled(activeLoaders.map(x=>x[1]()));
     const failed=[];
-    loadResults.forEach((r,i)=>{ if(r.status==='rejected') failed.push(loaders.filter(x=>x[1])[i][0]); });
+    loadResults.forEach((r,i)=>{
+      if(r.status==='rejected' || (r.value && r.value.ok===false && !r.value.preserved)){
+        failed.push(activeLoaders[i][0]);
+      }
+    });
     const include={
       trades:document.getElementById('reportIncTrades')?.checked ?? true,
       agents:document.getElementById('reportIncAgents')?.checked ?? true,
