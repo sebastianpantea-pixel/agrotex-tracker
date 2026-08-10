@@ -7413,6 +7413,41 @@ function exportLogistics(){
   ws1['!cols']=[12,10,20,12,12,10,16,16,18,10,12,22,10,12,12,14,14].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws1,'Contracte');
 
+  const contractsToLink=[['statusLegatura','contractLogisticId','tradeIdSalvat','numarContract','corespondentPozitie','tradeIdSugerat','nrContractPozitie','flow','product','crop','contractQty','counterparty','parity','location']];
+  logisticsContracts.forEach(c=>{
+    const realTrade=getLogRealTrade(c);
+    if(realTrade) return;
+    const t=getLogTrade(c) || {};
+    const savedTradeId=[c.tradeId,c.source_trade_id,c.sourceTradeId,c.trade_id]
+      .find(v=>v!==undefined && v!==null && String(v).trim()!=='');
+    const contractNo=logContractNo(c);
+    const normalizedContractNo=normalizeTextLoose(contractNo);
+    const suggestedTrade=normalizedContractNo
+      ? (trades||[])
+          .filter(pos=>normalizeTextLoose(getTradeContractNo(pos))===normalizedContractNo)
+          .sort((a,b)=>logisticLinkScore(c,b)-logisticLinkScore(c,a))[0] || null
+      : null;
+    contractsToLink.push([
+      savedTradeId ? 'POZITIE LIPSA' : 'NELEGAT',
+      c.id||'',
+      savedTradeId||'',
+      contractNo,
+      suggestedTrade ? 'DA - DUPA NR. CONTRACT' : 'NU',
+      suggestedTrade?.id||'',
+      suggestedTrade ? getTradeContractNo(suggestedTrade) : '',
+      logFlow(c),
+      (products[t.product]||{name:t.product||''}).name||'',
+      t.crop||'',
+      t.qty||'',
+      t.cpty||'',
+      (t.parity||c.parity||c.tradeParity||'').toString().toUpperCase(),
+      t.loc||''
+    ]);
+  });
+  const wsToLink=XLSX.utils.aoa_to_sheet(contractsToLink);
+  wsToLink['!cols']=[18,18,16,20,24,16,20,12,18,10,14,24,12,24].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,wsToLink,'Contracte de legat');
+
   const allocations=[['contractId','tradeId','month','qty']];
   logisticsContracts.forEach(c=>(c.allocations||[]).forEach(a=>allocations.push([c.id,c.tradeId,a.month,a.qty])));
   const ws2=XLSX.utils.aoa_to_sheet(allocations);
