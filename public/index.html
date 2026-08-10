@@ -2190,7 +2190,8 @@
       <span id="trainCalendarTitle" class="train-calendar-main-title">—</span>
     </div>
 
-    <button class="btn-tr" style="margin-left:auto;" onclick="openTrainContractModal()">+ Adaugă tren</button>
+    <button class="btn-tr" style="margin-left:auto;" onclick="exportTrainsExcel()">⬇ Export Excel</button>
+    <button class="btn-tr" onclick="openTrainContractModal()">+ Adaugă tren</button>
   </div>
 
   <div class="train-filter-strip">
@@ -5457,6 +5458,137 @@ async function copyTrainEmail(contractId, shipmentId){
   }
 }
 
+function trainExportRound(value){
+  return Math.round((Number(value)||0)*1000)/1000;
+}
+function trainExportProduct(c){
+  const p=products[c?.product] || {};
+  return p.name || c?.product || '';
+}
+function trainExportSheet(title, headers, dataRows, widths){
+  const rows=[
+    [title],
+    [`Generat la ${new Date().toLocaleString('ro-RO')} · ${dataRows.length} înregistrări`],
+    [],
+    headers,
+    ...dataRows
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  const lastCol=Math.max(0,headers.length-1);
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:lastCol}},
+    {s:{r:1,c:0},e:{r:1,c:lastCol}}
+  ];
+  ws['!cols']=widths.map(w=>({wch:w}));
+  ws['!freeze']={xSplit:0,ySplit:4};
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:Math.max(3,rows.length-1),c:lastCol}})};
+
+  const thinBorder={top:{style:'thin',color:{rgb:'CBD5E1'}},bottom:{style:'thin',color:{rgb:'CBD5E1'}},left:{style:'thin',color:{rgb:'CBD5E1'}},right:{style:'thin',color:{rgb:'CBD5E1'}}};
+  const baseStyle={font:{name:'Calibri',sz:10,color:{rgb:'111827'}},alignment:{vertical:'center',wrapText:true},border:thinBorder};
+  const titleStyle={font:{name:'Calibri',sz:15,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F2937'}},alignment:{horizontal:'left',vertical:'center'},border:thinBorder};
+  const subtitleStyle={font:{name:'Calibri',sz:10,italic:true,color:{rgb:'475569'}},fill:{fgColor:{rgb:'E2E8F0'}},alignment:{horizontal:'left',vertical:'center'},border:thinBorder};
+  const headerStyle={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'64748B'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:thinBorder};
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  ws['!rows']=[];
+  ws['!rows'][0]={hpt:24};
+  ws['!rows'][1]={hpt:18};
+  ws['!rows'][3]={hpt:30};
+  for(let R=range.s.r;R<=range.e.r;R++){
+    for(let C=range.s.c;C<=range.e.c;C++){
+      const cell=ws[XLSX.utils.encode_cell({r:R,c:C})];
+      if(!cell) continue;
+      if(typeof cell.v==='number') cell.z='#,##0.000';
+      if(R===0) cell.s=titleStyle;
+      else if(R===1) cell.s=subtitleStyle;
+      else if(R===3) cell.s=headerStyle;
+      else cell.s=baseStyle;
+    }
+  }
+  return ws;
+}
+function exportTrainsExcel(){
+  if(typeof XLSX==='undefined'){
+    alert('Biblioteca Excel nu este disponibilă. Reîncarcă aplicația și încearcă din nou.');
+    return;
+  }
+  normalizeTrainContracts();
+  const contracts=[...(trainContracts||[])].sort((a,b)=>trainContractLabel(a).localeCompare(trainContractLabel(b),'ro'));
+  const contractRows=contracts.map(c=>{
+    const shipments=Array.isArray(c.shipments)?c.shipments:[];
+    const active=shipments.filter(sh=>trainStatus(sh.status)!=='cancelled');
+    const loaded=shipments.filter(sh=>trainStatus(sh.status)==='loaded');
+    const nominatedQty=active.reduce((sum,sh)=>sum+trainQty(sh,c),0);
+    const loadedQty=loaded.reduce((sum,sh)=>sum+trainQty(sh,c),0);
+    const contractQty=Number(c.qty)||0;
+    return [
+      c.id||'',
+      trainContractLabel(c),
+      trainClient(c),
+      trainExportProduct(c),
+      c.crop||'',
+      trainExportRound(contractQty),
+      c.defaultStation||c.station||'',
+      c.start||c.trainStart||'',
+      c.end||c.trainEnd||c.start||c.trainStart||'',
+      shipments.length,
+      trainExportRound(nominatedQty),
+      trainExportRound(loadedQty),
+      trainExportRound(Math.max(0,contractQty-nominatedQty)),
+      c.sourceTradeId||'',
+      c.autoFromTrade?'DA':'NU',
+      c.closed?'DA':'NU',
+      c.updatedAt||c.createdAt||'',
+      c.note||''
+    ];
+  });
+
+  const trainRows=[];
+  contracts.forEach(c=>{
+    (c.shipments||[]).forEach(sh=>{
+      trainRows.push([
+        sh.id||'',
+        c.id||'',
+        trainContractLabel(c),
+        trainClient(c),
+        trainExportProduct(c),
+        c.crop||'',
+        trShipmentDateFrom(sh)||'',
+        trShipmentDateTo(sh)||trShipmentDateFrom(sh)||'',
+        trainExportRound(trainQty(sh,c)),
+        trainStatusLabel(sh.status),
+        trainStation(sh,c),
+        sh.destination||'',
+        sh.trainNo||'',
+        sh.wagons||'',
+        sh.surveyor||'',
+        sh.note||'',
+        c.sourceTradeId||'',
+        sh.createdAt||'',
+        sh.updatedAt||c.updatedAt||''
+      ]);
+    });
+  });
+  trainRows.sort((a,b)=>String(a[6]).localeCompare(String(b[6])) || String(a[2]).localeCompare(String(b[2]),'ro'));
+
+  const wb=XLSX.utils.book_new();
+  const wsContracts=trainExportSheet(
+    'Contracte pentru trenuri',
+    ['ID contract','Număr contract','Client / destinatar','Produs','Recoltă','Cantitate contract (t)','Bază / gară implicită','Perioadă de la','Perioadă până la','Nr. trenuri','Cantitate nominalizată (t)','Cantitate încărcată (t)','Cantitate rămasă de nominalizat (t)','ID poziție sursă','Generat din poziție','Închis','Actualizat la','Observații contract'],
+    contractRows,
+    [18,20,26,18,10,18,24,15,15,12,20,18,24,18,16,10,22,32]
+  );
+  XLSX.utils.book_append_sheet(wb,wsContracts,'Contracte');
+
+  const wsTrains=trainExportSheet(
+    'Nominalizări și trenuri',
+    ['ID tren','ID contract','Număr contract','Client / destinatar','Produs','Recoltă','Data de la','Data până la','Cantitate (t)','Status','Bază / gară încărcare','Destinație','Nr. tren','Nr. vagoane','Surveyor / tratament','Observații','ID poziție sursă','Creat la','Actualizat la'],
+    trainRows,
+    [18,18,20,26,18,10,14,14,15,16,24,24,16,12,24,36,18,22,22]
+  );
+  XLSX.utils.book_append_sheet(wb,wsTrains,'Trenuri');
+  XLSX.writeFile(wb,`agrotex_trenuri_${today()}.xlsx`);
+}
+
 
 function fillLogProductSelect(id, selected=''){
   const el=document.getElementById(id);
@@ -7271,14 +7403,14 @@ function exportSelectedLogisticsContract(){
 function exportLogistics(){
   const wb=XLSX.utils.book_new();
 
-  const contracts=[['id','tradeId','flow','transport','problem','deliveryStartMonth','deliveryEndMonth','tradeProduct','tradeCrop','tradeQty','counterparty','parity','allocatedQty','executedQty','invoicesRon','paidRon']];
+  const contracts=[['id','tradeId','contractNo','flow','transport','problem','deliveryStartMonth','deliveryEndMonth','tradeProduct','tradeCrop','tradeQty','counterparty','parity','allocatedQty','executedQty','invoicesRon','paidRon']];
   logisticsContracts.forEach(c=>{
     const t=getLogTrade(c);
     const p=t ? (products[t.product]||{name:t.product}) : {name:''};
-    contracts.push([c.id,c.tradeId,logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',(t?.parity || c.parity || c.tradeParity || '').toString().toUpperCase(),allocatedQty(c),movementQty(c),logFlow(c)==='delivery'?Math.round(invoicesTotalRon(c)*100)/100:0,logFlow(c)==='delivery'?Math.round(invoicesPaidRon(c)*100)/100:0]);
+    contracts.push([c.id,c.tradeId,logContractNo(c),logFlow(c),c.transportMode,c.problem?'DA':'',c.deliveryStartMonth||'',c.deliveryEndMonth||'',p.name,t?.crop||'',t?.qty||'',t?.cpty||'',(t?.parity || c.parity || c.tradeParity || '').toString().toUpperCase(),allocatedQty(c),movementQty(c),logFlow(c)==='delivery'?Math.round(invoicesTotalRon(c)*100)/100:0,logFlow(c)==='delivery'?Math.round(invoicesPaidRon(c)*100)/100:0]);
   });
   const ws1=XLSX.utils.aoa_to_sheet(contracts);
-  ws1['!cols']=[12,10,12,12,10,16,16,18,10,12,22,10,12,12,14,14].map(w=>({wch:w}));
+  ws1['!cols']=[12,10,20,12,12,10,16,16,18,10,12,22,10,12,12,14,14].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws1,'Contracte');
 
   const allocations=[['contractId','tradeId','month','qty']];
