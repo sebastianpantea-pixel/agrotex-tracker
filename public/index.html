@@ -515,6 +515,42 @@
   .log-empty{padding:22px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;border:1px dashed var(--border2);border-radius:4px;background:var(--surface2);}
   .btn-log{padding:3px 7px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;cursor:pointer;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:var(--acc);transition:all .15s;white-space:nowrap;}
   .btn-log:hover{background:rgba(245,158,11,.16);}
+
+  /* Transport register inside Logistics */
+  .log-subnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 0 0;}
+  .log-subtab{padding:6px 12px;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;cursor:pointer;}
+  .log-subtab:hover{color:var(--bright);border-color:var(--acc);}
+  .log-subtab.active{color:var(--acc);border-color:var(--acc);background:rgba(224,183,94,.10);}
+  .log-subtab .count{display:inline-block;margin-left:5px;min-width:18px;text-align:center;padding:1px 5px;border-radius:9px;background:rgba(255,255,255,.08);color:var(--bright);}
+  .logistics-subview{display:flex;flex-direction:column;gap:14px;}
+  #transportRegisterView{display:none;}
+  .trreg-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+  .trreg-toolbar .fg{margin:0;min-width:150px;}
+  .trreg-toolbar .grow{flex:1;min-width:240px;}
+  .trreg-kpis{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:8px;}
+  @media(max-width:1100px){.trreg-kpis{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:650px){.trreg-kpis{grid-template-columns:1fr}}
+  .trreg-kpi{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px 12px;}
+  .trreg-kpi-l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+  .trreg-kpi-v{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:900;color:var(--bright);margin-top:3px;}
+  .trreg-kpi-s{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);margin-top:3px;}
+  .trreg-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .trreg-form{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;align-items:end;}
+  @media(max-width:1250px){.trreg-form{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:760px){.trreg-form{grid-template-columns:1fr}}
+  .trreg-table-wrap{overflow:auto;max-height:650px;border:1px solid var(--border);border-radius:4px;}
+  .trreg-table{width:100%;border-collapse:collapse;min-width:1500px;}
+  .trreg-table th{position:sticky;top:0;z-index:3;background:var(--surface2);padding:7px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid var(--border2);white-space:nowrap;}
+  .trreg-table td{padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;white-space:nowrap;vertical-align:middle;}
+  .trreg-table tbody tr:hover td{background:rgba(255,255,255,.018);}
+  .trreg-bad td{background:rgba(224,107,107,.045);}
+  .trreg-warn{color:var(--short);font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;}
+  .trreg-ok{color:var(--long);font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:800;}
+  .trreg-money{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--acc);text-align:right;}
+  .trreg-num{font-family:'IBM Plex Mono',monospace;text-align:right;}
+  .trreg-empty{padding:34px;text-align:center;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px;}
+  .trreg-actions{display:flex;gap:5px;justify-content:flex-end;}
+  .trreg-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);line-height:1.5;}
   .btn-log-green{color:var(--long);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08);}
   .btn-log-red{color:var(--short);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08);}
   .log-warning-line{padding:7px 9px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);border-radius:4px;color:var(--short);font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;}
@@ -2353,6 +2389,12 @@
     <input type="file" id="logisticsImportFile" accept=".xlsx,.xls" style="display:none" onchange="importLogistics(event)">
   </div>
 
+  <div class="log-subnav">
+    <button class="log-subtab active" id="logisticsContractsSubtab" onclick="setLogisticsView('contracts')">Contracte logistice <span class="count" id="logContractsSubCount">0</span></button>
+    <button class="log-subtab" id="transportRegisterSubtab" onclick="setLogisticsView('transport')">Curse transport <span class="count" id="transportRowsCount">0</span></button>
+  </div>
+
+  <div id="logisticsContractsView" class="logistics-subview">
   <div class="log-dashboard compact" id="logisticsDashboard"></div>
   <div class="log-filter-strip hidden" id="logisticsMonthFilterStrip"></div>
 
@@ -2429,6 +2471,68 @@
 
     <div class="log-card" id="logisticsDetail">
       <div class="log-empty">// selectează sau creează un contract logistic</div>
+    </div>
+  </div>
+  </div>
+
+  <div id="transportRegisterView" class="logistics-subview">
+    <div class="trreg-kpis" id="transportKpis"></div>
+
+    <div class="trreg-card">
+      <div class="trreg-toolbar">
+        <div class="fg grow"><label class="fl">Caută</label><input id="transportSearch" type="text" placeholder="transportator, aviz, furnizor, încărcare, beneficiar, mașină..." oninput="renderTransportRegister()"></div>
+        <div class="fg"><label class="fl">Transportator</label><select id="transportCarrierFilter" onchange="renderTransportRegister()"><option value="">Toți</option></select></div>
+        <div class="fg"><label class="fl">Produs</label><select id="transportProductFilter" onchange="renderTransportRegister()"><option value="">Toate</option></select></div>
+        <div class="fg"><label class="fl">Luna</label><input id="transportMonthFilter" type="month" onchange="renderTransportRegister()"></div>
+        <button class="btn-log" onclick="clearTransportFilters()">Reset</button>
+        <button class="btn-log" onclick="toggleTransportForm()">+ Cursă</button>
+        <button class="btn-import" onclick="document.getElementById('transportImportFiles').click()">⬆ Import Excel</button>
+        <button class="btn-import" onclick="exportTransportRegister()">⬇ Export</button>
+        <input type="file" id="transportImportFiles" accept=".xlsx,.xls" multiple style="display:none" onchange="importTransportFiles(event)">
+      </div>
+      <div class="trreg-note">Importul acceptă formatul actual al transportatorilor. Transportatorul este preluat din numele fișierului. Avizele duplicate și rândurile incomplete sunt marcate automat.</div>
+    </div>
+
+    <div class="trreg-card" id="transportFormCard" style="display:none;border-left:3px solid var(--acc);">
+      <div class="log-title" id="transportFormTitle">Cursă nouă</div>
+      <input type="hidden" id="transportEditId">
+      <div class="trreg-form">
+        <div class="fg"><label class="fl">Data</label><input id="trDate" type="date"></div>
+        <div class="fg"><label class="fl">Transportator</label><input id="trCarrier" type="text"></div>
+        <div class="fg"><label class="fl">Factura</label><input id="trInvoice" type="text"></div>
+        <div class="fg"><label class="fl">Furnizor</label><input id="trSupplier" type="text"></div>
+        <div class="fg"><label class="fl">Încărcare</label><input id="trLoad" type="text"></div>
+        <div class="fg"><label class="fl">Produs</label><input id="trProduct" type="text"></div>
+        <div class="fg"><label class="fl">Cantitate t</label><input id="trQty" type="number" step="0.01" oninput="recalcTransportForm()"></div>
+        <div class="fg"><label class="fl">Aviz</label><input id="trWaybill" type="text"></div>
+        <div class="fg"><label class="fl">Descărcare</label><input id="trUnload" type="text"></div>
+        <div class="fg"><label class="fl">Beneficiar</label><input id="trBeneficiary" type="text"></div>
+        <div class="fg"><label class="fl">Nr. înmatriculare</label><input id="trTruck" type="text"></div>
+        <div class="fg"><label class="fl">KM</label><input id="trKm" type="number" step="0.01" oninput="recalcTransportForm()"></div>
+        <div class="fg"><label class="fl">Tarif</label><input id="trRate" type="text" placeholder="0.25 sau 8ORE*130" oninput="recalcTransportForm()"></div>
+        <div class="fg"><label class="fl">Valoare calculată</label><input id="trValue" type="number" step="0.01"></div>
+        <div class="fg"><label class="fl">Cont</label><input id="trAccount" type="text"></div>
+        <div class="fg"><label class="fl">Loc M</label><input id="trCostCenter" type="text"></div>
+      </div>
+      <div class="log-actions">
+        <button class="btn-log" onclick="saveTransportEntry()">Salvează</button>
+        <button class="btn-log" onclick="resetTransportForm();toggleTransportForm(false)">Anulează</button>
+      </div>
+    </div>
+
+    <div class="trreg-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div class="log-title">Registru curse</div>
+        <div class="log-muted" id="transportVisibleCount"></div>
+      </div>
+      <div class="trreg-table-wrap">
+        <table class="trreg-table">
+          <thead><tr>
+            <th>Data</th><th>Transportator</th><th>Factura</th><th>Furnizor</th><th>Încărcare</th><th>Produs</th><th>Cant. t</th><th>Aviz</th><th>Descărcare</th><th>Beneficiar</th><th>Mașina</th><th>KM</th><th>Tarif</th><th>Valoare</th><th>Cont</th><th>Loc M</th><th>Control</th><th></th>
+          </tr></thead>
+          <tbody id="transportTableBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -3456,6 +3560,7 @@ async function loadAll(){
   onFormChange();
   // Notes panel removed
   await loadLogistics();
+  await loadTransportEntries();
   await loadStockSites();
   await loadStockEntries();
   resetStockSiteForm();
@@ -4584,6 +4689,7 @@ async function loadLogistics(){
   migrateLogisticsData();
   const badge=document.getElementById('bLogistics');
   if(badge) badge.textContent=logisticsContracts.length;
+  refreshTransportCounts();
 }
 function migrateLogisticsData(){
   logisticsContracts.forEach(c=>{
@@ -4691,6 +4797,7 @@ function setLogisticsTab(){
   fillLogMonthSelect('logCreateEndMonth');
   populateLogisticsSourceTrades();
   renderLogistics();
+  setLogisticsView(logisticsActiveView);
 }
 function closeLogisticsTab(){
   logisticsTabActive=false;
@@ -4700,6 +4807,235 @@ function closeLogisticsTab(){
   document.querySelector('.main').style.display='flex';
 }
 
+
+/* ====================================================
+   LOGISTICS — Transport register
+   ==================================================== */
+let logisticsActiveView='contracts';
+let transportEntries=[];
+
+function setLogisticsView(view){
+  logisticsActiveView=view==='transport'?'transport':'contracts';
+  const contracts=document.getElementById('logisticsContractsView');
+  const transport=document.getElementById('transportRegisterView');
+  const ctab=document.getElementById('logisticsContractsSubtab');
+  const ttab=document.getElementById('transportRegisterSubtab');
+  if(contracts) contracts.style.display=logisticsActiveView==='contracts'?'flex':'none';
+  if(transport) transport.style.display=logisticsActiveView==='transport'?'flex':'none';
+  if(ctab) ctab.classList.toggle('active',logisticsActiveView==='contracts');
+  if(ttab) ttab.classList.toggle('active',logisticsActiveView==='transport');
+  if(logisticsActiveView==='transport') renderTransportRegister();
+}
+
+function transportNum(v){
+  if(v===null||v===undefined||v==='') return 0;
+  if(typeof v==='number') return Number.isFinite(v)?v:0;
+  const n=parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
+  return Number.isFinite(n)?n:0;
+}
+function transportText(v){return String(v??'').trim();}
+function transportDate(v){
+  if(!v) return '';
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v==='number' && v>20000){
+    const d=XLSX.SSF.parse_date_code(v); if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+  }
+  const s=String(v).trim();
+  const m=s.match(/^(\d{1,2})[.,\/-](\d{1,2})[.,\/-](\d{2,4})$/);
+  if(m){let y=Number(m[3]); if(y<100)y+=2000; return `${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;}
+  const iso=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(iso)return `${iso[1]}-${String(iso[2]).padStart(2,'0')}-${String(iso[3]).padStart(2,'0')}`;
+  return '';
+}
+function parseTransportRate(rate, kmValue=''){
+  const raw=transportText(rate || kmValue).toUpperCase().replace(/\s+/g,'');
+  const hours=raw.match(/(\d+(?:[.,]\d+)?)ORE?\*?(\d+(?:[.,]\d+)?)/);
+  if(hours) return {type:'hour',hours:transportNum(hours[1]),rate:transportNum(hours[2]),raw};
+  const numeric=transportNum(rate);
+  return numeric?{type:'ton_km',rate:numeric,raw:String(rate)}:{type:'manual',rate:0,raw:String(rate||'')};
+}
+function calcTransportValue(row){
+  const qty=transportNum(row.qty), km=transportNum(row.km);
+  const parsed=parseTransportRate(row.rate,row.km);
+  if(parsed.type==='hour') return parsed.hours*parsed.rate;
+  if(parsed.type==='ton_km' && qty && km) return qty*km*parsed.rate;
+  const current=transportNum(row.value);
+  return current||0;
+}
+function normalizeTransportEntry(row){
+  const r={...(row||{})};
+  r.date=transportDate(r.date);
+  r.carrier=transportText(r.carrier);
+  r.invoice=transportText(r.invoice);
+  r.supplier=transportText(r.supplier);
+  r.load=transportText(r.load);
+  r.product=transportText(r.product).toUpperCase();
+  r.qty=transportNum(r.qty);
+  r.waybill=transportText(r.waybill);
+  r.unload=transportText(r.unload);
+  r.beneficiary=transportText(r.beneficiary);
+  r.truck=transportText(r.truck).toUpperCase();
+  r.km=transportNum(r.km);
+  r.rate=transportText(r.rate);
+  r.value=transportNum(r.value)||calcTransportValue(r);
+  r.account=transportText(r.account);
+  r.costCenter=transportText(r.costCenter);
+  return r;
+}
+async function loadTransportEntries(){
+  try{
+    const res=await fetch('/api/logistics/transport-entries');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    transportEntries=Array.isArray(data)?data.map(normalizeTransportEntry):[];
+  }catch(e){console.warn('Transport entries load failed',e);transportEntries=[];}
+  refreshTransportCounts();
+}
+function refreshTransportCounts(){
+  const total=transportEntries.length;
+  const a=document.getElementById('transportRowsCount'); if(a)a.textContent=total;
+  const b=document.getElementById('logContractsSubCount'); if(b)b.textContent=logisticsContracts.length;
+}
+function transportDuplicateMap(){
+  const m=new Map();
+  transportEntries.forEach(r=>{const k=normalizeText(r.waybill); if(k)m.set(k,(m.get(k)||0)+1);});
+  return m;
+}
+function transportIssues(r,dupMap){
+  const out=[];
+  if(!r.date)out.push('fără dată');
+  if(!r.carrier)out.push('fără transportator');
+  if(!r.qty)out.push('fără cantitate');
+  if(!r.waybill)out.push('fără aviz');
+  if(!r.truck)out.push('fără mașină');
+  if(!r.rate && !r.value)out.push('fără tarif');
+  if(r.waybill && (dupMap.get(normalizeText(r.waybill))||0)>1)out.push('aviz duplicat');
+  return out;
+}
+function filteredTransportEntries(){
+  const q=document.getElementById('transportSearch')?.value||'';
+  const carrier=document.getElementById('transportCarrierFilter')?.value||'';
+  const product=document.getElementById('transportProductFilter')?.value||'';
+  const month=document.getElementById('transportMonthFilter')?.value||'';
+  return transportEntries.filter(r=>{
+    if(carrier && r.carrier!==carrier)return false;
+    if(product && r.product!==product)return false;
+    if(month && !String(r.date||'').startsWith(month))return false;
+    return matchesSearch([r.carrier,r.invoice,r.supplier,r.load,r.product,r.waybill,r.unload,r.beneficiary,r.truck,r.account,r.costCenter].join(' '),q);
+  });
+}
+function fillTransportFilters(){
+  const carrierEl=document.getElementById('transportCarrierFilter'), productEl=document.getElementById('transportProductFilter');
+  if(carrierEl){const cur=carrierEl.value;const vals=[...new Set(transportEntries.map(r=>r.carrier).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro'));carrierEl.innerHTML='<option value="">Toți</option>'+vals.map(v=>`<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');if(vals.includes(cur))carrierEl.value=cur;}
+  if(productEl){const cur=productEl.value;const vals=[...new Set(transportEntries.map(r=>r.product).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro'));productEl.innerHTML='<option value="">Toate</option>'+vals.map(v=>`<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');if(vals.includes(cur))productEl.value=cur;}
+}
+function renderTransportKpis(rows,dupMap){
+  const totalQty=rows.reduce((s,r)=>s+transportNum(r.qty),0);
+  const totalValue=rows.reduce((s,r)=>s+transportNum(r.value),0);
+  const bad=rows.filter(r=>transportIssues(r,dupMap).length).length;
+  const carriers=new Set(rows.map(r=>r.carrier).filter(Boolean)).size;
+  const avg=totalQty?totalValue/totalQty:0;
+  const el=document.getElementById('transportKpis');if(!el)return;
+  el.innerHTML=`
+    <div class="trreg-kpi"><div class="trreg-kpi-l">Curse</div><div class="trreg-kpi-v">${fmtN(rows.length)}</div><div class="trreg-kpi-s">în filtrul curent</div></div>
+    <div class="trreg-kpi"><div class="trreg-kpi-l">Cantitate</div><div class="trreg-kpi-v">${fmtDec(totalQty,2)} t</div><div class="trreg-kpi-s">total transportat</div></div>
+    <div class="trreg-kpi"><div class="trreg-kpi-l">Valoare</div><div class="trreg-kpi-v" style="color:var(--acc)">${fmtDec(totalValue,2)} lei</div><div class="trreg-kpi-s">cost transport</div></div>
+    <div class="trreg-kpi"><div class="trreg-kpi-l">Cost mediu</div><div class="trreg-kpi-v">${fmtDec(avg,2)} lei/t</div><div class="trreg-kpi-s">valoare / tone</div></div>
+    <div class="trreg-kpi"><div class="trreg-kpi-l">De verificat</div><div class="trreg-kpi-v" style="color:${bad?'var(--short)':'var(--long)'}">${fmtN(bad)}</div><div class="trreg-kpi-s">${carriers} transportatori</div></div>`;
+}
+function renderTransportRegister(){
+  fillTransportFilters();
+  refreshTransportCounts();
+  const rows=filteredTransportEntries();
+  const dupMap=transportDuplicateMap();
+  renderTransportKpis(rows,dupMap);
+  const count=document.getElementById('transportVisibleCount');if(count)count.textContent=`${rows.length} din ${transportEntries.length} curse`;
+  const body=document.getElementById('transportTableBody');if(!body)return;
+  if(!rows.length){body.innerHTML='<tr><td colspan="18"><div class="trreg-empty">// nu există curse pentru filtrul selectat</div></td></tr>';return;}
+  body.innerHTML=rows.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || Number(b.id||0)-Number(a.id||0)).map(r=>{
+    const issues=transportIssues(r,dupMap);
+    const rate=parseTransportRate(r.rate,r.km);
+    const rateLabel=rate.type==='hour'?(r.rate||`${rate.hours} ORE × ${rate.rate}`):(r.rate||'—');
+    return `<tr class="${issues.length?'trreg-bad':''}">
+      <td>${escHtml(r.date||'—')}</td><td>${escHtml(r.carrier||'—')}</td><td>${escHtml(r.invoice||'')}</td><td>${escHtml(r.supplier||'')}</td><td>${escHtml(r.load||'')}</td><td>${escHtml(r.product||'')}</td>
+      <td class="trreg-num">${fmtDec(r.qty,2)}</td><td>${escHtml(r.waybill||'')}</td><td>${escHtml(r.unload||'')}</td><td>${escHtml(r.beneficiary||'')}</td><td>${escHtml(r.truck||'')}</td><td class="trreg-num">${r.km?fmtN(r.km,0):'—'}</td>
+      <td>${escHtml(rateLabel)}</td><td class="trreg-money">${fmtDec(r.value,2)}</td><td>${escHtml(r.account||'')}</td><td>${escHtml(r.costCenter||'')}</td>
+      <td>${issues.length?`<span class="trreg-warn">${escHtml(issues.join(' · '))}</span>`:'<span class="trreg-ok">OK</span>'}</td>
+      <td><div class="trreg-actions"><button class="btn-log" onclick="editTransportEntry(${JSON.stringify(String(r.id))})">Edit</button><button class="btn-log btn-log-red" onclick="deleteTransportEntry(${JSON.stringify(String(r.id))})">Șterge</button></div></td>
+    </tr>`;
+  }).join('');
+}
+function clearTransportFilters(){
+  ['transportSearch','transportCarrierFilter','transportProductFilter','transportMonthFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderTransportRegister();
+}
+function toggleTransportForm(force){
+  const el=document.getElementById('transportFormCard');if(!el)return;
+  const show=force===undefined?el.style.display==='none':!!force;el.style.display=show?'flex':'none';if(show && !document.getElementById('transportEditId').value)resetTransportForm();
+}
+function resetTransportForm(){
+  const ids=['transportEditId','trCarrier','trInvoice','trSupplier','trLoad','trProduct','trWaybill','trUnload','trBeneficiary','trTruck','trRate','trAccount','trCostCenter'];ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['trQty','trKm','trValue'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const d=document.getElementById('trDate');if(d)d.value=today();const title=document.getElementById('transportFormTitle');if(title)title.textContent='Cursă nouă';
+}
+function recalcTransportForm(){
+  const row={qty:document.getElementById('trQty')?.value,km:document.getElementById('trKm')?.value,rate:document.getElementById('trRate')?.value,value:document.getElementById('trValue')?.value};
+  const parsed=parseTransportRate(row.rate,row.km);let v=0;if(parsed.type==='hour')v=parsed.hours*parsed.rate;else if(parsed.type==='ton_km')v=transportNum(row.qty)*transportNum(row.km)*parsed.rate;
+  if(v){const el=document.getElementById('trValue');if(el)el.value=v.toFixed(2);}
+}
+function transportFormData(){
+  return normalizeTransportEntry({
+    date:document.getElementById('trDate')?.value,carrier:document.getElementById('trCarrier')?.value,invoice:document.getElementById('trInvoice')?.value,supplier:document.getElementById('trSupplier')?.value,load:document.getElementById('trLoad')?.value,product:document.getElementById('trProduct')?.value,qty:document.getElementById('trQty')?.value,waybill:document.getElementById('trWaybill')?.value,unload:document.getElementById('trUnload')?.value,beneficiary:document.getElementById('trBeneficiary')?.value,truck:document.getElementById('trTruck')?.value,km:document.getElementById('trKm')?.value,rate:document.getElementById('trRate')?.value,value:document.getElementById('trValue')?.value,account:document.getElementById('trAccount')?.value,costCenter:document.getElementById('trCostCenter')?.value
+  });
+}
+async function saveTransportEntry(){
+  const row=transportFormData();
+  if(!row.carrier || !row.qty){alert('Transportatorul și cantitatea sunt obligatorii.');return;}
+  const id=document.getElementById('transportEditId')?.value||'';
+  const url=id?`/api/logistics/transport-entries/${encodeURIComponent(id)}`:'/api/logistics/transport-entries';
+  const res=await fetch(url,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});
+  if(!res.ok){alert('Nu am putut salva cursa.');return;}
+  await loadTransportEntries();renderTransportRegister();resetTransportForm();toggleTransportForm(false);
+}
+function editTransportEntry(id){
+  const r=transportEntries.find(x=>String(x.id)===String(id));if(!r)return;
+  const map={transportEditId:r.id,trDate:r.date,trCarrier:r.carrier,trInvoice:r.invoice,trSupplier:r.supplier,trLoad:r.load,trProduct:r.product,trQty:r.qty,trWaybill:r.waybill,trUnload:r.unload,trBeneficiary:r.beneficiary,trTruck:r.truck,trKm:r.km,trRate:r.rate,trValue:r.value,trAccount:r.account,trCostCenter:r.costCenter};
+  Object.entries(map).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v??'';});
+  const title=document.getElementById('transportFormTitle');if(title)title.textContent='Editează cursa';toggleTransportForm(true);document.getElementById('transportFormCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function deleteTransportEntry(id){
+  if(!confirm('Ștergi această cursă?'))return;
+  const res=await fetch(`/api/logistics/transport-entries/${encodeURIComponent(id)}`,{method:'DELETE'});if(!res.ok){alert('Nu am putut șterge cursa.');return;}await loadTransportEntries();renderTransportRegister();
+}
+function normTransportHeader(v){return normalizeText(String(v||'')).replace(/\s+/g,'_');}
+function rowValueByAliases(row,aliases){
+  for(const a of aliases){if(row[a]!==undefined && row[a]!==null && row[a]!=='')return row[a];}return '';
+}
+async function importTransportFiles(event){
+  const files=[...(event.target.files||[])];if(!files.length)return;
+  const imported=[];
+  for(const file of files){
+    const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
+    const carrier=file.name.replace(/\.(xlsx|xls)$/i,'').trim();
+    raw.forEach(src=>{
+      const r={};Object.entries(src).forEach(([k,v])=>r[normTransportHeader(k)]=v);
+      const kmRaw=rowValueByAliases(r,['km']);const rateRaw=rowValueByAliases(r,['tarif','rate']);
+      const entry=normalizeTransportEntry({
+        carrier,date:rowValueByAliases(r,['data','date']),invoice:rowValueByAliases(r,['factura','invoice']),supplier:rowValueByAliases(r,['furnizor','supplier']),load:rowValueByAliases(r,['incarcare','load']),product:rowValueByAliases(r,['produs','product']),qty:rowValueByAliases(r,['cantitate','qty']),waybill:rowValueByAliases(r,['aviz','waybill']),unload:rowValueByAliases(r,['descarcare','unload']),beneficiary:rowValueByAliases(r,['beneficiar','beneficiary']),truck:rowValueByAliases(r,['nr_inmatr','nr_inmatriculare','masina','truck']),km:typeof kmRaw==='number'?kmRaw:'',rate:rateRaw || (typeof kmRaw==='string' && /ore/i.test(kmRaw)?kmRaw:''),value:rowValueByAliases(r,['valoare','value']),account:rowValueByAliases(r,['cont','account']),costCenter:rowValueByAliases(r,['loc_m','locm','cost_center'])
+      });
+      if(entry.qty || entry.waybill || entry.supplier || entry.truck) imported.push(entry);
+    });
+  }
+  if(!imported.length){alert('Nu am găsit rânduri de importat.');event.target.value='';return;}
+  const res=await fetch('/api/logistics/transport-entries/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:imported,mode:'append'})});
+  if(!res.ok){alert('Importul a eșuat.');event.target.value='';return;}
+  await loadTransportEntries();renderTransportRegister();event.target.value='';alert(`Import reușit: ${imported.length} curse din ${files.length} fișiere.`);
+}
+function exportTransportRegister(){
+  const rows=filteredTransportEntries().map((r,i)=>({
+    'Nr crt':i+1,'FACTURA':r.invoice,'Data':r.date,'Transportator':r.carrier,'Furnizor':r.supplier,'Incarcare':r.load,'Produs':r.product,'Cantitate':r.qty,'AVIZ':r.waybill,'Descarcare':r.unload,'Beneficiar':r.beneficiary,'Nr inmatr.':r.truck,'KM':r.km||'','TARIF':r.rate,'Valoare':r.value,'CONT':r.account,'LOC M':r.costCenter
+  }));
+  const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[7,12,12,18,22,16,14,12,14,16,20,16,9,12,14,10,10].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,'Curse transport');
+  XLSX.writeFile(wb,`agrotex_transport_${today()}.xlsx`);
+}
 
 /* ====================================================
    TRAIN TAB — Calendar operational
