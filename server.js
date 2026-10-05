@@ -82,6 +82,24 @@ db.exec(`
     deleted_by TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS transport_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    data TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT,
+    deleted_by TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS transport_rates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    data TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT,
+    deleted_by TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS train_contracts (
     id TEXT PRIMARY KEY,
     data TEXT NOT NULL,
@@ -147,7 +165,7 @@ function ensureColumn(table, column, definition) {
   }
 }
 
-['trades', 'logistics_contracts', 'train_contracts', 'stock_locations', 'stock_entries', 'partners', 'purchase_contracts'].forEach(table => {
+['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries', 'partners', 'purchase_contracts'].forEach(table => {
   // SQLite nu permite ALTER TABLE ADD COLUMN cu DEFAULT datetime('now').
   // De aceea adăugăm coloana simplu și completăm valorile existente separat.
   ensureColumn(table, 'updated_at', 'TEXT');
@@ -541,6 +559,92 @@ app.post('/api/logistics/contracts/bulk', requireAuth, (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+// ── TRANSPORT REGISTER ──────────────────────────────────────────────────────
+app.get('/api/logistics/transport-entries', requireAuth, (req, res) => {
+  try {
+    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM transport_entries WHERE deleted_at IS NULL ORDER BY id DESC').all();
+    res.json(rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _createdAt: r.created_at, _updatedAt: r.updated_at })));
+  } catch (err) {
+    console.error('Transport entries GET error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/logistics/transport-entries', requireAuth, (req, res) => {
+  try {
+    const entry = sanitizeObjectForStorage(req.body);
+    const info = db.prepare("INSERT INTO transport_entries (data, created_at, updated_at) VALUES (?, datetime('now'), datetime('now'))").run(JSON.stringify(entry));
+    audit(req, 'create', 'transport_entry', info.lastInsertRowid, { entry });
+    res.json({ id: info.lastInsertRowid, ok: true });
+  } catch (err) {
+    console.error('Transport entry POST error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/logistics/transport-entries/:id', requireAuth, (req, res) => {
+  try {
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+    const before = db.prepare('SELECT data FROM transport_entries WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!before) return res.status(404).json({ error: 'Not found' });
+    const entry = sanitizeObjectForStorage(req.body);
+    db.prepare("UPDATE transport_entries SET data = ?, updated_at = datetime('now') WHERE id = ?").run(JSON.stringify(entry), id);
+    audit(req, 'update', 'transport_entry', id, { before: safeJsonParse(before.data), after: entry });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Transport entry PUT error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/logistics/transport-entries/:id', requireAuth, (req, res) => {
+  try {
+    const id = validateId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+    const info = db.prepare("UPDATE transport_entries SET deleted_at = datetime('now'), deleted_by = ? WHERE id = ? AND deleted_at IS NULL").run(req.session.user || null, id);
+    if (!info.changes) return res.status(404).json({ error: 'Not found' });
+    audit(req, 'soft_delete', 'transport_entry', id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Transport entry DELETE error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/logistics/transport-entries/bulk', requireAuth, (req, res) => {
+  try {
+    const entries = Array.isArray(req.body?.entries) ? req.body.entries : null;
+    const mode = req.body?.mode === 'replace' ? 'replace' : 'append';
+    if (!entries) return res.status(400).json({ error: 'entries must be an array' });
+    if (mode === 'replace') { makeBackup('before-transport-replace'); cleanupBackups(); }
+    const insert = db.prepare("INSERT INTO transport_entries (data, created_at, updated_at) VALUES (?, datetime('now'), datetime('now'))");
+    const tx = db.transaction((items) => {
+      if (mode === 'replace') db.prepare("UPDATE transport_entries SET deleted_at = datetime('now'), deleted_by = ? WHERE deleted_at IS NULL").run(req.session.user || null);
+      for (const item of items) insert.run(JSON.stringify(sanitizeObjectForStorage(item)));
+    });
+    tx(entries);
+    audit(req, 'bulk_import', 'transport_entries', null, { count: entries.length, mode });
+    res.json({ ok: true, count: entries.length, mode });
+  } catch (err) {
+    console.error('Transport entries BULK error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Tarif master table is created now so the next step can add route/rate automation
+// without another database migration.
+app.get('/api/logistics/transport-rates', requireAuth, (req, res) => {
+  try {
+    const rows = db.prepare('SELECT id, data, created_at, updated_at FROM transport_rates WHERE deleted_at IS NULL ORDER BY id DESC').all();
+    res.json(rows.map(r => ({ ...safeJsonParse(r.data), id: r.id, _createdAt: r.created_at, _updatedAt: r.updated_at })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 // ── PARTNERS / FURNIZORI ────────────────────────────────────────────────────
@@ -1717,7 +1821,7 @@ app.get('/api/admin/audit', requireAdmin, (req, res) => {
 
 app.get('/api/admin/db-status', requireAdmin, (req, res) => {
   try {
-    const tables = ['trades', 'logistics_contracts', 'train_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log'];
+    const tables = ['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log'];
     const counts = {};
 
     for (const table of tables) {
@@ -1750,7 +1854,7 @@ app.get('/api/admin/db-status', requireAdmin, (req, res) => {
 
 app.post('/api/admin/undelete-all', requireAuth, (req, res) => {
   try {
-    const tables = ['trades', 'logistics_contracts', 'train_contracts', 'stock_locations', 'stock_entries'];
+    const tables = ['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries'];
     const result = {};
     makeBackup('before-undelete-all');
 
