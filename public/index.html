@@ -10041,12 +10041,30 @@ document.addEventListener('click', (e)=>{
 });
 
 /* Sync */
-async function syncTrades(){
-  const anyModalOpen=['modEdit','modProd','modImport','modCfo','modAgentBulk'].some(id=>{
-    const el=document.getElementById(id);
-    return el && (el.classList.contains('open') || el.style.display==='flex');
+function isUserEditingForm(){
+  // Nu facem refresh automat peste un formular/modal in care utilizatorul lucreaza.
+  const anyOpenOverlay=[...document.querySelectorAll('.overlay')].some(el=>{
+    if(el.classList.contains('open')) return true;
+    const inlineDisplay=(el.style.display||'').toLowerCase();
+    return inlineDisplay==='flex' || inlineDisplay==='block';
   });
-  if(anyModalOpen) return;
+  if(anyOpenOverlay) return true;
+
+  // Protejeaza si formularele inline cat timp cursorul este intr-un camp.
+  const active=document.activeElement;
+  if(active && ['INPUT','SELECT','TEXTAREA'].includes(active.tagName)) return true;
+
+  // Formularul inline de creare contract logistic poate ramane deschis fara focus.
+  const logCreate=document.getElementById('logCreateCard');
+  if(logCreate && !logCreate.classList.contains('collapsed')){
+    const search=(document.getElementById('logSourceSearch')?.value||'').trim();
+    const selected=(document.getElementById('logSelectedTradeId')?.value||'').trim();
+    if(search || selected) return true;
+  }
+  return false;
+}
+async function syncTrades(){
+  if(isUserEditingForm()) return;
   try{
     const [tRes,pRes,lRes]=await Promise.all([fetch('/api/trades'), fetch('/api/products'), fetch('/api/logistics/contracts')]);
     if(!tRes.ok || !pRes.ok || !lRes.ok) return;
