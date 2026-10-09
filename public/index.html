@@ -972,6 +972,16 @@
 
 
 
+  .train-wait-panel{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:9px}
+  .train-wait-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--bright)}
+  .train-wait-head span{font-size:9px;color:var(--dim)}
+  .train-wait-month{background:rgba(224,183,94,.09);border:1px solid rgba(224,183,94,.25);border-radius:4px;padding:7px 9px;font:700 10px 'IBM Plex Mono',monospace;color:var(--acc)}
+  .train-wait-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:7px;max-height:205px;overflow:auto}
+  .train-wait-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:10px}
+  .train-wait-item.due{border-color:rgba(224,183,94,.65)}
+  .train-wait-item b{color:var(--bright)}.train-wait-item small{display:block;color:var(--dim);margin-top:4px;line-height:1.5}
+  .train-wait-empty,.train-wait-help{font:10px 'IBM Plex Mono',monospace;color:var(--dim);line-height:1.5}
+  .train-week-label{font-size:8px;font-weight:700;color:var(--acc);margin-left:3px}
   /* Calendar operational trenuri - V2 */
   .train-cal-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .train-cal-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;border:1px solid rgba(232,160,106,.4);background:rgba(232,160,106,.1);color:var(--transport);letter-spacing:.5px;}
@@ -2264,6 +2274,7 @@
     <div class="train-kpi"><div class="train-kpi-l">Tonaj planificat</div><div class="train-kpi-v" id="trKpiQty" style="color:var(--bright)">—</div><div class="train-kpi-s" id="trKpiQtySub">—</div></div>
   </div>
 
+  <section class="train-wait-panel"><div class="train-wait-head"><strong>Trenuri în așteptarea nominalizării</strong><span id="trainWaitingCount"></span></div><div class="train-wait-month" id="trainWaitingMonth"></div><div class="train-wait-list" id="trainWaitingList"></div></section>
   <div class="train-calendar-layout">
     <div class="train-calendar-panel">
       <div class="train-calendar-grid" id="trainCalendarGrid"></div>
@@ -2319,8 +2330,8 @@
 
     <div class="fr fr3">
       <div class="fg">
-        <label class="fl">Data planificată *</label>
-        <input type="date" id="trModalDate">
+        <label class="fl">Data începerii încărcării (opțională)</label>
+        <input type="date" id="trModalDate" onchange="trainDefaultDateTo()">
       </div>
       <div class="fg">
         <label class="fl">Până la</label>
@@ -2340,6 +2351,11 @@
       </div>
     </div>
 
+    <div class="fr fr2">
+      <div class="fg"><label class="fl">Livrare contractuală de la (lună)</label><input type="month" id="trModalPeriodStart" onchange="trainDefaultPeriodEnd()"></div>
+      <div class="fg"><label class="fl">Livrare contractuală până la (lună)</label><input type="month" id="trModalPeriodEnd"></div>
+    </div>
+    <div class="train-wait-help">Fără date exacte, trenul rămâne în așteptare și apare în lunile contractuale. Poți reveni ulterior pentru nominalizare. Dacă alegi data începerii, se completează automat două zile, modificabile.</div>
     <div class="fr fr2">
       <div class="fg">
         <label class="fl">Bază / gară încărcare *</label>
@@ -5053,6 +5069,25 @@ let trainCalendarDate = new Date();
 trainCalendarDate.setDate(1);
 let selectedTrainDate = typeof today === 'function' ? today() : new Date().toISOString().slice(0,10);
 let selectedTrainEvent = null;
+let trainRefreshBusy = false;
+function trainAddDays(key, days){const d=new Date(key+'T12:00:00');d.setDate(d.getDate()+days);return trainDateKey(d);}
+function trainDefaultDateTo(){const a=document.getElementById('trModalDate').value;document.getElementById('trModalDateTo').value=a?trainAddDays(a,1):'';}
+function trainDefaultPeriodEnd(){const a=document.getElementById('trModalPeriodStart').value;const b=document.getElementById('trModalPeriodEnd');if(a && (!b.value || b.value<a))b.value=a;}
+function trainIsoWeek(date){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));const y=d.getUTCFullYear();return {year:y,week:Math.ceil((((d-new Date(Date.UTC(y,0,1)))/86400000)+1)/7)};}
+function trainWaitingContracts(){return (trainContracts||[]).map(c=>{const active=(c.shipments||[]).filter(sh=>trainStatus(sh.status)!=='cancelled');const booked=active.reduce((n,sh)=>n+(trShipmentDateFrom(sh)?trainQty(sh,c):0),0);return {c,remaining:Math.max(0,(Number(c.qty)||0)-booked),hasScheduled:active.some(sh=>trShipmentDateFrom(sh))};}).filter(x=>!x.c.closed&&x.remaining>0);}
+function trainContractPeriod(c){const a=String(c.start||c.trainStart||'').slice(0,7),b=String(c.end||c.trainEnd||a).slice(0,7);return {a,b:b>=a?b:a};}
+function trainWaitingInMonth(c,key){const {a,b}=trainContractPeriod(c);return !!a && key>=a && key<=b;}
+function renderTrainWaiting(){
+ const list=document.getElementById('trainWaitingList'),monthly=document.getElementById('trainWaitingMonth'),count=document.getElementById('trainWaitingCount');if(!list)return;
+ const entries=trainWaitingContracts();const key=trainMonthKey(trainCalendarDate);
+ const due=entries.filter(x=>trainWaitingInMonth(x.c,key));
+ count.textContent=`${entries.length} contracte de planificat · ${due.length} în ${trainMonthLabelFromKey(key)}`;
+ monthly.textContent=due.length?`DE PLANIFICAT ÎN ${trainMonthLabelFromKey(key).toUpperCase()}: ${due.length} contracte, ${fmtN(due.reduce((n,x)=>n+x.remaining,0))} t rămase`:`Nicio livrare contractuală neplanificată în ${trainMonthLabelFromKey(key)}.`;
+ const sorted=[...entries].sort((x,y)=>trainContractPeriod(x.c).a.localeCompare(trainContractPeriod(y.c).a));
+ list.innerHTML=sorted.length?sorted.map(({c,remaining})=>{const {a,b}=trainContractPeriod(c);const inMonth=trainWaitingInMonth(c,key);const period=a?`${trainMonthLabelFromKey(a)}${b!==a?' – '+trainMonthLabelFromKey(b):''}`:'Perioadă neprecizată';return `<div class="train-wait-item${inMonth?' due':''}"><div><b>${escHtml(trainContractLabel(c))}</b> · ${escHtml(trainClient(c)||'Client neprecizat')}<small>${escHtml(trainProductName(c.product))} · ${fmtN(remaining)} t de planificat · ${escHtml(period)}</small></div><button class="btn-tr" onclick="openTrainContractModal('${escHtml(String(c.id))}')">Planifică</button></div>`;}).join(''):'<div class="train-wait-empty">Niciun contract în așteptare.</div>';
+}
+async function refreshTrainCalendarOnly(){if(trainRefreshBusy||!trainTabActive||document.visibilityState!=='visible'||document.getElementById('trainContractModal')?.classList.contains('open'))return;trainRefreshBusy=true;try{const result=await loadTrainContracts({silent:true,preserveExisting:true});if(result.ok)renderTrainTab();}finally{trainRefreshBusy=false;}}
+
 
 async function trainApiReadError(res){
   try{
@@ -5416,8 +5451,9 @@ function renderTrainCalendar(){
     const dayQty = events.reduce((s,ev)=>s+trainQty(ev.shipment, ev.contract),0);
     const out = d.getMonth() !== m;
     const selected = key === selectedTrainDate;
+    const week=trainIsoWeek(d);
     html += `<div class="train-cal-day${out?' out':''}${key===todayKey?' today':''}${selected?' selected':''}${events.length>1?' has-multi':''}${trainDayStationClass(events)}" onclick="selectTrainDay('${key}')">
-      <div class="train-day-head"><span class="train-day-num">${d.getDate()}</span>${events.length?`<span class="train-day-total">${events.length} / ${fmtN(dayQty)} t</span>`:''}</div>
+      <div class="train-day-head"><span class="train-day-num">${d.getDate()}${i%7===0?` <span class="train-week-label">S${String(week.week).padStart(2,'0')}</span>`:''}</span>${events.length?`<span class="train-day-total">${events.length} / ${fmtN(dayQty)} t</span>`:''}</div>
       ${events.slice(0,2).map(ev=>renderTrainEventCard(ev)).join('')}
       ${events.length>2?`<div class="train-more">+ ${events.length-2} încă</div>`:''}
     </div>`;
@@ -5631,6 +5667,7 @@ function renderTrainTab(){
   renderTrainCalendar();
   renderTrainSide();
   updateTrainBadge();
+  renderTrainWaiting();
 }
 
 function openTrainContractModal(contractId=null, shipmentId=null, forcedDate=null){
@@ -5638,7 +5675,7 @@ function openTrainContractModal(contractId=null, shipmentId=null, forcedDate=nul
   const title = document.getElementById('trModalTitle');
   const del = document.getElementById('trModalDeleteBtn');
   const ev = contractId && shipmentId ? getEvent(contractId, shipmentId) : null;
-  const c = ev?.contract || null;
+  const c = ev?.contract || (contractId ? trainContracts.find(x=>String(x.id)===String(contractId)) : null);
   const sh = ev?.shipment || null;
   document.getElementById('trModalContractId').value = c?.id || '';
   document.getElementById('trModalShipmentId').value = sh?.id || '';
@@ -5647,8 +5684,12 @@ function openTrainContractModal(contractId=null, shipmentId=null, forcedDate=nul
   document.getElementById('trModalProduct').value = c?.product || 'wheat';
   document.getElementById('trModalQty').value = sh ? trainQty(sh,c) : '';
   document.getElementById('trModalCrop').value = c?.crop || String(new Date().getFullYear());
-  document.getElementById('trModalDate').value = sh ? trShipmentDateFrom(sh) : (forcedDate || selectedTrainDate || trainTodayKey());
-  document.getElementById('trModalDateTo').value = sh ? (trShipmentDateTo(sh)||trShipmentDateFrom(sh)) : (forcedDate || selectedTrainDate || trainTodayKey());
+  const defaultDate = forcedDate || (c ? '' : (selectedTrainDate || trainTodayKey()));
+  const startDate = sh ? trShipmentDateFrom(sh) : defaultDate;
+  document.getElementById('trModalDate').value = startDate;
+  document.getElementById('trModalDateTo').value = sh ? (trShipmentDateTo(sh)||trShipmentDateFrom(sh)) : (startDate?trainAddDays(startDate,1):'');
+  document.getElementById('trModalPeriodStart').value=String(c?.start||c?.trainStart||'').slice(0,7);
+  document.getElementById('trModalPeriodEnd').value=String(c?.end||c?.trainEnd||c?.start||'').slice(0,7);
   document.getElementById('trModalStatus').value = sh ? trainStatus(sh.status) : 'planned';
   document.getElementById('trModalStation').value = sh ? trainStation(sh,c) : '';
   document.getElementById('trModalDestination').value = sh?.destination || '';
@@ -5674,7 +5715,11 @@ async function saveTrainContract(){
     const station = document.getElementById('trModalStation').value.trim();
     if(!contractNo){ alert('Completează contractul sau referința.'); return; }
     if(!qty || qty<=0){ alert('Completează cantitatea estimată.'); return; }
-    if(!date){ alert('Alege data planificată.'); return; }
+    const periodStart=document.getElementById('trModalPeriodStart').value;
+    const periodEnd=document.getElementById('trModalPeriodEnd').value||periodStart;
+    if(!date&&!periodStart){alert('Completează perioada contractuală sau data exactă de încărcare.');return;}
+    if(date && dateTo<date){alert('Data finală nu poate fi înaintea începerii.');return;}
+    if(periodStart && periodEnd<periodStart){alert('Perioada contractuală este inversată.');return;}
     if(!station){ alert('Completează baza sau gara de încărcare.'); return; }
 
     let c = contractId ? trainContracts.find(x=>x.id===contractId) : null;
@@ -5694,15 +5739,16 @@ async function saveTrainContract(){
     c.client = client;
     c.defaultStation = station || c.defaultStation || '';
     c.qty = Math.max(Number(c.qty)||0, qty);
+    if(periodStart){c.start=periodStart;c.end=periodEnd;}else if(date&&!c.start){c.start=date.slice(0,7);c.end=(dateTo||date).slice(0,7);}
     c.updatedAt = new Date().toISOString();
     c.shipments = Array.isArray(c.shipments) ? c.shipments : [];
 
     let sh = shipmentId ? c.shipments.find(x=>x.id===shipmentId) : null;
-    if(!sh){
+    if(date && !sh){
       sh = { id: makeShipmentId(), createdAt:new Date().toISOString() };
       c.shipments.push(sh);
     }
-    Object.assign(sh, {
+    if(sh) Object.assign(sh, {
       date,
       dateTo,
       qty,
@@ -5718,12 +5764,10 @@ async function saveTrainContract(){
     });
     await apiSaveTrainContract(c, isNew);
     await loadTrainContracts();
-  await loadPartners();
-  await loadPurchaseContracts();
     selectedTrainId = c.id;
-    selectedTrainEvent = { contractId:c.id, shipmentId:sh.id };
-    selectedTrainDate = date;
-    const d = new Date(date+'T12:00:00');
+    selectedTrainEvent = sh&&date ? { contractId:c.id, shipmentId:sh.id } : null;
+    selectedTrainDate = date || (periodStart ? periodStart+'-01' : selectedTrainDate);
+    const d = new Date((date || (periodStart+'-01'))+'T12:00:00');
     trainCalendarDate = new Date(d.getFullYear(), d.getMonth(), 1);
     closeModal('trainContractModal');
     renderTrainTab();
@@ -5889,6 +5933,8 @@ function exportTrainsExcel(){
         trainExportProduct(c),
         c.crop||'',
         trShipmentDateFrom(sh)||'',
+        trShipmentDateFrom(sh)?trainMonthKey(new Date(trShipmentDateFrom(sh)+'T12:00:00')):'',
+        trShipmentDateFrom(sh)?trainIsoWeek(new Date(trShipmentDateFrom(sh)+'T12:00:00')).week:'',
         trShipmentDateTo(sh)||trShipmentDateFrom(sh)||'',
         trainExportRound(trainQty(sh,c)),
         trainStatusLabel(sh.status),
@@ -5917,11 +5963,13 @@ function exportTrainsExcel(){
 
   const wsTrains=trainExportSheet(
     'Nominalizări și trenuri',
-    ['ID tren','ID contract','Număr contract','Client / destinatar','Produs','Recoltă','Data de la','Data până la','Cantitate (t)','Status','Bază / gară încărcare','Destinație','Nr. tren','Nr. vagoane','Surveyor / tratament','Observații','ID poziție sursă','Creat la','Actualizat la'],
+    ['ID tren','ID contract','Număr contract','Client / destinatar','Produs','Recoltă','Data de la','Luna (AAAA-LL)','Săptămâna ISO','Data până la','Cantitate (t)','Status','Bază / gară încărcare','Destinație','Nr. tren','Nr. vagoane','Surveyor / tratament','Observații','ID poziție sursă','Creat la','Actualizat la'],
     trainRows,
-    [18,18,20,26,18,10,14,14,15,16,24,24,16,12,24,36,18,22,22]
+    [18,18,20,26,18,10,14,16,16,14,15,16,24,24,16,12,24,36,18,22,22]
   );
   XLSX.utils.book_append_sheet(wb,wsTrains,'Trenuri');
+  const waitingRows=trainWaitingContracts().map(({c,remaining})=>[trainContractLabel(c),trainClient(c),trainExportProduct(c),trainExportRound(remaining),trainContractPeriod(c).a,trainContractPeriod(c).b,c.defaultStation||'',c.note||'']);
+  XLSX.utils.book_append_sheet(wb,trainExportSheet('Trenuri în așteptare',['Contract','Client','Produs','Cantitate de planificat (t)','Luna început','Luna sfârșit','Bază','Observații'],waitingRows,[22,28,22,22,18,18,25,40]),'În așteptare');
   XLSX.writeFile(wb,`agrotex_trenuri_${today()}.xlsx`);
 }
 
@@ -11798,6 +11846,7 @@ async function bootApp(){
   setInterval(loadMatif, 5*60*1000);
   setInterval(loadWeatherPresets, 30*60*1000);
   setInterval(syncTrades, 60*1000);
+  setInterval(refreshTrainCalendarOnly, 30000);
 }
 
 const _td=today();
@@ -11832,6 +11881,7 @@ document.addEventListener('visibilitychange', ()=>{
       window._lastFxLoad=Date.now();
     }
     if(meteoTabActive) loadWeatherPresets();
+    if(trainTabActive) refreshTrainCalendarOnly();
   }
 });
 window.addEventListener('pageshow',(e)=>{
