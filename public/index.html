@@ -1517,6 +1517,27 @@
 #trainSection .train-wait-dismiss{border:1px solid rgba(224,107,107,.45);color:#E06B6B;background:transparent;border-radius:4px;cursor:pointer;font-size:18px;font-weight:700;width:27px;min-width:27px;height:27px;line-height:1;}
 #trainSection .train-wait-dismiss:hover{background:rgba(224,107,107,.14);}
 </style>
+<style>
+
+/* Trenuri: calendar compact, fără filtre, lista de așteptare fără scroll intern */
+#trainSection .train-calendar-layout{display:block!important;width:100%!important;overflow:visible!important;}
+#trainSection .train-calendar-panel{width:100%!important;max-width:1180px!important;margin:0 auto!important;padding:8px!important;overflow:visible!important;}
+#trainSection .train-calendar-grid{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;grid-auto-rows:auto!important;gap:4px!important;align-items:stretch!important;}
+#trainSection .train-calendar-dow{min-height:0!important;height:20px!important;line-height:16px!important;padding:2px 0!important;font-size:9px!important;align-self:stretch!important;}
+#trainSection .train-cal-day{height:104px!important;min-height:104px!important;max-height:104px!important;padding:5px!important;overflow:hidden!important;}
+#trainSection .train-day-head{min-height:14px!important;}
+#trainSection .train-wait-panel{margin-top:12px!important;overflow:visible!important;}
+#trainSection .train-wait-list{max-height:none!important;height:auto!important;overflow:visible!important;}
+#trainSection .train-wait-group{overflow:visible!important;}
+#trainSection .train-wait-group-items{overflow:visible!important;}
+@media(max-width:750px){
+ #trainSection .train-calendar-panel{padding:4px!important;}
+ #trainSection .train-calendar-grid{gap:2px!important;}
+ #trainSection .train-cal-day{height:90px!important;min-height:90px!important;max-height:90px!important;padding:3px!important;}
+ #trainSection .train-calendar-dow{font-size:8px!important;height:18px!important;line-height:14px!important;}
+}
+
+</style>
 </head>
 <body>
 
@@ -2256,33 +2277,6 @@
     <button class="btn-tr" style="margin-left:auto;" onclick="exportTrainsExcel()">⬇ Export Excel</button>
 
   </div>
-
-  <div class="train-filter-strip">
-    <input id="trainSearch" class="train-filter-input" type="text" placeholder="Caută contract, client, bază, produs..." oninput="renderTrainTab()">
-    <select id="trainFilterProduct" class="email-select" onchange="renderTrainTab()">
-      <option value="">Toate produsele</option>
-      <option value="wheat">Grâu</option>
-      <option value="corn">Porumb</option>
-      <option value="rapeseed">Rapiță</option>
-      <option value="sunflower">Floarea-soarelui</option>
-      <option value="triticale">Triticale</option>
-      <option value="soybean">Soia</option>
-      <option value="barley">Orz</option>
-    </select>
-    <select id="trainFilterStatus" class="email-select" onchange="renderTrainTab()">
-      <option value="">Toate statusurile</option>
-      <option value="planned">Planificat</option>
-      <option value="requested">Cerut</option>
-      <option value="confirmed">Confirmat</option>
-      <option value="loading">În încărcare</option>
-      <option value="loaded">Încărcat</option>
-      <option value="problem">Problemă</option>
-      <option value="cancelled">Anulat</option>
-    </select>
-    <input id="trainFilterBase" class="train-filter-input short" type="text" placeholder="Bază / gară" oninput="renderTrainTab()">
-    <button class="btn-sm" onclick="clearTrainFilters()">Curăță filtre</button>
-  </div>
-
   <div class="train-kpi-row" id="trainKpis">
     <div class="train-kpi"><div class="train-kpi-l">Trenuri luna curentă</div><div class="train-kpi-v" id="trKpiMonth" style="color:var(--transport)">—</div><div class="train-kpi-s" id="trKpiMonthSub">—</div></div>
     <div class="train-kpi"><div class="train-kpi-l">Confirmate / încărcate</div><div class="train-kpi-v" id="trKpiConfirmed" style="color:var(--long)">—</div><div class="train-kpi-s" id="trKpiConfirmedSub">—</div></div>
