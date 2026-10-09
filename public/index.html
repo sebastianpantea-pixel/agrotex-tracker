@@ -1039,7 +1039,7 @@
   .train-cal-day.station-valea{background:linear-gradient(180deg,rgba(224,183,94,.06),var(--surface2) 38%);}
 
   /* Train calendar fit-screen + multi-event layout - v6 */
-  .train-calendar-layout{grid-template-columns:minmax(0,1fr) 330px!important;gap:8px!important;max-width:100%!important;overflow:hidden!important;}
+  .train-calendar-layout{grid-template-columns:minmax(0,1fr)!important;gap:8px!important;max-width:100%!important;overflow:hidden!important;}
   .train-calendar-panel{overflow:hidden!important;padding:7px!important;min-width:0!important;}
   .train-calendar-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;grid-auto-rows:minmax(100px,112px)!important;min-width:0!important;align-items:stretch;gap:4px!important;}
   .train-calendar-dow{width:auto!important;font-size:7px!important;padding:3px 0!important;}
@@ -1507,6 +1507,15 @@
     .position-trades-panel .tscroll{min-height:360px!important;}
   }
 
+</style>
+
+<style>
+#trainSection .train-calendar-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;}
+#trainSection .train-calendar-panel{width:100%;min-width:0;}
+#trainSection .train-wait-panel{margin-top:12px;}
+#trainSection .train-wait-item{gap:10px;}
+#trainSection .train-wait-dismiss{border:1px solid rgba(224,107,107,.45);color:#E06B6B;background:transparent;border-radius:4px;cursor:pointer;font-size:18px;font-weight:700;width:27px;min-width:27px;height:27px;line-height:1;}
+#trainSection .train-wait-dismiss:hover{background:rgba(224,107,107,.14);}
 </style>
 </head>
 <body>
@@ -2245,7 +2254,7 @@
     </div>
 
     <button class="btn-tr" style="margin-left:auto;" onclick="exportTrainsExcel()">⬇ Export Excel</button>
-    <button class="btn-tr" onclick="openTrainContractModal()">+ Adaugă tren</button>
+
   </div>
 
   <div class="train-filter-strip">
@@ -2282,14 +2291,17 @@
     <div class="train-kpi"><div class="train-kpi-l">Tonaj planificat</div><div class="train-kpi-v" id="trKpiQty" style="color:var(--bright)">—</div><div class="train-kpi-s" id="trKpiQtySub">—</div></div>
   </div>
 
-  <section class="train-wait-panel"><div class="train-wait-head"><strong>Trenuri în așteptare (introducere manuală)</strong><span id="trainWaitingCount"></span></div><div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div class="train-wait-month" id="trainWaitingMonth" style="flex:1"></div><button class="btn-tr" onclick="openTrainContractModal()">+ Adaugă tren în așteptare</button></div><div class="train-wait-list" id="trainWaitingList"></div></section>
   <div class="train-calendar-layout">
     <div class="train-calendar-panel">
       <div class="train-calendar-grid" id="trainCalendarGrid"></div>
-      <div class="train-window-note">Click pe o zi pentru agenda zilei. Click pe un tren pentru detalii. În această versiune, mutarea trenului se face din fisa trenului, schimbând data.</div>
+      <div class="train-window-note">Click pe o zi liberă pentru a adăuga un tren cu data preselectată. Click pe un tren existent pentru a-l edita. Durata implicită este de 2 zile.</div>
     </div>
-    <div class="train-side-panel" id="trainSidePanel"></div>
   </div>
+  <section class="train-wait-panel">
+    <div class="train-wait-head"><strong>Trenuri în așteptare, grupate pe luni</strong><span id="trainWaitingCount"></span></div>
+    <div class="train-wait-month" id="trainWaitingMonth"></div>
+    <div class="train-wait-list" id="trainWaitingList"></div>
+  </section>
 </div>
 
 <div class="overlay" id="trainContractModal" onclick="if(event.target===this)closeModal('trainContractModal')">
@@ -5082,7 +5094,7 @@ function trainAddDays(key, days){const d=new Date(key+'T12:00:00');d.setDate(d.g
 function trainDefaultDateTo(){const a=document.getElementById('trModalDate').value;document.getElementById('trModalDateTo').value=a?trainAddDays(a,1):'';}
 function trainDefaultPeriodEnd(){const a=document.getElementById('trModalPeriodStart').value;const b=document.getElementById('trModalPeriodEnd');if(a && (!b.value || b.value<a))b.value=a;}
 function trainIsoWeek(date){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));const y=d.getUTCFullYear();return {year:y,week:Math.ceil((((d-new Date(Date.UTC(y,0,1)))/86400000)+1)/7)};}
-function trainWaitingContracts(){return (trainContracts||[]).filter(c=>!c.autoFromTrade).map(c=>{const active=(c.shipments||[]).filter(sh=>trainStatus(sh.status)!=='cancelled');const booked=active.reduce((n,sh)=>n+(trShipmentDateFrom(sh)?trainQty(sh,c):0),0);return {c,remaining:Math.max(0,(Number(c.qty)||0)-booked),hasScheduled:active.some(sh=>trShipmentDateFrom(sh))};}).filter(x=>!x.c.closed&&x.remaining>0);}
+function trainWaitingContracts(){return (trainContracts||[]).filter(c=>!c.waitingHidden).map(c=>{const active=(c.shipments||[]).filter(sh=>trainStatus(sh.status)!=='cancelled');const booked=active.reduce((n,sh)=>n+(trShipmentDateFrom(sh)?trainQty(sh,c):0),0);return {c,remaining:Math.max(0,(Number(c.qty)||0)-booked),hasScheduled:active.some(sh=>trShipmentDateFrom(sh))};}).filter(x=>!x.c.closed&&x.remaining>0);}
 function trainContractPeriod(c){const a=String(c.start||c.trainStart||'').slice(0,7),b=String(c.end||c.trainEnd||a).slice(0,7);return {a,b:b>=a?b:a};}
 function trainWaitingInMonth(c,key){const {a,b}=trainContractPeriod(c);return !!a && key>=a && key<=b;}
 async function moveTrainWaitingMonth(contractId,month){
@@ -5094,6 +5106,15 @@ async function moveTrainWaitingMonth(contractId,month){
  try {await apiSaveTrainContract(c,false);renderTrainTab();}
  catch(err){c.start=previous.start;c.end=previous.end;renderTrainWaiting();alert('Nu s-a putut muta trenul: '+(err?.message||err));}
 }
+async function hideTrainFromWaiting(contractId){
+ const c=(trainContracts||[]).find(x=>String(x.id)===String(contractId));
+ if(!c)return;
+ if(!confirm('Elimini acest tren doar din lista de așteptare? Contractul din Poziție nu va fi modificat.'))return;
+ c.waitingHidden=true;
+ renderTrainWaiting();
+ try{await apiSaveTrainContract(c,false);renderTrainTab();}
+ catch(err){c.waitingHidden=false;renderTrainWaiting();alert('Nu s-a salvat eliminarea: '+(err?.message||err));}
+}
 function renderTrainWaiting(){
  const list=document.getElementById('trainWaitingList'),monthly=document.getElementById('trainWaitingMonth'),count=document.getElementById('trainWaitingCount');if(!list)return;
  const entries=trainWaitingContracts();const key=trainMonthKey(trainCalendarDate);
@@ -5104,7 +5125,7 @@ function renderTrainWaiting(){
  entries.forEach(item=>{const {a}=trainContractPeriod(item.c);const k=a||'neprecizat';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(item);});
  const keys=[...groups.keys()].sort((x,y)=>x==='neprecizat'?1:y==='neprecizat'?-1:x.localeCompare(y));
  const monthOptions=(current)=>{const d=new Date();const currentYear=Number(String(current).slice(0,4))||d.getFullYear();const keys=[];for(let y=Math.min(currentYear,d.getFullYear()-1);y<=Math.max(currentYear,d.getFullYear()+3);y++)for(let m=1;m<=12;m++)keys.push(`${y}-${String(m).padStart(2,'0')}`);return keys.map(k=>`<option value="${k}"${k===current?' selected':''}>${escHtml(trainMonthLabelFromKey(k))}</option>`).join('');};
- list.innerHTML=keys.length?keys.map(k=>{const items=groups.get(k);return `<div class="train-wait-group"><div class="train-wait-group-title">${k==='neprecizat'?'Lună neprecizată':escHtml(trainMonthLabelFromKey(k))} <span>${items.length} trenuri · ${fmtN(items.reduce((sum,x)=>sum+x.remaining,0))} t</span></div><div class="train-wait-group-items">${items.map(({c,remaining})=>{const {a,b}=trainContractPeriod(c);const id=escHtml(String(c.id));const inMonth=trainWaitingInMonth(c,key);const period=a?`${trainMonthLabelFromKey(a)}${b!==a?' – '+trainMonthLabelFromKey(b):''}`:'Perioadă neprecizată';return `<div class="train-wait-item${inMonth?' due':''}"><div class="train-wait-item-info"><b>${escHtml(trainContractLabel(c))}</b> · ${escHtml(trainClient(c)||'Client neprecizat')}<small>${escHtml(trainProductName(c.product))} · ${fmtN(remaining)} t · ${escHtml(period)}</small></div><label class="train-wait-move">Mută în luna<select aria-label="Mută trenul ${escHtml(trainContractLabel(c))} în luna" onchange="moveTrainWaitingMonth('${id}',this.value)"><option value="">Alege luna</option>${monthOptions(a)}</select></label><button class="btn-tr" onclick="openTrainContractModal('${id}')">Editează / planifică</button></div>`;}).join('')}</div></div>`;}).join(''):'<div class="train-wait-empty">Niciun tren introdus manual în așteptare.</div>';
+ list.innerHTML=keys.length?keys.map(k=>{const items=groups.get(k);return `<div class="train-wait-group"><div class="train-wait-group-title">${k==='neprecizat'?'Lună neprecizată':escHtml(trainMonthLabelFromKey(k))} <span>${items.length} trenuri · ${fmtN(items.reduce((sum,x)=>sum+x.remaining,0))} t</span></div><div class="train-wait-group-items">${items.map(({c,remaining})=>{const {a,b}=trainContractPeriod(c);const id=escHtml(String(c.id));const inMonth=trainWaitingInMonth(c,key);const period=a?`${trainMonthLabelFromKey(a)}${b!==a?' – '+trainMonthLabelFromKey(b):''}`:'Perioadă neprecizată';return `<div class="train-wait-item${inMonth?' due':''}"><div class="train-wait-item-info"><b>${escHtml(trainContractLabel(c))}</b> · ${escHtml(trainClient(c)||'Client neprecizat')}<small>${escHtml(trainProductName(c.product))} · ${fmtN(remaining)} t · ${escHtml(period)}</small></div><label class="train-wait-move">Mută în luna<select aria-label="Mută trenul ${escHtml(trainContractLabel(c))} în luna" onchange="moveTrainWaitingMonth('${id}',this.value)"><option value="">Alege luna</option>${monthOptions(a)}</select></label><button class="btn-tr" onclick="openTrainContractModal('${id}')">Editează / planifică</button><button type="button" class="train-wait-dismiss" title="Elimină doar din lista de așteptare; nu modifică Poziția" aria-label="Elimină din așteptare" onclick="hideTrainFromWaiting('${id}')">×</button></div>`;}).join('')}</div></div>`;}).join(''):'<div class="train-wait-empty">Niciun tren în așteptare.</div>';
 }
 async function refreshTrainCalendarOnly(){if(trainRefreshBusy||!trainTabActive||document.visibilityState!=='visible'||document.getElementById('trainContractModal')?.classList.contains('open'))return;trainRefreshBusy=true;try{const result=await loadTrainContracts({silent:true,preserveExisting:true});if(result.ok)renderTrainTab();}finally{trainRefreshBusy=false;}}
 
@@ -5417,8 +5438,9 @@ function clearTrainFilters(){
 function selectTrainDay(key){
   selectedTrainDate = key;
   selectedTrainEvent = null;
+  if(key.slice(0,7)!==trainMonthKey(trainCalendarDate)) trainCalendarDate=new Date(Number(key.slice(0,4)),Number(key.slice(5,7))-1,1);
   renderTrainCalendar();
-  renderTrainSide();
+  openTrainContractModal(null,null,key);
 }
 function selectTrainEvent(contractId, shipmentId){
   selectedTrainId = contractId;
@@ -5426,7 +5448,7 @@ function selectTrainEvent(contractId, shipmentId){
   const ev = getEvent(contractId, shipmentId);
   if(ev) selectedTrainDate = ev.date;
   renderTrainCalendar();
-  renderTrainSide();
+  openTrainContractModal(contractId,shipmentId);
 }
 
 function renderTrainKpis(){
