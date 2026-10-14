@@ -1665,6 +1665,7 @@
 <section id="targetSection" style="display:none;padding:18px 22px;flex-direction:column;gap:14px">
  <div style="display:flex;align-items:center;gap:12px"><button class="news-back-btn" onclick="setPositionTab()">← Înapoi</button><strong style="font:700 15px 'IBM Plex Mono',monospace;color:var(--bright)">TARGET VÂNZĂRI | OCT–DEC 2026</strong></div>
  <div style="font-size:11px;color:var(--dim)">Cantități în tone. Țintele inițiale provin din forecast și pot fi editate. Contractat = contracte de vânzare cu perioadă și repartizare pe lună. Soldul se recalculează automat.</div>
+ <div style="font-size:11px;color:var(--dim);line-height:1.6">Realizat manual = contracte vechi OND, introduse o singura data pe produs si luna. Automat = contractele cu repartizare lunara salvate in Pozitie. Ramas = Target − Realizat manual − Automat. Nu include aceleasi contracte in ambele categorii.</div>
  <div style="overflow:auto"><table class="tbl" style="width:100%;min-width:860px;border-collapse:collapse" id="targetTable"></table></div>
 </section>
 <div id="reportSection">
@@ -2663,9 +2664,9 @@
         </div>
 
 <div id="fDeliveryBox" style="padding:10px;margin:10px 0;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);display:none">
-  <div style="font-weight:700;color:var(--bright);margin-bottom:9px">Perioadă livrare obligatorie pentru vânzări</div>
+  <div style="font-weight:700;color:var(--bright);margin-bottom:9px">Perioada contractuala de livrare</div>
   <div class="fr fr2"><div class="fg"><label class="fl">Livrare de la *</label><input id="fDeliveryStart" type="date" onchange="targetUpdateAllocation('f')"></div><div class="fg"><label class="fl">Livrare până la *</label><input id="fDeliveryEnd" type="date" onchange="targetUpdateAllocation('f')"></div></div>
-  <div style="font-size:10px;color:var(--dim);margin:7px 0">Pentru perioade peste mai multe luni, repartizează manual întreaga cantitate. Lunile din afara intervalului oct–dec. 2026 se păstrează în contract, dar nu afectează Target.</div>
+  <div style="font-size:10px;color:var(--dim);margin:7px 0">Distribuie cantitatea pe luni. Pentru contractele vechi deja incluse manual in Target, evita dubla numarare.</div>
   <div id="fDeliveryAllocation"></div>
  </div>
         <label class="contract-check-row" title="Marchează tranzacția ca de completat când contractul vine ulterior pe mail">
@@ -2680,8 +2681,8 @@
             <div class="train-link-help">Apare automat în tab-ul Trenuri. Acolo planifici trenurile individuale.</div>
           </div>
           <div class="train-link-row" id="fTrainMeta" style="display:none;">
-            <div class="fg"><label class="fl">Livrare de la</label><input id="fTrainStart" type="month"></div>
-            <div class="fg"><label class="fl">Livrare până la</label><input id="fTrainEnd" type="month"></div>
+            <div class="fg"><label class="fl">Plan tren: luna de la</label><input id="fTrainStart" type="month"></div>
+            <div class="fg"><label class="fl">Plan tren: luna până la</label><input id="fTrainEnd" type="month"></div>
             <div class="fg"><label class="fl">Gara încărcare implicită</label><input id="fTrainStation" type="text" placeholder="ex: Carei CFR"></div>
           </div>
         </div>
@@ -2899,9 +2900,9 @@
     </div>
 
 <div id="eDeliveryBox" style="padding:10px;margin:10px 0;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);display:none">
-  <div style="font-weight:700;color:var(--bright);margin-bottom:9px">Perioadă livrare obligatorie pentru vânzări</div>
+  <div style="font-weight:700;color:var(--bright);margin-bottom:9px">Perioada contractuala de livrare</div>
   <div class="fr fr2"><div class="fg"><label class="fl">Livrare de la *</label><input id="eDeliveryStart" type="date" onchange="targetUpdateAllocation('e')"></div><div class="fg"><label class="fl">Livrare până la *</label><input id="eDeliveryEnd" type="date" onchange="targetUpdateAllocation('e')"></div></div>
-  <div style="font-size:10px;color:var(--dim);margin:7px 0">Pentru perioade peste mai multe luni, repartizează manual întreaga cantitate. Lunile din afara intervalului oct–dec. 2026 se păstrează în contract, dar nu afectează Target.</div>
+  <div style="font-size:10px;color:var(--dim);margin:7px 0">Distribuie cantitatea pe luni. Pentru contractele vechi deja incluse manual in Target, evita dubla numarare.</div>
   <div id="eDeliveryAllocation"></div>
  </div>
     <label class="contract-check-row" title="Rămâne evidențiat până debifezi manual">
@@ -2920,8 +2921,8 @@
         <div class="train-link-help">Activ doar pentru contractele pe tren. Perioada ajută la Gantt și planificare.</div>
       </div>
       <div class="train-link-row" id="eTrainMeta" style="display:none;">
-        <div class="fg"><label class="fl">Livrare de la</label><input id="eTrainStart" type="month"></div>
-        <div class="fg"><label class="fl">Livrare până la</label><input id="eTrainEnd" type="month"></div>
+        <div class="fg"><label class="fl">Plan tren: luna de la</label><input id="eTrainStart" type="month"></div>
+        <div class="fg"><label class="fl">Plan tren: luna până la</label><input id="eTrainEnd" type="month"></div>
         <div class="fg"><label class="fl">Gara încărcare implicită</label><input id="eTrainStation" type="text" placeholder="ex: Carei CFR"></div>
       </div>
     </div>
@@ -5315,6 +5316,7 @@ function onTrainFlagChange(prefix){
   const meta = document.getElementById(prefix+'TrainMeta');
   if(meta) meta.style.display = chk && chk.checked ? 'grid' : 'none';
   if(chk && chk.checked){
+    if(typeof targetUpdateAllocation==='function')targetUpdateAllocation(prefix);
     const s = document.getElementById(prefix+'TrainStart');
     const e = document.getElementById(prefix+'TrainEnd');
     const d = new Date();
@@ -12005,13 +12007,24 @@ async function targetSaveValue(p,m,raw){const val=Number(raw);if(!Number.isFinit
  if(!products.wheat.salesTargets2026[p])products.wheat.salesTargets2026[p]={};
  products.wheat.salesTargets2026[p][m]=val;
  try{await apiSaveProducts();renderTarget();}catch(e){alert('Nu s-a putut salva targetul.');}}
+// Realizat = bază istorică introdusă manual + alocări lunare automate ale contractelor.
+function targetManualRealized(p,m){return Number(products?.wheat?.salesRealizedBase2026?.[p]?.[m])||0;}
+async function targetSaveRealized(p,m,raw){const val=Number(raw);if(!Number.isFinite(val)||val<0){alert('Realizat invalid.');renderTarget();return;}
+ if(!products.wheat)products.wheat={...CORE_PRODUCTS.wheat};
+ if(!products.wheat.salesRealizedBase2026)products.wheat.salesRealizedBase2026={};
+ if(!products.wheat.salesRealizedBase2026[p])products.wheat.salesRealizedBase2026[p]={};
+ products.wheat.salesRealizedBase2026[p][m]=val;
+ try{await apiSaveProducts();renderTarget();}catch(e){alert('Nu s-a putut salva realizatul.');}}
 function targetContracted(p,m){return (trades||[]).filter(t=>t.dir==='short'&&targetKey(t.product)===p).reduce((n,t)=>n+(Number(t.deliveryAllocation?.[m])||0),0);}
 function renderTarget(){const el=document.getElementById('targetTable');if(!el)return;
  let h='<thead><tr><th style="padding:10px;text-align:left">Produs</th>';
- SALES_TARGET_MONTHS.forEach(m=>h+='<th colspan="3" style="padding:10px;text-align:center;border-left:1px solid var(--border2)">'+targetMonthName(m)+'</th>');h+='</tr><tr><th></th>';
- SALES_TARGET_MONTHS.forEach(()=>h+='<th style="padding:8px">Target (editabil)</th><th style="padding:8px">Contractat</th><th style="padding:8px">Rămas</th>');h+='</tr></thead><tbody>';
+ SALES_TARGET_MONTHS.forEach(m=>h+='<th colspan="5" style="padding:10px;text-align:center;border-left:1px solid var(--border2)">'+targetMonthName(m)+'</th>');h+='</tr><tr><th></th>';
+ SALES_TARGET_MONTHS.forEach(()=>h+='<th style="padding:8px">Target</th><th style="padding:8px">Realizat manual</th><th style="padding:8px">Automat</th><th style="padding:8px">Realizat total</th><th style="padding:8px">Rămas</th>');h+='</tr></thead><tbody>';
  for(const [p,name] of TARGET_ITEMS){h+='<tr style="border-top:1px solid var(--border)"><td style="padding:9px;color:var(--bright);font-weight:700">'+name+'</td>';
- for(const m of SALES_TARGET_MONTHS){const v=targetValue(p,m),c=targetContracted(p,m),r=v-c;h+='<td style="padding:7px"><input aria-label="Target '+name+' '+m+'" type="number" min="0" step="0.01" value="'+v+'" style="width:115px;background:var(--surface2);color:var(--bright);padding:7px;border:1px solid var(--border2);border-radius:3px" onchange="targetSaveValue(\''+p+'\',\''+m+'\',this.value)"></td><td style="padding:7px;color:var(--text)">'+fmtN(c)+'</td><td style="padding:7px;font-weight:800;color:'+(r<0?'var(--short)':'var(--long)')+'">'+fmtN(r)+'</td>';}
+ for(const m of SALES_TARGET_MONTHS){const v=targetValue(p,m),base=targetManualRealized(p,m),auto=targetContracted(p,m),r=v-base-auto;
+ h+='<td style="padding:7px"><input aria-label="Target '+name+' '+m+'" type="number" min="0" step="0.01" value="'+v+'" style="width:100px;background:var(--surface2);color:var(--bright);padding:7px;border:1px solid var(--border2);border-radius:3px" onchange="targetSaveValue(\''+p+'\',\''+m+'\',this.value)"></td>';
+ h+='<td style="padding:7px"><input aria-label="Realizat manual '+name+' '+m+'" type="number" min="0" step="0.01" value="'+base+'" style="width:100px;background:var(--surface2);color:var(--bright);padding:7px;border:1px solid var(--border2);border-radius:3px" onchange="targetSaveRealized(\''+p+'\',\''+m+'\',this.value)"></td>';
+ h+='<td style="padding:7px;color:var(--text)" title="Contracte cu repartizare lunara">'+fmtN(auto)+'</td><td style="padding:7px;font-weight:800;color:var(--bright)">'+fmtN(base+auto)+'</td><td style="padding:7px;font-weight:800;color:'+(r<0?'var(--short)':'var(--long)')+'">'+fmtN(r)+'</td>';}
  h+='</tr>';}
  h+='</tbody>';el.innerHTML=h;}
 function setTargetTab(){closeAllSideTabs();setCropTabsVisible(false);document.querySelector('.main').style.display='none';document.getElementById('targetSection').style.display='flex';setPositionTabVisual(false);renderTarget();}
@@ -12019,6 +12032,12 @@ function targetMonthsBetween(start,end){if(!start||!end||start>end)return[];cons
 function targetUpdateAllocation(pre,values){const dir=document.getElementById(pre+'Dir')?.value;const box=document.getElementById(pre+'DeliveryBox');if(!box)return;
  box.style.display=dir==='short'?'':'none';if(dir!=='short')return;
  const start=document.getElementById(pre+'DeliveryStart').value,end=document.getElementById(pre+'DeliveryEnd').value;
+ const trainMeta=document.getElementById(pre+'TrainMeta');
+ if(trainMeta){const fields=trainMeta.querySelectorAll('.fg');fields.forEach((f,i)=>{if(i<2)f.style.display=dir==='short'?'none':'';});}
+ if(start&&end&&start<=end&&dir==='short'){
+   const ts=document.getElementById(pre+'TrainStart'),te=document.getElementById(pre+'TrainEnd');
+   if(ts)ts.value=start.slice(0,7);if(te)te.value=end.slice(0,7);
+ }
  const months=targetMonthsBetween(start,end);const holder=document.getElementById(pre+'DeliveryAllocation');const existing={};holder.querySelectorAll('input[data-month]').forEach(i=>existing[i.dataset.month]=i.value);
  const src=values||existing;if(!months.length){holder.innerHTML='<small style="color:var(--dim)">Selectează începutul și sfârșitul perioadei de livrare.</small>';return;}
  const qty=Number(document.getElementById(pre+'Qty')?.value)||0;
