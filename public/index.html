@@ -1650,19 +1650,23 @@
     <button type="button" class="tools-btn" id="toolsBtn" onclick="toggleToolsMenu(event)">☰ Unelte ▾</button>
     <div class="tools-menu" id="toolsMenu">
       <button type="button" class="tools-item report" onclick="setReportTab(); closeToolsMenu();">📊 Rapoarte</button>
-      <button type="button" class="tools-item" onclick="openAgentBulkModal(); closeToolsMenu();">👤 Agenți contracte</button>
       <button type="button" class="tools-item" id="tabEmail" onclick="setEmailTab(); closeToolsMenu();">✉ Email RO/EN</button>
       <div class="tools-sep"></div>
       <button type="button" class="tools-item" onclick="setMeteoTab(); closeToolsMenu();">🌦 Meteo</button>
-      <button type="button" class="tools-item" onclick="setContextTab(); closeToolsMenu();">🌍 Context global</button>
+      <button type="button" class="tools-item" onclick="setTargetTab(); closeToolsMenu();">◎ Target</button>
     </div>
   </div>
   <div class="tab" id="tabReport" style="display:none;">📊 Rapoarte</div>
-  <div class="tab" id="tabContext" style="display:none;">🌍 Context global</div>
+
   <div class="tab" id="tabMeteo" style="display:none;">🌦 Meteo</div>
 </div>
 
 
+<section id="targetSection" style="display:none;padding:18px 22px;flex-direction:column;gap:14px">
+ <div style="display:flex;align-items:center;gap:12px"><button class="news-back-btn" onclick="setPositionTab()">← Înapoi</button><strong style="font:700 15px 'IBM Plex Mono',monospace;color:var(--bright)">TARGET VÂNZĂRI | OCT–DEC 2026</strong></div>
+ <div style="font-size:11px;color:var(--dim)">Cantități în tone. Țintele inițiale provin din forecast și pot fi editate. Contractat = contracte de vânzare cu perioadă și repartizare pe lună. Soldul se recalculează automat.</div>
+ <div style="overflow:auto"><table class="tbl" style="width:100%;min-width:860px;border-collapse:collapse" id="targetTable"></table></div>
+</section>
 <div id="reportSection">
   <div class="report-toolbar">
     <button class="news-back-btn" onclick="closeReportTab()">← Înapoi</button>
@@ -2658,6 +2662,12 @@
           <div class="fg" id="grpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="fBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
         </div>
 
+<div id="fDeliveryBox" style="padding:10px;margin:10px 0;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);display:none">
+  <div style="font-weight:700;color:var(--bright);margin-bottom:9px">Perioadă livrare obligatorie pentru vânzări</div>
+  <div class="fr fr2"><div class="fg"><label class="fl">Livrare de la *</label><input id="fDeliveryStart" type="date" onchange="targetUpdateAllocation('f')"></div><div class="fg"><label class="fl">Livrare până la *</label><input id="fDeliveryEnd" type="date" onchange="targetUpdateAllocation('f')"></div></div>
+  <div style="font-size:10px;color:var(--dim);margin:7px 0">Pentru perioade peste mai multe luni, repartizează manual întreaga cantitate. Lunile din afara intervalului oct–dec. 2026 se păstrează în contract, dar nu afectează Target.</div>
+  <div id="fDeliveryAllocation"></div>
+ </div>
         <label class="contract-check-row" title="Marchează tranzacția ca de completat când contractul vine ulterior pe mail">
           <input id="fIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
         </label>
@@ -2888,6 +2898,12 @@
       <div class="fg" id="eGrpBonif" style="display:none"><label class="fl">Bonif. Calitate (%)</label><input id="eBonif" type="number" step="0.01" min="0" max="20" placeholder="0"></div>
     </div>
 
+<div id="eDeliveryBox" style="padding:10px;margin:10px 0;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);display:none">
+  <div style="font-weight:700;color:var(--bright);margin-bottom:9px">Perioadă livrare obligatorie pentru vânzări</div>
+  <div class="fr fr2"><div class="fg"><label class="fl">Livrare de la *</label><input id="eDeliveryStart" type="date" onchange="targetUpdateAllocation('e')"></div><div class="fg"><label class="fl">Livrare până la *</label><input id="eDeliveryEnd" type="date" onchange="targetUpdateAllocation('e')"></div></div>
+  <div style="font-size:10px;color:var(--dim);margin:7px 0">Pentru perioade peste mai multe luni, repartizează manual întreaga cantitate. Lunile din afara intervalului oct–dec. 2026 se păstrează în contract, dar nu afectează Target.</div>
+  <div id="eDeliveryAllocation"></div>
+ </div>
     <label class="contract-check-row" title="Rămâne evidențiat până debifezi manual">
       <input id="eIncomplete" type="checkbox"> Contract incomplet, de completat ulterior
     </label>
@@ -3393,6 +3409,7 @@ function setPositionTab(){
   render();
 }
 function closeAllSideTabs(){
+  document.getElementById("targetSection").style.display="none";
   if(newsTabActive){
     newsTabActive=false;
     const tn=document.getElementById('tabNews');
@@ -3679,6 +3696,7 @@ function onFormChange(){
   const trainBox=document.getElementById('fTrainBox');
   if(trainBox) trainBox.classList.add('open');
   onTrainFlagChange('f');
+  targetUpdateAllocation('f');
   if(isEur && fxRates.eurRon && !document.getElementById('fCursEur').value) document.getElementById('fCursEur').value=fxRates.eurRon.toFixed(4);
 }
 function setCurrency(cur){
@@ -3701,12 +3719,13 @@ async function addTrade(){
   const bonif=parseFloat(document.getElementById('fBonif').value)||0;
   const ptype=document.getElementById('fPtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
+  const deliveryMeta=targetValidateDelivery('f',dir,qty);if(!deliveryMeta)return;
   const rules=PARITY_RULES[dir];
   const chosen=rules.find(r=>r.val===parity)||rules[0];
   const needT=chosen.transport;
   const isEur=(dir==='short' && ptype==='fix' && formCurrency==='eur');
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,agent,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('f')};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,agent,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...deliveryMeta, ...trainReadMeta('f')};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -4480,6 +4499,9 @@ function openEdit(id){
   document.getElementById('eCurBtnRon').className='cur-btn'+(editCurrency==='ron'?' active':'');
   document.getElementById('eCurBtnEur').className='cur-btn'+(editCurrency==='eur'?' active':'');
   onEditChange();
+  document.getElementById('eDeliveryStart').value=t.deliveryStart||'';
+  document.getElementById('eDeliveryEnd').value=t.deliveryEnd||'';
+  targetUpdateAllocation('e',t.deliveryAllocation||{});
   setTimeout(()=>{document.getElementById('eParity').value=t.parity||PARITY_RULES[t.dir||'long'][0].val; onEditChange();},10);
   document.getElementById('modEdit').classList.add('open');
 }
@@ -4522,6 +4544,7 @@ function onEditChange(){
   const signVisible=dir==='long';
   if(signRow) signRow.style.display=signVisible?'':'none';
   if(signInput){ signInput.disabled=!(signVisible && signNo); }
+  targetUpdateAllocation('e');
 }
 async function saveEdit(){
   const id=editingId;
@@ -4541,13 +4564,14 @@ async function saveEdit(){
   const manualIncomplete=document.getElementById('eIncomplete')?.checked || false;
   const ptype=document.getElementById('ePtype').value;
   if(!qty||qty<=0){alert('Cantitate invalidă.');return;}
+  const deliveryMeta=targetValidateDelivery('e',dir,qty);if(!deliveryMeta)return;
 
   const isEur=(dir==='short' && ptype==='fix' && editCurrency==='eur');
   const rules=PARITY_RULES[dir];
   const chosen=rules.find(r=>r.val===parity)||rules[0];
   const needT=chosen.transport;
 
-  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,agent,signedReturned:dir==='long' && note ? signedReturned : false,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...trainReadMeta('e')};
+  let t={product,crop:cr,dir,qty,parity,loc,cpty,note,agent,signedReturned:dir==='long' && note ? signedReturned : false,ptype,incomplete:manualIncomplete,bonif:bonif||0, ...deliveryMeta, ...trainReadMeta('e')};
 
   if(ptype==='fix'){
     let price, currency='ron', cursEur=null;
@@ -11961,6 +11985,52 @@ window.addEventListener('pageshow',(e)=>{
   setTimeout(agrotexUiCleanup, 300);
   setTimeout(agrotexUiCleanup, 1500);
 })();
+
+
+// TARGET vânzări: forecast octombrie–decembrie 2026, cantități în tone.
+const SALES_TARGET_MONTHS=['2026-10','2026-11','2026-12'];
+const TARGET_FORECAST={
+ '2026-10':{rapeseed:11059,wheat:6564,'fls-lo':4583},
+ '2026-11':{rapeseed:7400,wheat:2930,'fls-lo':2000,corn:5100},
+ '2026-12':{rapeseed:7400,wheat:5330,corn:1500}
+};
+const TARGET_ITEMS=[['barley','Orz'],['rapeseed','Rapiță'],['wheat','Grâu'],['fls-lo','FLS LO'],['fls-ho','FLS HO'],['soybean','Soia'],['corn','Porumb'],['sorghum','Sorg'],['others','Altele']];
+function targetKnownName(k){return TARGET_ITEMS.find(x=>x[0]===k)?.[1]||k;}
+function targetMonthName(m){return {'2026-10':'Octombrie','2026-11':'Noiembrie','2026-12':'Decembrie'}[m]||m;}
+function targetKey(p){const s=String(p||'').toLowerCase();if(['fls lo','fls-lo','sunflower','floarea-soarelui'].includes(s))return 'fls-lo';if(['fls ho','fls-ho'].includes(s))return 'fls-ho';return normalizeProductKey(p);}
+function targetValue(p,m){const base=TARGET_FORECAST[m]?.[p]||0;const custom=products?.wheat?.salesTargets2026?.[p]?.[m];return custom===undefined?base:(Number(custom)||0);}
+async function targetSaveValue(p,m,raw){const val=Number(raw);if(!Number.isFinite(val)||val<0){alert('Target invalid.');renderTarget();return;}
+ if(!products.wheat)products.wheat={...CORE_PRODUCTS.wheat};
+ if(!products.wheat.salesTargets2026)products.wheat.salesTargets2026={};
+ if(!products.wheat.salesTargets2026[p])products.wheat.salesTargets2026[p]={};
+ products.wheat.salesTargets2026[p][m]=val;
+ try{await apiSaveProducts();renderTarget();}catch(e){alert('Nu s-a putut salva targetul.');}}
+function targetContracted(p,m){return (trades||[]).filter(t=>t.dir==='short'&&targetKey(t.product)===p).reduce((n,t)=>n+(Number(t.deliveryAllocation?.[m])||0),0);}
+function renderTarget(){const el=document.getElementById('targetTable');if(!el)return;
+ let h='<thead><tr><th style="padding:10px;text-align:left">Produs</th>';
+ SALES_TARGET_MONTHS.forEach(m=>h+='<th colspan="3" style="padding:10px;text-align:center;border-left:1px solid var(--border2)">'+targetMonthName(m)+'</th>');h+='</tr><tr><th></th>';
+ SALES_TARGET_MONTHS.forEach(()=>h+='<th style="padding:8px">Target (editabil)</th><th style="padding:8px">Contractat</th><th style="padding:8px">Rămas</th>');h+='</tr></thead><tbody>';
+ for(const [p,name] of TARGET_ITEMS){h+='<tr style="border-top:1px solid var(--border)"><td style="padding:9px;color:var(--bright);font-weight:700">'+name+'</td>';
+ for(const m of SALES_TARGET_MONTHS){const v=targetValue(p,m),c=targetContracted(p,m),r=v-c;h+='<td style="padding:7px"><input aria-label="Target '+name+' '+m+'" type="number" min="0" step="0.01" value="'+v+'" style="width:115px;background:var(--surface2);color:var(--bright);padding:7px;border:1px solid var(--border2);border-radius:3px" onchange="targetSaveValue(\''+p+'\',\''+m+'\',this.value)"></td><td style="padding:7px;color:var(--text)">'+fmtN(c)+'</td><td style="padding:7px;font-weight:800;color:'+(r<0?'var(--short)':'var(--long)')+'">'+fmtN(r)+'</td>';}
+ h+='</tr>';}
+ h+='</tbody>';el.innerHTML=h;}
+function setTargetTab(){closeAllSideTabs();setCropTabsVisible(false);document.querySelector('.main').style.display='none';document.getElementById('targetSection').style.display='flex';setPositionTabVisual(false);renderTarget();}
+function targetMonthsBetween(start,end){if(!start||!end||start>end)return[];const a=start.slice(0,7),b=end.slice(0,7),out=[];let [y,m]=a.split('-').map(Number);for(let i=0;i<36;i++){const key=y+'-'+String(m).padStart(2,'0');if(key>b)break;out.push(key);if(++m===13){m=1;y++;}}return out;}
+function targetUpdateAllocation(pre,values){const dir=document.getElementById(pre+'Dir')?.value;const box=document.getElementById(pre+'DeliveryBox');if(!box)return;
+ box.style.display=dir==='short'?'':'none';if(dir!=='short')return;
+ const start=document.getElementById(pre+'DeliveryStart').value,end=document.getElementById(pre+'DeliveryEnd').value;
+ const months=targetMonthsBetween(start,end);const holder=document.getElementById(pre+'DeliveryAllocation');const existing={};holder.querySelectorAll('input[data-month]').forEach(i=>existing[i.dataset.month]=i.value);
+ const src=values||existing;if(!months.length){holder.innerHTML='<small style="color:var(--dim)">Selectează începutul și sfârșitul perioadei de livrare.</small>';return;}
+ const qty=Number(document.getElementById(pre+'Qty')?.value)||0;
+ holder.innerHTML=months.map((m,i)=>'<label style="display:inline-flex;flex-direction:column;gap:4px;margin:5px 8px 5px 0;font-size:10px">'+(targetMonthName(m)===m?m:targetMonthName(m))+' (t)<input data-month="'+m+'" type="number" min="0" step="0.01" value="'+(src[m]!==undefined?src[m]:(months.length===1?qty:0))+'" style="width:115px;background:var(--bg);color:var(--bright);border:1px solid var(--border2);padding:6px"></label>').join('');}
+function targetValidateDelivery(pre,dir,qty){if(dir!=='short')return{};
+ const start=document.getElementById(pre+'DeliveryStart').value,end=document.getElementById(pre+'DeliveryEnd').value;
+ if(!start||!end||start>end){alert('Contractele de vânzare necesită o perioadă de livrare validă (de la / până la).');return null;}
+ const months=targetMonthsBetween(start,end),allocation={};let sum=0;
+ for(const input of document.querySelectorAll('#'+pre+'DeliveryAllocation input[data-month]')){const n=Number(input.value);if(!Number.isFinite(n)||n<0){alert('Repartizare invalidă.');return null;}allocation[input.dataset.month]=n;sum+=n;}
+ if(!months.length||Math.abs(sum-qty)>0.011){alert('Repartizarea lunară trebuie să fie egală cu cantitatea contractului ('+qty+' t). Total repartizat: '+sum+' t.');return null;}
+ return {deliveryStart:start,deliveryEnd:end,deliveryAllocation:allocation};}
+document.addEventListener('DOMContentLoaded',()=>{['f','e'].forEach(pre=>{const q=document.getElementById(pre+'Qty');if(q)q.addEventListener('input',()=>targetUpdateAllocation(pre));});});
 
 </script>
 </body>
