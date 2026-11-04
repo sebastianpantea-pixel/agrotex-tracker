@@ -869,6 +869,10 @@
   .log-client-focus.compact .log-client-focus-label{font-size:8px;margin-bottom:4px;}
   .log-client-focus.compact .log-client-focus-name{font-size:18px;line-height:1.15;}
   .log-client-focus.compact .log-client-focus-meta{font-size:9px;margin-top:5px;line-height:1.35;}
+  .log-client-focus-terms{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:8px;padding-top:7px;border-top:1px solid rgba(229,185,92,.28);font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.4;}
+  .log-client-focus-term{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;}
+  .log-client-focus-term-label{color:#e5b95c;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;}
+  .log-client-focus-term-value{color:#fff;font-weight:700;}
   .log-section-panel{background:#333D49;border:1px solid #556070;border-left:5px solid #64748b;border-radius:6px;margin-top:12px;overflow:hidden;}
   .log-section-panel summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;background:rgba(255,255,255,.018);border-bottom:1px solid rgba(255,255,255,.06);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:900;color:var(--bright);text-transform:uppercase;letter-spacing:1.35px;}
   .log-section-panel summary::-webkit-details-marker{display:none;}
@@ -3043,6 +3047,7 @@
       <div class="fg"><label class="fl">Paritate</label><select id="logEditParity"><option value="DAP">DAP</option><option value="FCA">FCA</option><option value="FOR">FOR</option><option value="CPT">CPT</option><option value="FCA-V">FCA-V</option><option value="DAP-V">DAP-V</option></select></div>
       <div class="fg"><label class="fl">Loc / bază / destinație</label><input id="logEditLocation" type="text"></div>
     </div>
+    <div class="fg"><label class="fl">Preț contract (pentru contract logistic manual)</label><input id="logEditManualPrice" type="text" placeholder="Ex.: 1.200 lei/t sau 240 EUR/t"></div>
     <div class="fr fr2">
       <div class="fg"><label class="fl">Perioadă de la</label><select id="logEditModalStartMonth"></select></div>
       <div class="fg"><label class="fl">Perioadă până la</label><select id="logEditModalEndMonth"></select></div>
@@ -6076,6 +6081,7 @@ function openLogisticsEditModal(id=null){
   const parityEl=document.getElementById('logEditParity');
   parityEl.value=[...parityEl.options].some(o=>o.value===parity)?parity:'DAP';
   document.getElementById('logEditLocation').value=t.loc || '';
+  document.getElementById('logEditManualPrice').value=c?.manualPrice || '';
   document.getElementById('logEditNote').value=c?.note || '';
   const hint=document.getElementById('logEditSourceHint');
   if(hint) hint.innerHTML=c?.tradeId ? `Legat de tranzacția sursă #${escHtml(c.tradeId)}. Modificarea de aici corectează afișarea în Logistică și Rapoarte, fără să modifice poziția.` : `Contract logistic manual, fără poziție sursă. Util pentru marfă DAP/intrări unde nu organizezi transportul, dar vrei evidență în Logistică și Rapoarte.`;
@@ -6094,6 +6100,7 @@ async function saveLogisticsEditModal(){
   const counterparty=document.getElementById('logEditCounterparty').value.trim();
   const parity=document.getElementById('logEditParity').value;
   const loc=document.getElementById('logEditLocation').value.trim();
+  const manualPrice=document.getElementById('logEditManualPrice').value.trim();
   const startMonth=document.getElementById('logEditModalStartMonth').value;
   const endMonth=document.getElementById('logEditModalEndMonth').value;
   const note=document.getElementById('logEditNote').value.trim();
@@ -6113,6 +6120,7 @@ async function saveLogisticsEditModal(){
       contractNo,
       flow,
       transportMode,
+      manualPrice,
       problem:false,
       deliveryStartMonth:startMonth,
       deliveryEndMonth:endMonth,
@@ -6140,6 +6148,7 @@ async function saveLogisticsEditModal(){
     c.contractNo=contractNo;
     c.flow=flow;
     c.transportMode=transportMode;
+    c.manualPrice=manualPrice;
     c.deliveryStartMonth=startMonth;
     c.deliveryEndMonth=endMonth;
     c.note=note;
@@ -7306,6 +7315,31 @@ function renderLogisticsDetail(){
   const flow=logFlow(c);
   const movementTitle=flow==='pickup'?'Ridicări zilnice':'Livrări zilnice';
   const movementBtn=flow==='pickup'?'Adaugă ridicare':'Adaugă livrare';
+  const realPriceTrade=getLogRealTrade(c);
+  const priceTrade=realPriceTrade && snapshotMatchesTrade(c.tradeSnapshot,realPriceTrade)
+    ? realPriceTrade
+    : (t && (t.ptype || Number(t.price)>0 || Number(t.priceEur)>0 || Number(t.priceRon)>0) ? t : null);
+  const priceLabel=priceTrade?.ptype==='fix'
+    ? (priceTrade.currency==='eur' && Number(priceTrade.priceEur)>0
+      ? `${fmtN(priceTrade.priceEur)} EUR/t`
+      : (Number(priceTrade.priceRon || priceTrade.price)>0
+        ? `${fmtN(priceTrade.priceRon || priceTrade.price)} RON/t`
+        : (Number(priceTrade.priceEur)>0 ? `${fmtN(priceTrade.priceEur)} EUR/t` : (c.manualPrice||'—'))))
+    : (priceTrade && (priceTrade.ptype==='basis' || priceTrade.ptype==='matif' || priceTrade.matif!==undefined || priceTrade.basis!==undefined)
+      ? `MATIF ${priceTrade.matif || '—'} ${Number(priceTrade.basis)>=0?'+':''}${Number(priceTrade.basis)||0} EUR/t`
+      : (c.manualPrice || '—'));
+  const deliveryDate=value=>{
+    if(!value) return '';
+    const d=new Date(`${value}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('ro-RO');
+  };
+  const deliveryDates=t ? [deliveryDate(t.deliveryStart),deliveryDate(t.deliveryEnd)].filter(Boolean) : [];
+  const startMonth=c.deliveryStartMonth||'';
+  const endMonth=c.deliveryEndMonth||'';
+  const contractPeriod=startMonth||endMonth
+    ? [startMonth||endMonth,endMonth||startMonth].map(monthLabel).filter(Boolean).join(' – ')
+    : '';
+  const deliveryPeriod=contractPeriod || (deliveryDates.length ? deliveryDates.join(' – ') : '—');
   const flowBadge=flow==='pickup'
       ? '<span class="log-badge pickup">DE RIDICAT</span>'
       : '<span class="log-badge delivery">DE LIVRAT</span>';
@@ -7333,6 +7367,10 @@ function renderLogisticsDetail(){
       <div class="log-client-focus-name">${escHtml(t ? (t.cpty||'—') : '—')}${logContractNo(c) ? ` <span style="font-size:14px;color:var(--acc);font-weight:800;letter-spacing:.5px;">· CTR ${escHtml(logContractNo(c))}</span>` : ''}</div>
       <div class="log-client-focus-meta">
         ${flowBadge} · ${t ? escHtml((products[t.product]||{name:t.product}).name) : '—'} ${t ? escHtml(t.crop||'') : ''} · Contract ${t ? fmtN(t.qty||0) : '0'} t · ${t ? escHtml(t.loc||'—') : '—'}
+      </div>
+      <div class="log-client-focus-terms">
+        <div class="log-client-focus-term"><span class="log-client-focus-term-label">Preț contract</span><span class="log-client-focus-term-value">${escHtml(priceLabel)}</span></div>
+        <div class="log-client-focus-term"><span class="log-client-focus-term-label">Perioadă de livrare</span><span class="log-client-focus-term-value">${escHtml(deliveryPeriod)}</span></div>
       </div>
     </div>
 
