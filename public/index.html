@@ -83,6 +83,8 @@
   .fx-updated{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);white-space:nowrap;}
 
   .tabs{display:flex;gap:0;padding:14px 22px 0;}
+  .crop-year-filter{display:flex;align-items:center;gap:6px;padding:5px 8px;font:11px 'IBM Plex Mono',monospace;color:var(--dim);}
+  .crop-year-filter select{width:auto;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--bright);font:inherit;}
   .tab{padding:7px 20px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--dim);transition:all .2s;}
   .tab:first-child{border-radius:4px 0 0 4px;}
   .tab:last-child{border-radius:0 4px 4px 0;border-left:none;}
@@ -1643,8 +1645,13 @@
 </header>
 
 <div class="tabs">
-  <div class="tab old" id="tab25" onclick="setCrop('2025')">Recoltă Veche 2025 <span class="tbadge" id="b25">0</span></div>
-  <div class="tab" id="tab26" onclick="setCrop('2026')">Recoltă Nouă 2026 <span class="tbadge" id="b26">0</span></div>
+  <div class="tab old" id="tabOldCrop" onclick="setCrop('old')">Recoltă veche <span class="tbadge" id="bOldCrop">0</span></div>
+  <label id="oldCropFilter" class="crop-year-filter">An:
+    <select id="oldCropYear" aria-label="Anul recoltei vechi" onchange="setCrop(this.value)">
+      <option value="old">2025 + 2026</option><option value="2025">2025</option><option value="2026">2026</option>
+    </select>
+  </label>
+  <div class="tab" id="tabNewCrop" onclick="setCrop('2027')">Recoltă nouă 2027 <span class="tbadge" id="bNewCrop">0</span></div>
   <div class="tab position-tab-active" id="tabPosition" onclick="setPositionTab()" style="margin-left:auto;">📈 Poziție</div>
   <div class="tab" id="tabStock" onclick="setStockTab()">📦 Stocuri <span class="tbadge" id="bStock" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
@@ -2346,8 +2353,7 @@
         <select id="trModalCrop">
           <option value="2024">2024</option>
           <option value="2025" selected>2025</option>
-          <option value="2026">2026</option>
-        </select>
+          <option value="2026">2026</option><option value="2027">2027</option></select>
       </div>
     </div>
 
@@ -2598,7 +2604,7 @@
         <div class="fr fr4">
           <div class="fg"><label class="fl">Produs</label><select id="fProd" onchange="onFormChange()"></select></div>
           <div class="fg"><label class="fl">Recoltă</label>
-            <select id="fCrop"><option value="2025">2025</option><option value="2026">2026</option></select>
+            <select id="fCrop"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select>
           </div>
           <div class="fg"><label class="fl">Direcție</label>
             <select id="fDir" onchange="onFormChange()">
@@ -2770,7 +2776,7 @@
 
     <div class="agentbulk-top">
       <div class="fg"><label class="fl">Caută contract / furnizor / loc</label><input id="agentBulkSearch" type="text" oninput="renderAgentBulkTable()" placeholder="ex. 217, Nagy, Vaida"></div>
-      <div class="fg"><label class="fl">Recoltă</label><select id="agentBulkCrop" onchange="renderAgentBulkTable()"><option value="">Toate</option><option value="2025">2025</option><option value="2026">2026</option></select></div>
+      <div class="fg"><label class="fl">Recoltă</label><select id="agentBulkCrop" onchange="renderAgentBulkTable()"><option value="">Toate</option><option value="old">Recoltă veche (2025 + 2026)</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
       <div class="fg"><label class="fl">Produs</label><select id="agentBulkProduct" onchange="renderAgentBulkTable()"><option value="">Toate</option></select></div>
       <div class="fg"><label class="fl">Status agent</label><select id="agentBulkStatusFilter" onchange="renderAgentBulkTable()"><option value="missing">Fără agent</option><option value="all">Toate</option><option value="assigned">Cu agent</option><option value="changed">Modificate</option></select></div>
       <div class="fg"><label class="fl">Status semnare</label><select id="agentBulkSignedFilter" onchange="renderAgentBulkTable()"><option value="all">Toate</option><option value="unsigned">Nesemnate</option><option value="signed">Semnate</option><option value="changed">Semnare modificată</option><option value="linked">Cu contract generat</option></select></div>
@@ -2836,7 +2842,7 @@
 
     <div class="fr fr3">
       <div class="fg"><label class="fl">Produs</label><select id="eProd" onchange="onEditChange()"></select></div>
-      <div class="fg"><label class="fl">Recoltă</label><select id="eCrop"><option value="2025">2025</option><option value="2026">2026</option></select></div>
+      <div class="fg"><label class="fl">Recoltă</label><select id="eCrop"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
       <div class="fg"><label class="fl">Direcție</label>
         <select id="eDir" onchange="onEditChange()">
           <option value="long">▲ CUMPĂRARE</option>
@@ -3179,7 +3185,22 @@ function ensureCoreProducts(){
   if(JSON.stringify(products||{})!==before) apiSaveProducts().catch(()=>{});
 }
 let trades = [];
-let crop = '2025';
+const POSITION_CROP_YEARS = ['2025','2026','2027'];
+const POSITION_CROP_GROUPS = [
+  {key:'old', label:'Recoltă veche · 2025 + 2026', className:'old'},
+  {key:'2027', label:'Recoltă nouă · 2027', className:'new'},
+];
+let crop = 'old';
+function isOldPositionCrop(year){
+  return ['2025','2026'].includes(String(year));
+}
+function positionCropMatches(year,selection){
+  if(!selection) return true;
+  return selection==='old' ? isOldPositionCrop(year) : String(year)===String(selection);
+}
+function positionCropLabel(selection=crop){
+  return selection==='old' ? '2025 + 2026' : String(selection);
+}
 let selColor = SWATCHES[0];
 let importBuffer = [];
 let fxRates = { eurRon:null, eurUsd:null, usdRon:null };
@@ -3396,10 +3417,12 @@ function setSyncStatus(state, text){
   el.textContent=text;
 }
 function setCropTabsVisible(visible){
-  ['tab25','tab26'].forEach(id=>{
+  ['tabOldCrop','tabNewCrop'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = visible ? '' : 'none';
   });
+  const filter=document.getElementById('oldCropFilter');
+  if(filter) filter.style.display=visible && crop!=='2027' ? '' : 'none';
 }
 
 function setPositionTabVisual(active){
@@ -3664,11 +3687,15 @@ function populateFilterProd(){
   if(cur) sel.value=cur;
 }
 function setCrop(y){
+  y=String(y);
+  if(y!=='old' && !POSITION_CROP_YEARS.includes(y)) return;
   crop=y;
-  document.getElementById('fCrop').value=y;
-  document.getElementById('tab25').className='tab'+(y==='2025'?' old':'');
-  document.getElementById('tab26').className='tab'+(y==='2026'?' new':'');
+  document.getElementById('fCrop').value=y==='old'?'2026':y;
+  document.getElementById('oldCropYear').value=y==='2027'?'old':y;
+  document.getElementById('tabOldCrop').className='tab'+(y!=='2027'?' old':'');
+  document.getElementById('tabNewCrop').className='tab'+(y==='2027'?' new':'');
   closeAllSideTabs();
+  setCropTabsVisible(true);
   render();
 }
 function onFormChange(){
@@ -3798,7 +3825,7 @@ function getPos(cropFilter){
     };
   });
 
-  trades.filter(t=>!cropFilter || t.crop===cropFilter).forEach(t=>{
+  trades.filter(t=>positionCropMatches(t.crop,cropFilter)).forEach(t=>{
     if(!pos[t.product]){
       pos[t.product]={
         long:0, shortFix:0, shortBasis:0, net:0,
@@ -3897,7 +3924,7 @@ function resetFilter(){
   renderTable();
 }
 function getFilteredTrades(){
-  let ft=trades.filter(t=>t.crop===crop);
+  let ft=trades.filter(t=>positionCropMatches(t.crop,crop));
   const f=activeFilter;
   if(f.prod) ft=ft.filter(t=>t.product===f.prod);
   if(f.dir) ft=ft.filter(t=>t.dir===f.dir);
@@ -3974,14 +4001,14 @@ function renderIncompleteContracts(){
 }
 function renderTable(){
   const ft=getFilteredTrades();
-  const totalCrop=trades.filter(t=>t.crop===crop).length;
+  const totalCrop=trades.filter(t=>positionCropMatches(t.crop,crop)).length;
   const isFiltered=Object.values(activeFilter).some(v=>v!=='');
   document.getElementById('filterMatch').innerHTML=isFiltered?`<span class="filter-active-dot"></span><span>${ft.length}</span> / ${totalCrop} afișate`:'';
-  document.getElementById('tcount').textContent=isFiltered ? `${ft.length} / ${totalCrop} tranzacții (${crop})` : `${totalCrop} tranzacții (${crop})`;
+  document.getElementById('tcount').textContent=isFiltered ? `${ft.length} / ${totalCrop} tranzacții (${positionCropLabel()})` : `${totalCrop} tranzacții (${positionCropLabel()})`;
 
   const tbody=document.getElementById('tbody');
   if(ft.length===0){
-    tbody.innerHTML=`<tr><td colspan="14"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+crop}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="14"><div class="empty">// ${isFiltered?'nicio tranzacție pentru filtrele selectate':'nicio tranzacție pentru recolta '+positionCropLabel()}</div></td></tr>`;
     return;
   }
 
@@ -4013,7 +4040,7 @@ function renderTable(){
     const logBadge=hasLogisticsForTrade(t.id)?'<span class="log-badge done">DA</span>':'<span class="log-badge">NU</span>';
     return `<tr class="tr-click${t.incomplete?' tr-incomplete':''}" onclick="openEdit(${t.id})">
       <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${prod.color};margin-right:4px;vertical-align:middle"></span>${prod.emoji} ${prod.name}${incBadge}${trainBadge}${finishedBadge}${agentTag}</td>
-      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
+      <td class="${isOldPositionCrop(t.crop)?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲ CUMP':'▼ VÂNZ'}</td>
       <td style="color:var(--bright)">${fmtN(t.qty)}</td>
       <td>${priceDisplay}</td>
@@ -4118,7 +4145,7 @@ function agentBulkRows(){
   const includeNoContract=!!document.getElementById('agentBulkIncludeNoContract')?.checked;
   let rows=(trades||[]).filter(t=>t && t.dir==='long');
   if(!includeNoContract) rows=rows.filter(t=>agentBulkContractNo(t));
-  if(cropF) rows=rows.filter(t=>String(t.crop||'')===String(cropF));
+  if(cropF) rows=rows.filter(t=>positionCropMatches(t.crop,cropF));
   if(prodF) rows=rows.filter(t=>String(t.product||'')===String(prodF));
   if(q){
     rows=rows.filter(t=>{
@@ -4306,7 +4333,7 @@ Semnare modificată: ${signedChanges.length}`)) return;
 
 function getAgentSummary(cropFilter){
   const map={};
-  (trades||[]).filter(t=>String(t.crop||'')===String(cropFilter||crop) && t.dir==='long').forEach(t=>{
+  (trades||[]).filter(t=>positionCropMatches(t.crop,cropFilter||crop) && t.dir==='long').forEach(t=>{
     const agent=normalizeAgentName(t.agent);
     if(!map[agent]) map[agent]={agent,qty:0,value:0,count:0,products:{}};
     const qty=Number(t.qty)||0;
@@ -4341,8 +4368,8 @@ function renderAgentSummary(){
 
 function render(){
   document.getElementById('ts').textContent=new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('b25').textContent=trades.filter(t=>t.crop==='2025').length;
-  document.getElementById('b26').textContent=trades.filter(t=>t.crop==='2026').length;
+  document.getElementById('bOldCrop').textContent=trades.filter(t=>positionCropMatches(t.crop,'old')).length;
+  document.getElementById('bNewCrop').textContent=trades.filter(t=>positionCropMatches(t.crop,'2027')).length;
   document.getElementById('bLogistics').textContent=logisticsContracts.length;
   const bStock=document.getElementById('bStock');
   if(bStock) bStock.textContent=stockEntries.length;
@@ -4425,9 +4452,9 @@ function render(){
 
   let aggHTML='';
   let totalLong=0, totalShort=0, totalNet=0;
-  ['2025','2026'].forEach(yr=>{
-    const cp=getPos(yr);
-    aggHTML+=`<div class="agg-ch ${yr==='2025'?'old':'new'}">${yr==='2025'?'Recoltă Veche 2025':'Recoltă Nouă 2026'}</div>`;
+  POSITION_CROP_GROUPS.forEach(group=>{
+    const cp=getPos(group.key);
+    aggHTML+=`<div class="agg-ch ${group.className}">${group.label}</div>`;
     Object.entries(products).forEach(([k,prod])=>{
       const p=cp[k]||{long:0,short:0,net:0};
       const nc=p.net>0?'an-l':p.net<0?'an-s':'an-f';
@@ -8453,7 +8480,7 @@ function showImportPreview(rows, skipped){
     <table><thead><tr><th>Produs</th><th>Rec.</th><th>Dir.</th><th>t</th><th>Preț/Basis</th><th>Monedă</th><th>Paritate</th><th>Status</th></tr></thead>
     <tbody>${preview.map(t=>`<tr>
       <td>${(products[t.product]?.emoji||'📦')} ${products[t.product]?.name||t.product}</td>
-      <td class="${t.crop==='2025'?'told':'tnew'}">${t.crop}</td>
+      <td class="${isOldPositionCrop(t.crop)?'told':'tnew'}">${t.crop}</td>
       <td class="${t.dir==='long'?'tl':'ts2'}">${t.dir==='long'?'▲':'▼'}</td>
       <td>${fmtN(t.qty)}</td>
       <td>${t.ptype==='fix'?(t.price?`${fmtN(t.price)} RON/t`:'—'):`MATIF ${t.matif||'—'} ${t.basis>=0?'+':''}${t.basis} €/t`}</td>
@@ -9156,7 +9183,7 @@ function renderStockRows(rows){
     const loc=site?.type==='tert'?`TERȚ · ${r.base}`:`${r.base||'—'} · ${r.space||'—'}`;
     return `<tr class="stock-row-click" onclick="editStockEntry(${r.id})">
       <td class="tdim">${escHtml(r.date||'—')}</td><td><b>${escHtml(loc)}</b></td><td><span class="stock-badge ${typeClass}">${escHtml(type||'—')}</span></td>
-      <td>${escHtml(stockProductLabel(r.product))}</td><td class="${String(r.crop)==='2025'?'told':'tnew'}">${escHtml(r.crop||'—')}</td>
+      <td>${escHtml(stockProductLabel(r.product))}</td><td class="${isOldPositionCrop(r.crop)?'told':'tnew'}">${escHtml(r.crop||'—')}</td>
       <td class="stock-positive">${fmtN(r.qty)} t</td><td>${site?.capacity?fmtN(site.capacity)+' t':'—'}</td><td class="tdim">${escHtml(quality)}</td><td class="tdim">${escHtml(r.note||'—')}</td>
       <td style="display:flex;gap:5px"><button class="btn-sm" onclick="event.stopPropagation();editStockEntry(${r.id})">Edit</button><button class="btn-sm" onclick="event.stopPropagation();editStockSite(${site?.id||0})">Loc</button></td>
     </tr>`;
@@ -9652,7 +9679,7 @@ function productMatchesBenchmark(t,cfg){
 function localBenchmarkStats(cfg){
   if(!cfg.directLocal) return {buy:null,sell:null,direct:false};
   const rate=fxRates.eurRon || 5;
-  const rows=trades.filter(t=>productMatchesBenchmark(t,cfg) && String(t.crop||'')===String(crop) && t.ptype==='fix' && Number(t.price)>0 && Number(t.qty)>0);
+  const rows=trades.filter(t=>productMatchesBenchmark(t,cfg) && positionCropMatches(t.crop,crop) && t.ptype==='fix' && Number(t.price)>0 && Number(t.qty)>0);
   const calc=(dir)=>{
     const r=rows.filter(t=>t.dir===dir);
     const qty=r.reduce((s,t)=>s+Number(t.qty||0),0);
