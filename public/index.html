@@ -1544,6 +1544,23 @@
 }
 
 </style>
+
+<style>
+#marketSection{display:none;padding:14px 22px;flex-direction:column;gap:12px}
+#tabMarket.market-active{color:var(--acc);border-color:var(--acc);background:var(--acc-bg)}
+.mk-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mk-toolbar select,.mk-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--bright);padding:7px 9px;border-radius:3px;font:11px 'IBM Plex Mono',monospace}
+.mk-btn{cursor:pointer}.mk-btn:hover{border-color:var(--acc)}.mk-btn:disabled{opacity:.5;cursor:wait}
+.mk-heading{font:700 12px 'IBM Plex Mono',monospace;letter-spacing:1px;color:var(--acc)}
+.mk-note{font:10px/1.6 'IBM Plex Mono',monospace;color:var(--dim)}
+.mk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.mk-panel{padding:12px;border:1px solid var(--border);border-radius:5px;background:var(--surface);min-width:0}
+.mk-value{font:700 22px 'IBM Plex Mono',monospace;color:var(--bright);margin:5px 0}
+.mk-table{border-collapse:collapse;width:100%;font:11px 'IBM Plex Mono',monospace}
+.mk-table th,.mk-table td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}.mk-table th{color:var(--dim);background:var(--surface2);font-size:10px}.mk-table th:first-child,.mk-table td:first-child{text-align:left}
+.mk-cols{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}.mk-chart{min-height:200px;margin-top:10px}.mk-chart svg{display:block;width:100%;height:auto;max-height:300px}
+@media(max-width:900px){.mk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mk-cols{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
@@ -1657,6 +1674,7 @@
   <div class="tab" id="tabLogistics" onclick="setLogisticsTab()">🚚 Logistică <span class="tbadge" id="bLogistics" style="background:var(--acc);color:#000;">0</span></div>
   <div class="tab" id="tabPurchase" onclick="setPurchaseTab()">📄 Contracte <span class="tbadge" id="bPurchase" style="background:var(--long);color:#000;">0</span></div>
   <div class="tab" id="tabTrain" onclick="setTrainTab()">🚂 Trenuri <span class="tbadge" id="bTrain" style="background:var(--transport);color:#000;">0</span></div>
+  <div class="tab" id="tabMarket" onclick="setMarketTab()">Market</div>
   <div class="tools-wrap" id="toolsWrap">
     <button type="button" class="tools-btn" id="toolsBtn" onclick="toggleToolsMenu(event)">☰ Unelte ▾</button>
     <div class="tools-menu" id="toolsMenu">
@@ -1672,6 +1690,21 @@
   <div class="tab" id="tabMeteo" style="display:none;">🌦 Meteo</div>
 </div>
 
+
+<section id="marketSection">
+ <div class="mk-toolbar"><button class="mk-btn" onclick="setPositionTab()">← Poziție</button><span class="mk-heading">MARKET INTELLIGENCE / V1</span><span class="mk-note" id="mkStatus" style="margin-left:auto" aria-live="polite"></span><button class="mk-btn" id="mkRefresh" onclick="loadMarketData()">Actualizează</button></div>
+ <div class="mk-grid" id="mkCards"></div>
+ <div class="mk-toolbar"><label class="mk-note" for="mkProduct">Produs</label><select id="mkProduct" onchange="marketProductChanged()"><option value="wheat">Grâu / EBM</option><option value="corn">Porumb / EMA</option><option value="rapeseed">Rapiță / ECO</option></select><label class="mk-note" for="mkDays">Istoric</label><select id="mkDays" onchange="loadMarketHistory()"><option value="30">30 zile</option><option value="90" selected>90 zile</option><option value="365">365 zile</option></select><a class="ctx-source-link" href="https://live.euronext.com/en/products/commodities" target="_blank" rel="noopener noreferrer">Euronext</a></div>
+ <div class="mk-cols">
+  <div class="mk-panel"><div class="mk-heading">CURBA FORWARD / LAST</div><div class="mk-note" id="mkQuoteStamp"></div><div class="mk-chart" id="mkForward"></div><div class="mk-note">Last disponibil, în EUR/t. Spread = Last scadență − Last prima scadență. Fără substituție cu Bid sau Settlement.</div></div>
+  <div class="mk-panel" style="overflow:auto"><div class="mk-heading">SCADENȚE</div><table class="mk-table"><thead><tr><th>Scadență</th><th>Bid</th><th>Ask</th><th>Last</th><th>Δ zi</th><th>Spread</th></tr></thead><tbody id="mkRows"></tbody></table><div class="mk-note">Cotații Euronext, fără garanție real-time. Lipsa prețului este marcată „—”.</div></div>
+ </div>
+ <div class="mk-cols">
+  <div class="mk-panel"><div class="mk-toolbar"><span class="mk-heading">ISTORIC MATIF / LAST</span><select id="mkExpiry" onchange="renderMarketHistory()" aria-label="Scadență istorică"></select></div><div class="mk-chart" id="mkHistoryChart"></div><div class="mk-note" id="mkHistoryNote"></div></div>
+  <div class="mk-panel"><div class="mk-heading">ISTORIC EUR/RON / BNR</div><div class="mk-chart" id="mkFxChart"></div><div class="mk-note" id="mkFxNote"></div></div>
+ </div>
+ <div class="mk-panel mk-note">Istoricul MATIF conține ultima observație colectată în fiecare zi calendaristică (Europe/Bucharest), nu settlement oficial cu dată de tranzacționare verificată. Pot exista valori repetate în zile nelucrătoare. Nu se completează retroactiv. FLS nu are contract MATIF direct; piața fizică și spreadul față de rapiță vor fi introduse în V2. Finanțarea standard de 7% va fi utilizată în V3.</div>
+</section>
 
 <section id="targetSection" style="display:none;padding:18px 22px;flex-direction:column;gap:14px">
  <div style="display:flex;align-items:center;gap:12px"><button class="news-back-btn" onclick="setPositionTab()">← Înapoi</button><strong style="font:700 15px 'IBM Plex Mono',monospace;color:var(--bright)">TARGET VÂNZĂRI | OCT–DEC 2026</strong></div>
@@ -3120,6 +3153,94 @@
 
 
 <script>
+
+let marketTabActive=false, marketQuoteData=null, marketFxData=null, marketHist=null, marketRequest=0, marketBusy=false;
+const mkLabels={wheat:'GRÂU / EBM',corn:'PORUMB / EMA',rapeseed:'RAPIȚĂ / ECO'};
+const mkValid=v=>typeof v==='number'&&Number.isFinite(v);
+const mkPrice=v=>mkValid(v)&&v>0?v:null;
+const mkFmt=(v,d=2)=>mkValid(v)?v.toFixed(d):'—';
+const mkSign=v=>mkValid(v)?(v>0?'+':'')+v.toFixed(2):'—';
+const mkColor=v=>v>0?'var(--long)':v<0?'var(--short)':'var(--dim)';
+const mkTime=v=>v&&Number.isFinite(Date.parse(v))?new Date(v).toLocaleString('ro-RO',{timeZone:'Europe/Bucharest'}):'—';
+function setMarketTab(){
+  closeAllSideTabs(); marketTabActive=true;
+  document.getElementById('tabMarket').className='tab market-active';
+  setCropTabsVisible(false); setPositionTabVisual(false); document.querySelector('.main').style.display='none';
+  document.getElementById('marketSection').style.display='flex';
+  loadMarketData();
+}
+async function mkFetch(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+async function loadMarketData(){
+  if(marketBusy)return; marketBusy=true;
+  const b=document.getElementById('mkRefresh'); b.disabled=true;
+  document.getElementById('mkStatus').textContent='Se actualizează...';
+  try {
+    const [q,f]=await Promise.allSettled([mkFetch('/api/matif'),mkFetch('/api/market/fx')]);
+    marketQuoteData=q.status==='fulfilled'?q.value:null;
+    marketFxData=f.status==='fulfilled'?f.value:null;
+    renderMarketQuotes();
+    const problems=[];
+    if(!marketQuoteData||Object.keys(marketQuoteData.errors||{}).length)problems.push('MATIF incomplet');
+    if(marketQuoteData?.historyError)problems.push(marketQuoteData.historyError);
+    if(!marketFxData||marketFxData.error||!marketFxData.rate)problems.push('BNR indisponibil / istoric');
+    document.getElementById('mkStatus').textContent=problems.length?problems.join(' · '):'Date colectate; verificați data sursei';
+    await loadMarketHistory();
+  }catch(e){document.getElementById('mkStatus').textContent='Eroare: '+e.message;}
+  finally{b.disabled=false;marketBusy=false;}
+}
+function marketProductChanged(){renderMarketQuotes();loadMarketHistory();}
+function renderMarketQuotes(){
+  const q=marketQuoteData?.quotes||{};
+  const f=marketFxData?.rate;
+  document.getElementById('mkCards').innerHTML=Object.entries(mkLabels).map(([key,label])=>{
+    const item=q[key], row=item?.allRows?.[0];
+    return `<div class="mk-panel"><div class="mk-note">${label}</div><div class="mk-value">${mkFmt(mkPrice(row?.last))} €</div><div class="mk-note">${escHtml(row?.delivery||'Indisponibil')} · Last</div><div style="color:${mkColor(row?.change)}">${mkSign(row?.change)} €/t</div></div>`;
+  }).join('')+`<div class="mk-panel"><div class="mk-note">EUR/RON / BNR</div><div class="mk-value">${mkFmt(f?.eur_ron,4)}</div><div class="mk-note">${escHtml(f?.rate_date||'Indisponibil')}${marketFxData?.error?' · ultima valoare salvată':''}</div></div>`;
+  const product=document.getElementById('mkProduct').value, rows=q[product]?.allRows||[];
+  const base=mkPrice(rows[0]?.last);
+  document.getElementById('mkQuoteStamp').textContent=rows.length?'Colectat: '+mkTime(marketQuoteData.fetchedAt):'Cotații indisponibile';
+  document.getElementById('mkRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${escHtml(r.delivery)}</td><td>${mkFmt(mkPrice(r.bid))}</td><td>${mkFmt(mkPrice(r.ask))}</td><td>${mkFmt(mkPrice(r.last))}</td><td style="color:${mkColor(r.change)}">${mkSign(r.change)}</td><td>${mkSign(base!==null&&mkPrice(r.last)!==null?r.last-base:null)}</td></tr>`).join(''):'<tr><td colspan="6">Fără date disponibile.</td></tr>';
+  marketChart('mkForward',rows.map((r,i)=>({x:i,label:r.delivery,v:mkPrice(r.last)})),2);
+}
+async function loadMarketHistory(){
+  const request=++marketRequest;
+  const product=document.getElementById('mkProduct').value, days=document.getElementById('mkDays').value;
+  marketHist=null; renderMarketHistory();
+  try{
+    const h=await mkFetch('/api/market/history?product='+encodeURIComponent(product)+'&days='+encodeURIComponent(days));
+    if(request!==marketRequest)return;
+    marketHist=h;
+    const sel=document.getElementById('mkExpiry'), old=sel.value, available=h.deliveries||[];
+    sel.innerHTML=available.map(d=>`<option value="${escHtml(d)}">${escHtml(d)}</option>`).join('');
+    const front=marketQuoteData?.quotes?.[product]?.allRows?.[0]?.delivery;
+    if(available.includes(old))sel.value=old;else if(available.includes(front))sel.value=front;
+    renderMarketHistory();
+  }catch(e){if(request===marketRequest){document.getElementById('mkHistoryNote').textContent='Istoric indisponibil: '+e.message;document.getElementById('mkFxNote').textContent='Istoric indisponibil';}}
+}
+function renderMarketHistory(){
+  const h=marketHist, expiry=document.getElementById('mkExpiry').value;
+  const mat=(h?.quotes||[]).filter(r=>r.delivery===expiry), fx=h?.fx||[];
+  const day=d=>Date.parse(d+'T00:00:00Z')/86400000;
+  marketChart('mkHistoryChart',mat.map(r=>({x:day(r.observed_date),label:r.observed_date,v:mkPrice(r.last)})),2);
+  marketChart('mkFxChart',fx.map(r=>({x:day(r.rate_date),label:r.rate_date,v:mkPrice(r.eur_ron)})),4);
+  document.getElementById('mkHistoryNote').textContent=h?`${mat.filter(r=>mkPrice(r.last)!==null).length} observații Last · ${expiry||'nicio scadență'} · ${h.from} / ${h.to}`:'Se încarcă istoricul...';
+  document.getElementById('mkFxNote').textContent=h?`${fx.length} cursuri BNR · data publicării cursului, nu data colectării`:'Se încarcă istoricul...';
+}
+function marketChart(id,points,decimals){
+  const el=document.getElementById(id), valid=points.filter(p=>mkValid(p.v)&&mkValid(p.x));
+  if(!valid.length){el.innerHTML='<div class="mk-note" style="padding:32px 0">Fără observații disponibile. Istoricul se acumulează după instalare.</div>';return;}
+  const W=660,H=250,L=65,R=25,T=25,B=42;
+  const xmin=Math.min(...points.map(p=>p.x)),xmax=Math.max(...points.map(p=>p.x));
+  let lo=Math.min(...valid.map(p=>p.v)),hi=Math.max(...valid.map(p=>p.v));
+  const pad=Math.max((hi-lo)*.12,Math.pow(10,-decimals)*2);lo-=pad;hi+=pad;
+  const x=n=>L+(xmax===xmin?.5:(n-xmin)/(xmax-xmin))*(W-L-R),y=n=>T+(hi-n)/(hi-lo)*(H-T-B);
+  let grid='',path='',pen=false;
+  for(let i=0;i<5;i++){const v=lo+(hi-lo)*i/4;grid+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border2)" stroke-dasharray="3 4"/><text x="${L-7}" y="${y(v)+4}" text-anchor="end" fill="var(--dim)" font-size="10">${v.toFixed(decimals)}</text>`;}
+  for(const p of points){if(!mkValid(p.v)){pen=false;continue;}path+=(pen?'L':'M')+x(p.x)+' '+y(p.v)+' ';pen=true;}
+  const ticks=points.length<=6?points:points.filter((p,i)=>i===0||i===points.length-1||i%Math.ceil(points.length/5)===0);
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evoluție preț"><g>${grid}</g><path d="${path}" stroke="var(--acc)" stroke-width="2" fill="none"/>${valid.map(p=>`<circle cx="${x(p.x)}" cy="${y(p.v)}" r="${valid.length>90?1.5:3}" fill="var(--acc)"><title>${escHtml(p.label)}: ${p.v.toFixed(decimals)}</title></circle>`).join('')}${ticks.map(p=>`<text x="${x(p.x)}" y="${H-17}" text-anchor="middle" fill="var(--dim)" font-size="10">${escHtml(p.label)}</text>`).join('')}</svg>`;
+}
+
 const SWATCHES=['#f59e0b','#e2a857','#f0c040','#22c55e','#8bc34a','#34d399','#3b82f6','#60a5fa','#a78bfa','#e879f9','#ef4444','#f97316','#06b6d4','#ec4899','#94a3b8'];
 const PARITY_RULES={
   long:[{val:'DAP',label:'DAP',transport:false},{val:'FCA',label:'FCA',transport:true}],
@@ -3438,6 +3559,7 @@ function setPositionTab(){
   render();
 }
 function closeAllSideTabs(){
+  marketTabActive=false; document.getElementById("marketSection").style.display="none"; document.getElementById("tabMarket").className="tab";
   document.getElementById("targetSection").style.display="none";
   if(newsTabActive){
     newsTabActive=false;
@@ -3520,6 +3642,14 @@ async function doLogout(){
 }
 
 async function loadFxRates(){
+  try {
+    const data=await mkFetch('/api/market/fx');
+    const f=data.rate;
+    if(f && !data.error && mkPrice(f.eur_ron) && mkPrice(f.usd_ron) && mkPrice(f.eur_usd)){
+      fxRates.eurRon=f.eur_ron;fxRates.usdRon=f.usd_ron;fxRates.eurUsd=f.eur_usd;
+      fxSource='BNR '+f.rate_date;updateFxWidget();return;
+    }
+  }catch(e){}
   try{
     const url='https://api.allorigins.win/raw?url='+encodeURIComponent('https://www.bnr.ro/nbrfxrates.xml');
     const res=await fetch(url,{signal:AbortSignal.timeout(10000)});
@@ -11971,6 +12101,7 @@ async function bootApp(){
   setPositionTab();
   setInterval(loadFxRates, 3*60*60*1000);
   setInterval(loadMatif, 5*60*1000);
+  setInterval(()=>{if(marketTabActive && document.visibilityState==='visible')loadMarketData();},5*60*1000);
   setInterval(loadWeatherPresets, 30*60*1000);
   setInterval(syncTrades, 60*1000);
   setInterval(refreshTrainCalendarOnly, 30000);
