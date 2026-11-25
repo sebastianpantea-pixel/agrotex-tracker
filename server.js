@@ -1821,7 +1821,7 @@ app.get('/api/admin/audit', requireAdmin, (req, res) => {
 
 app.get('/api/admin/db-status', requireAdmin, (req, res) => {
   try {
-    const tables = ['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log'];
+    const tables = ['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log', 'market_matif_history', 'market_fx_history'];
     const counts = {};
 
     for (const table of tables) {
@@ -1916,8 +1916,9 @@ async function fetchMatifContract(code) {
 
     if (cells.length >= 6 && /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/.test(cells[0])) {
       const parseNum = (s) => {
-        const n = parseFloat((s || '').replace(',', '.'));
-        return isNaN(n) ? null : n;
+        const clean=String(s||'').trim().replace(/\s/g,'').replace(',', '.');
+        if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(clean)) return null;
+        const n=Number(clean); return Number.isFinite(n)?n:null;
       };
       rows.push({
         delivery: cells[0],
@@ -1934,39 +1935,125 @@ async function fetchMatifContract(code) {
   return rows;
 }
 
-app.get('/api/matif', requireAuth, async (req, res) => {
-  try {
-    const now = Date.now();
-    if (matifCache.data && (now - matifCache.ts) < MATIF_TTL) {
-      return res.json({ ...matifCache.data, cached: true, age: Math.round((now - matifCache.ts) / 1000) });
+// ── MARKET V1: persistent daily observations (not official dated DSP) ──────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS market_matif_history (
+    observed_date TEXT NOT NULL, product TEXT NOT NULL, delivery TEXT NOT NULL,
+    observed_at TEXT NOT NULL, bid REAL, ask REAL, last REAL, change REAL, settlement_candidate REAL,
+    PRIMARY KEY (observed_date, product, delivery)
+  );
+  CREATE INDEX IF NOT EXISTS market_matif_series ON market_matif_history(product, delivery, observed_date);
+  CREATE TABLE IF NOT EXISTS market_fx_history (
+    rate_date TEXT PRIMARY KEY, observed_at TEXT NOT NULL,
+    eur_ron REAL NOT NULL, usd_ron REAL NOT NULL, eur_usd REAL NOT NULL, source TEXT NOT NULL
+  );
+`);
+function marketDay(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Bucharest',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+  const get = k => parts.find(p=>p.type===k).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+const marketPrice = v => Number.isFinite(v) && v > 0 ? v : null;
+const marketDelivery = s => /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/.test(s);
+const marketExpiryKey = s => Number(s.slice(-4))*12 + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(s.slice(0,3));
+const marketSaveMatif = db.prepare(`INSERT INTO market_matif_history
+ (observed_date,product,delivery,observed_at,bid,ask,last,change,settlement_candidate)
+ VALUES (@observed_date,@product,@delivery,@observed_at,@bid,@ask,@last,@change,@settlement_candidate)
+ ON CONFLICT(observed_date,product,delivery) DO UPDATE SET observed_at=excluded.observed_at,
+ bid=excluded.bid,ask=excluded.ask,last=excluded.last,change=excluded.change,settlement_candidate=excluded.settlement_candidate
+ WHERE excluded.observed_at >= market_matif_history.observed_at`);
+const marketSaveBatch = db.transaction((payload) => {
+  for (const [product,item] of Object.entries(payload.quotes)) {
+    for (const row of item.allRows || []) {
+      if (!marketDelivery(row.delivery)) continue;
+      const bid=marketPrice(row.bid), ask=marketPrice(row.ask), last=marketPrice(row.last), settlement_candidate=marketPrice(row.settl);
+      if (bid===null && ask===null && last===null) continue;
+      marketSaveMatif.run({observed_date:marketDay(new Date(payload.fetchedAt)),product,delivery:row.delivery,
+        observed_at:payload.fetchedAt,bid,ask,last,change:Number.isFinite(row.change)?row.change:null,settlement_candidate});
     }
-
-    const results = {};
-    const errors = {};
-
-    await Promise.allSettled(
-      MATIF_CONTRACTS.map(async ({ key, code, name }) => {
-        try {
-          const rows = await fetchMatifContract(code);
-          const front = rows.find(r => r.bid !== null || r.settl !== null) || rows[0] || null;
-          results[key] = { name, code, front, allRows: rows.slice(0, 6) };
-        } catch (e) {
-          errors[key] = e.message;
-          results[key] = { name, code, front: null, allRows: [], error: e.message };
-        }
-      })
-    );
-
-    const payload = { quotes: results, errors, fetchedAt: new Date().toISOString(), cached: false, age: 0 };
-    const hasData = Object.values(results).some(r => r.front !== null);
-    if (hasData) matifCache = { data: payload, ts: now };
-
-    res.json(payload);
-  } catch (err) {
-    console.error('MATIF fetch error:', err);
-    res.status(500).json({ error: err.message });
   }
 });
+let matifPending = null;
+async function refreshMarketMatif() {
+  const now=Date.now();
+  if (matifCache.data && now-matifCache.ts<MATIF_TTL)
+    return {...matifCache.data,cached:true,age:Math.round((now-matifCache.ts)/1000)};
+  if (matifPending) return matifPending;
+  matifPending=(async()=>{
+    const results={}, errors={};
+    await Promise.all(MATIF_CONTRACTS.map(async ({key,code,name})=>{
+      try {
+        const rows=(await fetchMatifContract(code)).filter(r=>marketDelivery(r.delivery)).sort((a,b)=>marketExpiryKey(a.delivery)-marketExpiryKey(b.delivery));
+        if (!rows.length) throw new Error('Euronext: nicio scadenta recunoscuta');
+        const front=rows.find(r=>r.bid!==null || r.settl!==null)||rows[0]||null;
+        results[key]={name,code,front,allRows:rows.slice(0,6)};
+      } catch(e) { errors[key]=e.message; results[key]={name,code,front:null,allRows:[],error:e.message}; }
+    }));
+    const payload={quotes:results,errors,fetchedAt:new Date().toISOString(),cached:false,age:0};
+    try { marketSaveBatch(payload); } catch(e) { console.error('Market MATIF history:',e.message); payload.historyError='Istoricul nu a putut fi salvat'; }
+    matifCache={data:payload,ts:Date.now()};
+    return payload;
+  })();
+  try { return await matifPending; } finally { matifPending=null; }
+}
+app.get('/api/matif', requireAuth, async (req,res)=>{
+  try { res.json(await refreshMarketMatif()); }
+  catch(e) { console.error('MATIF fetch:',e.message); res.status(500).json({error:'Eroare MATIF'}); }
+});
+
+const marketSaveFx=db.prepare(`INSERT INTO market_fx_history(rate_date,observed_at,eur_ron,usd_ron,eur_usd,source)
+ VALUES (@rate_date,@observed_at,@eur_ron,@usd_ron,@eur_usd,@source)
+ ON CONFLICT(rate_date) DO UPDATE SET observed_at=excluded.observed_at,eur_ron=excluded.eur_ron,usd_ron=excluded.usd_ron,eur_usd=excluded.eur_usd,source=excluded.source`);
+const marketLatestFx=db.prepare('SELECT * FROM market_fx_history ORDER BY rate_date DESC LIMIT 1');
+function parseMarketBnr(xml) {
+  const cube=xml.match(/<Cube\b[^>]*\bdate=["'](\d{4}-\d{2}-\d{2})["'][^>]*>([\s\S]*?)<\/Cube>/i);
+  if (!cube || !/^\d{4}-\d{2}-\d{2}$/.test(cube[1]) || cube[1]>marketDay()) throw new Error('Data BNR invalida');
+  const values={};
+  for (const m of cube[2].matchAll(/<Rate\b([^>]*)>\s*([0-9.]+)\s*<\/Rate>/gi)) {
+    const c=m[1].match(/\bcurrency=["']([A-Z]{3})["']/i)?.[1];
+    const mult=Number(m[1].match(/\bmultiplier=["']([0-9.]+)["']/i)?.[1]||1);
+    if (c) values[c]=Number(m[2])/mult;
+  }
+  const eur_ron=marketPrice(values.EUR),usd_ron=marketPrice(values.USD);
+  if (!eur_ron || !usd_ron) throw new Error('Curs BNR indisponibil');
+  return {rate_date:cube[1],observed_at:new Date().toISOString(),eur_ron,usd_ron,eur_usd:eur_ron/usd_ron,source:'BNR'};
+}
+let marketFxPending=null, marketFxCheckedAt=0, marketFxError=null;
+async function refreshMarketFx() {
+  if (marketFxPending) return marketFxPending;
+  if (Date.now()-marketFxCheckedAt<60*60*1000) return {rate:marketLatestFx.get()||null,error:marketFxError,checkedAt:new Date(marketFxCheckedAt).toISOString()};
+  marketFxPending=(async()=>{
+    try {
+      const response=await fetch('https://www.bnr.ro/nbrfxrates.xml',{headers:{'User-Agent':'Mozilla/5.0','Accept':'application/xml,text/xml'},signal:AbortSignal.timeout(12000)});
+      if (!response.ok) throw new Error('HTTP '+response.status);
+      marketSaveFx.run(parseMarketBnr(await response.text())); marketFxError=null;
+    } catch(e) { marketFxError='BNR indisponibil: '+e.message; console.warn(marketFxError); }
+    marketFxCheckedAt=Date.now();
+    return {rate:marketLatestFx.get()||null,error:marketFxError,checkedAt:new Date(marketFxCheckedAt).toISOString()};
+  })();
+  try { return await marketFxPending; } finally { marketFxPending=null; }
+}
+app.get('/api/market/fx',requireAuth,async(req,res)=>{
+  try { res.json(await refreshMarketFx()); } catch(e) { res.status(500).json({error:'Eroare curs BNR'}); }
+});
+app.get('/api/market/history',requireAuth,(req,res)=>{
+  const product=String(req.query.product||'wheat');
+  if (!MATIF_CONTRACTS.some(c=>c.key===product)) return res.status(400).json({error:'Produs invalid'});
+  const days=Number(req.query.days||90);
+  if (![30,90,365].includes(days)) return res.status(400).json({error:'Interval invalid'});
+  const from=marketDay(new Date(Date.now()-(days-1)*86400000));
+  const quotes=db.prepare('SELECT * FROM market_matif_history WHERE product=? AND observed_date>=? ORDER BY observed_date,delivery').all(product,from);
+  const deliveries=db.prepare('SELECT DISTINCT delivery FROM market_matif_history WHERE product=? ORDER BY delivery').all(product).map(r=>r.delivery).sort((a,b)=>marketExpiryKey(a)-marketExpiryKey(b));
+  const fx=db.prepare('SELECT * FROM market_fx_history WHERE rate_date>=? ORDER BY rate_date').all(from);
+  res.json({quotes,deliveries,fx,from,to:marketDay(),definition:'Observatii zilnice; data colectarii, nu data oficiala DSP'});
+});
+function startMarketCollectors() {
+  const matif=()=>refreshMarketMatif().catch(e=>console.error('Market collector:',e.message));
+  const fx=()=>refreshMarketFx().catch(e=>console.error('Market FX collector:',e.message));
+  matif(); fx();
+  setInterval(matif,MATIF_TTL).unref();
+  setInterval(fx,60*60*1000).unref();
+}
 
 // ── TARGET / BUDGET ──────────────────────────────────────────────────────────
 app.get('/api/target/:year', requireAuth, (req, res) => {
@@ -3366,4 +3453,4 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => console.log(`Agrotex running on port ${PORT}`));
+app.listen(PORT, () => { console.log(`Agrotex running on port ${PORT}`); startMarketCollectors(); });
