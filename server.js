@@ -1821,7 +1821,7 @@ app.get('/api/admin/audit', requireAdmin, (req, res) => {
 
 app.get('/api/admin/db-status', requireAdmin, (req, res) => {
   try {
-    const tables = ['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log', 'market_matif_history', 'market_fx_history'];
+    const tables = ['trades', 'logistics_contracts', 'transport_entries', 'transport_rates', 'train_contracts', 'stock_locations', 'stock_entries', 'products', 'target', 'weather_cache', 'audit_log', 'market_matif_history', 'market_fx_history', 'market_physical_quotes', 'market_settings'];
     const counts = {};
 
     for (const table of tables) {
@@ -2054,6 +2054,109 @@ function startMarketCollectors() {
   setInterval(matif,MATIF_TTL).unref();
   setInterval(fx,60*60*1000).unref();
 }
+
+// ── MARKET V2: immutable physical observations and DAP list anchors ──
+db.exec(`
+ CREATE TABLE IF NOT EXISTS market_physical_quotes (
+   id INTEGER PRIMARY KEY AUTOINCREMENT, observed_at TEXT NOT NULL, observed_date TEXT NOT NULL,
+   kind TEXT NOT NULL, product TEXT NOT NULL, crop INTEGER NOT NULL, quality TEXT NOT NULL,
+   data TEXT NOT NULL, status TEXT NOT NULL, deleted_at TEXT
+ );
+ CREATE INDEX IF NOT EXISTS market_physical_series ON market_physical_quotes(product,crop,quality,observed_date,kind);
+ CREATE TABLE IF NOT EXISTS market_settings (key TEXT PRIMARY KEY, value REAL NOT NULL);
+ INSERT OR IGNORE INTO market_settings(key,value) VALUES ('transport_rate',0.28);
+`);
+const mk2Rate=()=>db.prepare("SELECT value FROM market_settings WHERE key='transport_rate'").get().value;
+const mk2Kinds=['list','lot','client'];
+const mk2Products=['wheat','corn','rapeseed','sunflower'];
+function mk2Text(v,max=160){return typeof v==='string'?v.trim().slice(0,max):'';}
+function mk2Num(v,min=0,max=1e9){if(v===null||v===undefined||v===''||typeof v==='boolean')return null;const n=Number(v);return Number.isFinite(n)&&n>=min&&n<=max?n:null;}
+function mk2Date(v){const s=mk2Text(v,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s?s:'';}
+const mk2Decode=r=>({...JSON.parse(r.data),id:r.id,kind:r.kind,product:r.product,crop:r.crop,quality:r.quality,observedAt:r.observed_at,observedDate:r.observed_date,status:r.status});
+const mk2LatestList=db.prepare("SELECT * FROM market_physical_quotes WHERE kind='list' AND product=? AND crop=? AND quality=? AND deleted_at IS NULL ORDER BY id DESC LIMIT 1");
+const mk2Insert=db.prepare('INSERT INTO market_physical_quotes(observed_at,observed_date,kind,product,crop,quality,data,status) VALUES (?,?,?,?,?,?,?,?)');
+function mk2Calculate(kind,b,context){
+ const {fx,matif,anchor}=context;
+ const currency=b.currency; const toEur=p=>p===null?null:currency==='EUR'?p:fx?p/fx:null;
+ const toRon=p=>p===null?null:currency==='RON'?p:fx?p*fx:null;
+ const basis=p=>p===null||matif===null?null:p-matif;
+ const t=b.transportRon; const tEur=t===null||!fx?null:t/fx;
+ if(kind==='list'){const p=toEur(b.price);return {normalizedRon:b.price,normalizedEur:p,basis:basis(p)};}
+ if(kind==='lot'){
+   const adjust=b.parity==='FCA'?t:0;
+   const bid=b.bidRon===null&&anchor!==null&&adjust!==null&&b.premiumRon!==null?anchor-adjust+b.premiumRon:b.bidRon;
+   const norm=bid===null||adjust===null?null:bid+adjust;
+   const askNorm=b.askRon===null||adjust===null?null:b.askRon+adjust;
+   return {bidRon:bid,normalizedRon:norm,normalizedEur:fx&&norm!==null?norm/fx:null,basis:basis(fx&&norm!==null?norm/fx:null),askBasis:basis(fx&&askNorm!==null?askNorm/fx:null),listRon:anchor,baseFcaRon:anchor!==null&&adjust!==null?anchor-adjust:null,premiumActual:anchor!==null&&norm!==null?norm-anchor:null};
+ }
+ const routes=b.routes.map(r=>{const c=r.transportRon;const netRon=toRon(b.price);const netEur=toEur(b.price);const cEur=c===0?0:fx&&c!==null?c/fx:null;const normalizedRon=netRon!==null&&c!==null?netRon-c:null;const normalizedEur=netEur!==null&&cEur!==null?netEur-cEur:null;return {...r,normalizedRon,normalizedEur,basis:basis(normalizedEur)};});
+ return {routes};
+}
+app.get('/api/market/physical',requireAuth,(req,res)=>{
+ const rows=db.prepare('SELECT * FROM market_physical_quotes WHERE deleted_at IS NULL AND observed_date>=? ORDER BY id DESC').all(marketDay(new Date(Date.now()-365*86400000))).map(mk2Decode);
+ const lists=db.prepare("SELECT p.* FROM market_physical_quotes p WHERE p.kind='list' AND p.deleted_at IS NULL AND p.id=(SELECT MAX(q.id) FROM market_physical_quotes q WHERE q.kind='list' AND q.deleted_at IS NULL AND q.product=p.product AND q.crop=p.crop AND q.quality=p.quality) ORDER BY p.product,p.crop").all().map(mk2Decode);
+ res.json({rows,lists,today:marketDay(),transportRate:mk2Rate()});
+});
+app.put('/api/market/settings/transport',requireAdmin,(req,res)=>{
+ const rate=mk2Num(req.body?.rate,0.0001,10);
+ if(rate===null)return res.status(400).json({error:'Tarif invalid'});
+ const before=mk2Rate();db.prepare("UPDATE market_settings SET value=? WHERE key='transport_rate'").run(rate);
+ audit(req,'update','market_settings','transport_rate',{before,after:rate});res.json({rate});
+});
+app.post('/api/market/physical',requireAuth,(req,res)=>{
+ try{
+ const b=req.body||{}, kind=b.kind, product=b.product, crop=Number(b.crop),quality=mk2Text(b.quality,80);
+ const fail=message=>{throw new Error(message);};
+ if(!mk2Kinds.includes(kind)||!mk2Products.includes(product)||!Number.isInteger(crop)||crop<2000||crop>2100||!quality)fail('Produs, recoltă sau calitate invalidă');
+ const delivery=mk2Text(b.expiry,20); if(delivery&&!marketDelivery(delivery))fail('Scadență invalidă');
+ const fxrow=marketLatestFx.get(); const fx=fxrow?marketPrice(fxrow.eur_ron):null;
+ const refProduct=product==='sunflower'?'rapeseed':product;
+ const current=matifCache.data; const quote=current?.quotes?.[refProduct]?.allRows?.find(r=>r.delivery===delivery);
+ const observedAt=new Date().toISOString(), observedDate=marketDay();
+ const fresh=current&&Date.now()-Date.parse(current.fetchedAt)<=20*60*1000;
+ const matif=fresh?marketPrice(quote?.last):null;
+ const anchorRow=mk2LatestList.get(product,crop,quality); const anchor=anchorRow?JSON.parse(anchorRow.data).price:null;
+ const from=mk2Date(b.deliveryFrom),to=mk2Date(b.deliveryTo);
+ if(kind!=='list'&&(!from||!to||to<from))fail('Perioada de livrare invalidă');
+ const d={expiry:delivery,referenceProduct:refProduct,fx,fxDate:fxrow?.rate_date||null,matif,matifObservedAt:matif!==null?current.fetchedAt:null,deliveryFrom:from,deliveryTo:to,note:mk2Text(b.note,500),currency:'RON'};
+ let status='active';
+ if(kind==='list'){
+   d.price=mk2Num(b.price,0.01);if(d.price===null)fail('Preț DAP invalid');d.parity='DAP';
+ }else if(kind==='lot'){
+   const distanceKm=mk2Num(b.distanceKm,0,5000), transportRate=mk2Rate(), overrideRon=mk2Num(b.transportRon), transportRon=b.parity==='DAP'?0:overrideRon!==null?overrideRon:distanceKm!==null?Math.round(distanceKm*2*transportRate*100)/100:null;
+   Object.assign(d,{distanceKm,transportRate,transportOverride:overrideRon!==null,qty:mk2Num(b.qty,0.01),base:mk2Text(b.base),origin:mk2Text(b.origin),farmer:mk2Text(b.farmer),agent:mk2Text(b.agent),parity:b.parity,askRon:mk2Num(b.askRon,0.01),bidRon:mk2Num(b.bidRon,0.01),premiumRon:mk2Num(b.premiumRon,-100000,100000),transportRon,paymentDays:mk2Num(b.paymentDays,0,3650),listId:anchorRow?.id||null});
+   if(d.qty===null||!d.base||!['DAP','FCA'].includes(d.parity)||d.transportRon===null||(d.parity==='FCA'&&!d.origin))fail('Cantitate, origine, bază, paritate sau transport invalid');
+   if(d.bidRon===null&&(anchor===null||d.premiumRon===null))fail('Introdu prețul ofertat sau ajustarea față de listă');
+   status='quoted';
+ }else{
+   Object.assign(d,{client:mk2Text(b.client),destination:mk2Text(b.destination),offerType:b.offerType,firm:b.firm===true,validUntil:mk2Text(b.validUntil,40),qty:mk2Num(b.qty,0.01),price:mk2Num(b.price,0.01),currency:b.currency,parity:b.parity,paymentDays:mk2Num(b.paymentDays,0,3650)});
+   if(!d.client||!d.destination||!['list','indication','firm'].includes(d.offerType)||!['RON','EUR'].includes(d.currency)||!['DAP','CPT','FCA'].includes(d.parity)||d.price===null)fail('Date ofertă invalide');
+   if(d.offerType==='firm')d.firm=true;
+   if(d.firm&&(!d.validUntil||!Number.isFinite(Date.parse(d.validUntil))||Date.parse(d.validUntil)<=Date.now()||d.qty===null))fail('Oferta fermă necesită volum și valabilitate viitoare');
+   if(!Array.isArray(b.routes)||b.routes.length>30)fail('Rute invalide');
+   d.routes=b.routes.map(r=>({base:mk2Text(r.base),transportRon:mk2Num(r.transportRon)}));
+   if(!d.routes.length||d.routes.some(r=>!r.base||r.transportRon===null)||(d.parity==='FCA'&&(d.routes.length!==1||d.routes[0].transportRon!==0)))fail('Introdu costul fiecărei rute; FCA client = o singură bază, transport zero');
+ }
+ const result=mk2Calculate(kind,d,{fx,matif,anchor});
+ if(kind==='lot'&&(result.bidRon===null||result.bidRon<=0))fail('Preț ofertat invalid');
+ Object.assign(d,result);
+ const info=mk2Insert.run(observedAt,observedDate,kind,product,crop,quality,JSON.stringify(d),status);
+ audit(req,'create','market_physical',info.lastInsertRowid,{kind,product,crop});
+ res.json({id:Number(info.lastInsertRowid),...d,observedAt,observedDate,kind,product,crop,quality,status});
+ }catch(e){res.status(400).json({error:e.message});}
+});
+app.patch('/api/market/physical/:id',requireAuth,(req,res)=>{
+ const id=Number(req.params.id),status=req.body?.status;
+ if(!Number.isSafeInteger(id)||!['quoted','accepted','refused','expired','contracted'].includes(status))return res.status(400).json({error:'Status invalid'});
+ const row=db.prepare("SELECT * FROM market_physical_quotes WHERE id=? AND kind='lot' AND deleted_at IS NULL").get(id);
+ if(!row)return res.status(404).json({error:'Lot inexistent'});
+ db.prepare('UPDATE market_physical_quotes SET status=? WHERE id=?').run(status,id);audit(req,'update','market_physical',id,{before:row.status,after:status});res.json({ok:true});
+});
+app.delete('/api/market/physical/:id',requireAuth,(req,res)=>{
+ const id=Number(req.params.id);if(!Number.isSafeInteger(id))return res.status(400).json({error:'ID invalid'});
+ const r=db.prepare("UPDATE market_physical_quotes SET deleted_at=datetime('now') WHERE id=? AND deleted_at IS NULL").run(id);
+ if(!r.changes)return res.status(404).json({error:'Înregistrare inexistentă'});audit(req,'delete','market_physical',id);res.json({ok:true});
+});
 
 // ── TARGET / BUDGET ──────────────────────────────────────────────────────────
 app.get('/api/target/:year', requireAuth, (req, res) => {
